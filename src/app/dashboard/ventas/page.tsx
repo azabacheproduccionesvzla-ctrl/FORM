@@ -102,7 +102,7 @@ export default function VentasPage() {
   const [salesLoading, setSalesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<UserSession | null>(null);
   const [usersList, setUsersList] = useState<UserListItem[]>([]);
@@ -110,7 +110,7 @@ export default function VentasPage() {
   const [filterClient, setFilterClient] = useState<string>("");
   const [filterProject, setFilterProject] = useState<string>("");
   const [filterDate, setFilterDate] = useState<string>("");
-  
+
   const [selectedViewSale, setSelectedViewSale] = useState<Sale | null>(null);
   const [selectedLogsSale, setSelectedLogsSale] = useState<Sale | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -155,7 +155,7 @@ export default function VentasPage() {
     }
   };
 
-  
+
   useEffect(() => {
     async function loadSessionAndUsers() {
       try {
@@ -180,13 +180,13 @@ export default function VentasPage() {
     }
     loadSessionAndUsers();
   }, []);
-  
+
   useEffect(() => {
     if (user) {
       fetchSales();
     }
   }, [user]);
-  
+
   const filteredSales = sales.filter((sale) => {
     if (filterUserId && sale.usuario_registro_id !== filterUserId) {
       return false;
@@ -214,7 +214,7 @@ export default function VentasPage() {
   });
   return (
     <div>
-      {}
+      { }
       <div className={styles.pageHeader}>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <h1 className={styles.pageTitle}>Ventas</h1>
@@ -237,7 +237,7 @@ export default function VentasPage() {
           </button>
         </div>
       )}
-      {}
+      { }
       <div className={styles.card} style={{ minHeight: "450px", display: "flex", flexDirection: "column", padding: "2rem" }}>
         <div className={styles.cardTitle} style={{ justifyContent: "space-between", marginBottom: "1.5rem", width: "100%" }}>
           <span>Registro de Ventas</span>
@@ -335,7 +335,7 @@ export default function VentasPage() {
             </div>
           </div>
         )}
-        {}
+        { }
         {salesLoading ? (
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "4rem", flexGrow: 1 }}>
             <div className={styles.loadingSpinner} style={{ borderTopColor: "#0052cc" }}></div>
@@ -368,7 +368,7 @@ export default function VentasPage() {
           </div>
         ) : (
           <>
-            {}
+            { }
             <div className={styles.salesDesktopView}>
               <div className={styles.salesTableContainer}>
                 <table className={styles.salesTable}>
@@ -438,7 +438,7 @@ export default function VentasPage() {
                                 <path d="M19.333 2H4.667C3.197 2 2 3.197 2 4.667v14.666C2 20.803 3.197 22 4.667 22h14.666C20.803 22 22 20.803 22 19.333V4.667C22 3.197 20.803 2 19.333 2zM10.222 16.222c0 .49-.398.889-.889.889H5.778a.89.89 0 0 1-.889-.89V5.778c0-.49.398-.889.889-.889h3.555c.49 0 .889.398.889.89v10.444zm8.889-4.444c0 .49-.398.889-.889.889h-3.555a.89.89 0 0 1-.889-.89V5.778c0-.49.398-.889.889-.889h3.555c.49 0 .889.398.889.89v6z" />
                               </svg>
                             </div>
-                            
+
                             <div
                               className={`${styles.automationIconBadge} ${sale.status_dropbox === "COMPLETADO" ? styles.automationCompleted : sale.status_dropbox === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
                               style={getBadgeStyle(sale.status_dropbox)}
@@ -457,7 +457,7 @@ export default function VentasPage() {
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                               </svg>
                             </div>
-                            
+
                             <div
                               className={`${styles.automationIconBadge} ${sale.status_whatsapp === "COMPLETADO" ? styles.automationCompleted : sale.status_whatsapp === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
                               style={getBadgeStyle(sale.status_whatsapp)}
@@ -509,7 +509,7 @@ export default function VentasPage() {
               </div>
             </div>
 
-            {}
+            { }
             <div className={styles.salesMobileView}>
               {filteredSales.map((sale) => (
                 <div key={sale.id} className={styles.saleMobileCard}>
@@ -650,7 +650,7 @@ export default function VentasPage() {
           onSuccess={fetchSales}
         />
       )}
-      {}
+      { }
       {selectedViewSale && (
         <div className={styles.viewModalOverlay} onClick={() => setSelectedViewSale(null)}>
           <div className={styles.viewModalContent} onClick={(e) => e.stopPropagation()}>
@@ -677,10 +677,6 @@ export default function VentasPage() {
 
                 <div className={styles.viewModalBlock}>
                   <div className={styles.viewModalBlockTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
                     <span>Datos del Cliente</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
@@ -721,9 +717,6 @@ export default function VentasPage() {
                 </div>
                 <div className={styles.viewModalBlock}>
                   <div className={styles.viewModalBlockTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                    </svg>
                     <span>Datos del Proyecto</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
@@ -784,10 +777,6 @@ export default function VentasPage() {
               </div>
               <div className={styles.viewModalBlock} style={{ width: "100%" }}>
                 <div className={styles.viewModalBlockTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <line x1="2" y1="10" x2="22" y2="10" />
-                  </svg>
                   <span>Detalles Financieros y Comerciales</span>
                 </div>
                 <div className={styles.viewModalFinancialGrid}>
@@ -871,7 +860,7 @@ export default function VentasPage() {
                 </div>
                 <div className={styles.pipelineContainer}>
 
-                  <div 
+                  <div
                     className={`${styles.pipelineBox} ${selectedViewSale.status_trello === "COMPLETADO" ? styles.pipelineBoxCompleted :
                       selectedViewSale.status_trello === "ERROR" ? styles.pipelineBoxError :
                         selectedViewSale.status_trello === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
@@ -899,7 +888,7 @@ export default function VentasPage() {
                       <polyline points="12 5 19 12 12 19" />
                     </svg>
                   </div>
-                  <div 
+                  <div
                     className={`${styles.pipelineBox} ${selectedViewSale.status_dropbox === "COMPLETADO" ? styles.pipelineBoxCompleted :
                       selectedViewSale.status_dropbox === "ERROR" ? styles.pipelineBoxError :
                         selectedViewSale.status_dropbox === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
@@ -927,7 +916,7 @@ export default function VentasPage() {
                       <polyline points="12 5 19 12 12 19" />
                     </svg>
                   </div>
-                  <div 
+                  <div
                     className={`${styles.pipelineBox} ${selectedViewSale.status_ghl === "COMPLETADO" ? styles.pipelineBoxCompleted :
                       selectedViewSale.status_ghl === "ERROR" ? styles.pipelineBoxError :
                         selectedViewSale.status_ghl === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
@@ -950,7 +939,7 @@ export default function VentasPage() {
                       <polyline points="12 5 19 12 12 19" />
                     </svg>
                   </div>
-                  <div 
+                  <div
                     className={`${styles.pipelineBox} ${selectedViewSale.status_whatsapp === "COMPLETADO" ? styles.pipelineBoxCompleted :
                       selectedViewSale.status_whatsapp === "ERROR" ? styles.pipelineBoxError :
                         selectedViewSale.status_whatsapp === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
@@ -973,7 +962,7 @@ export default function VentasPage() {
                       <polyline points="12 5 19 12 12 19" />
                     </svg>
                   </div>
-                  <div 
+                  <div
                     className={`${styles.pipelineBox} ${selectedViewSale.status_email === "COMPLETADO" ? styles.pipelineBoxCompleted :
                       selectedViewSale.status_email === "ERROR" ? styles.pipelineBoxError :
                         selectedViewSale.status_email === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
@@ -1003,10 +992,7 @@ export default function VentasPage() {
             <div className={styles.viewModalHeader}>
               <div className={styles.viewModalTitleRow}>
                 <h3 className={styles.viewModalTitle} style={{ fontWeight: "600", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
-                  Estado del Sistema
+                  Estado de la venta
                 </h3>
                 <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", backgroundColor: "#f1f5f9" }}>
                   {selectedLogsSale.codigo_venta}
@@ -1097,8 +1083,8 @@ export default function VentasPage() {
                         {selectedLogsSale.status_ghl === "DESACTIVADO"
                           ? "Integración desactivada: Creación de contacto y factura en GHL omitida por el administrador."
                           : selectedLogsSale.status_ghl === "COMPLETADO"
-                          ? "Facturación y creación de contacto en GHL completadas con éxito."
-                          : `Proceso de facturación GHL: ${selectedLogsSale.status_ghl}`}
+                            ? "Facturación y creación de contacto en GHL completadas con éxito."
+                            : `Proceso de facturación GHL: ${selectedLogsSale.status_ghl}`}
                       </span>
                     </div>
                   )}
@@ -1111,8 +1097,8 @@ export default function VentasPage() {
                         {selectedLogsSale.status_trello === "DESACTIVADO"
                           ? "Integración desactivada: Creación de tarjeta de proyecto en Trello omitida por el administrador."
                           : selectedLogsSale.status_trello === "COMPLETADO"
-                          ? "Tarjeta de proyecto creada en Trello con éxito."
-                          : `Sincronización de tablero Trello: ${selectedLogsSale.status_trello}`}
+                            ? "Tarjeta de proyecto creada en Trello con éxito."
+                            : `Sincronización de tablero Trello: ${selectedLogsSale.status_trello}`}
                       </span>
                     </div>
                   )}
@@ -1125,8 +1111,8 @@ export default function VentasPage() {
                         {selectedLogsSale.status_dropbox === "DESACTIVADO"
                           ? "Integración desactivada: Creación de carpeta en Dropbox omitida por el administrador."
                           : selectedLogsSale.status_dropbox === "COMPLETADO"
-                          ? "Carpeta de proyecto en Dropbox creada con éxito."
-                          : `Creación de directorio Dropbox: ${selectedLogsSale.status_dropbox}`}
+                            ? "Carpeta de proyecto en Dropbox creada con éxito."
+                            : `Creación de directorio Dropbox: ${selectedLogsSale.status_dropbox}`}
                       </span>
                     </div>
                   )}
@@ -1139,8 +1125,8 @@ export default function VentasPage() {
                         {selectedLogsSale.status_email === "DESACTIVADO"
                           ? "Integración desactivada: Notificación de email interno omitida por el administrador."
                           : selectedLogsSale.status_email === "COMPLETADO"
-                          ? "Notificación de email al equipo enviada con éxito."
-                          : `Envío de email de notificación: ${selectedLogsSale.status_email}`}
+                            ? "Notificación de email al equipo enviada con éxito."
+                            : `Envío de email de notificación: ${selectedLogsSale.status_email}`}
                       </span>
                     </div>
                   )}
@@ -1153,8 +1139,8 @@ export default function VentasPage() {
                         {selectedLogsSale.status_whatsapp === "DESACTIVADO"
                           ? "Integración desactivada: Notificación de WhatsApp por Zapier omitida por el administrador."
                           : selectedLogsSale.status_whatsapp === "COMPLETADO"
-                          ? "Notificación de WhatsApp enviada al grupo con éxito."
-                          : `Envío de mensaje de WhatsApp: ${selectedLogsSale.status_whatsapp}`}
+                            ? "Notificación de WhatsApp enviada al grupo con éxito."
+                            : `Envío de mensaje de WhatsApp: ${selectedLogsSale.status_whatsapp}`}
                       </span>
                     </div>
                   )}

@@ -8,7 +8,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Azabache Producciones - Login",
+  title: "Azabache Producciones - Workspace",
   description: "Módulo de Registro de Ventas - Acceso Interno",
 };
 
