@@ -1,142 +1,353 @@
-.page {
-  --background: #fafafa;
-  --foreground: #fff;
-
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
+.container {
   display: flex;
-  flex: 1;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
-.main {
-  display: flex;
-  flex: 1;
+.loginCard {
   width: 100%;
-  max-width: 800px;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
-}
-
-.intro {
+  max-width: 440px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  padding: 2.5rem 2rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
+  transition: all 0.3s ease;
 }
 
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
+/* Identidad Visual de Azabache */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.25rem;
+}
+
+.logoSquare {
+  width: 38px;
+  height: 38px;
+  background-color: #000000;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logoIcon {
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.5px;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.brandSubtext {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Textos e instrucciones */
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 1.75rem;
+}
+
+/* Formularios y campos de entrada */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.label {
+  font-size: 0.8125rem;
   font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
+  color: #334155;
 }
 
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.ctas {
+.inputWrapper {
+  position: relative;
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.ctas a {
-  display: flex;
-  justify-content: center;
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: #4a90ff;
+  box-shadow: 0 0 0 3px rgba(74, 144, 255, 0.15);
+}
+
+.inputError {
+  border-color: #ef4444;
+}
+
+.inputError:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Botones con estilo corporativo */
+.button {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #0052cc; /* Color azul de "Nueva venta" */
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.button:hover {
+  background-color: #0040a3;
+}
+
+.button:active {
+  transform: translateY(0.5px);
+}
+
+.button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Diseño del PIN de 6 dígitos */
+.pinContainer {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.pinInput {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.pinInput:focus {
+  border-color: #4a90ff;
+  box-shadow: 0 0 0 3px rgba(74, 144, 255, 0.15);
+}
+
+.pinInputFilled {
+  border-color: #0052cc;
+  background-color: rgba(0, 82, 204, 0.02);
+}
+
+/* Feedback e Indicadores */
+.errorAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  color: #991b1b;
+  margin-bottom: 1.5rem;
+  animation: shake 0.4s ease-in-out;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  align-self: center;
+  transition: color 0.2s ease;
+}
+
+.backButton:hover {
+  color: #0052cc;
+}
+
+.userInfoBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f1f5f9;
+  border-radius: 30px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  color: #334155;
   font-weight: 500;
+  margin-bottom: 1.5rem;
+  width: fit-content;
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.userDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: spin 0.8s linear infinite;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
-
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
-}
-
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
-
-  .intro {
-    gap: 16px;
-  }
-
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
+/* Animaciones */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Estructuras Responsivas */
+@media (max-width: 480px) {
+  .loginCard {
+    padding: 2rem 1.5rem;
+    box-shadow: none;
+    border: none;
+    background: transparent;
   }
+  .container {
+    background-color: #ffffff;
+    align-items: flex-start;
+    padding-top: 10%;
+  }
+}
 
-  .page {
-    --background: #000;
-    --foreground: #000;
+/* Sobrescribir colores de autofill del navegador para el campo de usuario */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0f172a !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  border-color: #cbd5e1;
+}
 
-    --text-primary: #ededed;
-    --text-secondary: #999;
+/* Overlay modal de carga (translúcido con desenfoque) */
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.35); /* Fondo oscuro translúcido */
+  backdrop-filter: blur(5px); /* Efecto cristalino suave */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease-out;
+}
 
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
+.loadingOverlayContent {
+  background-color: #ffffff;
+  padding: 1.75rem 2.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 180px;
+}
+
+.loadingSpinnerOverlay {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0, 82, 204, 0.08);
+  border-radius: 50%;
+  border-top-color: #0052cc;
+  animation: spin 0.7s linear infinite;
+}
+
+.loadingTextOverlay {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569; /* Letras suaves en gris medio */
+  letter-spacing: -0.1px;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
