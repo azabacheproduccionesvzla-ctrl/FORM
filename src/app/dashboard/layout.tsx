@@ -18,10 +18,10 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserSession | null>(null);
-  
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
@@ -30,7 +30,7 @@ export default function DashboardLayout({
       try {
         const response = await fetch("/api/auth/session");
         const data = await response.json();
-        
+
         if (data.authenticated && data.user) {
           setUser(data.user);
         } else {
@@ -43,7 +43,7 @@ export default function DashboardLayout({
         setLoading(false);
       }
     }
-    
+
     checkSession();
   }, [router]);
 
@@ -85,15 +85,15 @@ export default function DashboardLayout({
     <div className={styles.layoutContainer}>
       <header className={styles.mobileHeader}>
         <div className={styles.sidebarBrand} style={{ marginBottom: 0 }}>
-          <div className={styles.logoSquare} style={{ width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <div className={styles.logoSquare} style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+            <img src="/logo.png" alt="Logo" style={{ width: "30px", height: "30px", objectFit: "contain" }} />
           </div>
           <div className={styles.brandText}>
             <span className={styles.brandName} style={{ fontSize: "0.85rem" }}>Azabache</span>
           </div>
         </div>
-        <button 
-          className={styles.hamburgerBtn} 
+        <button
+          className={styles.hamburgerBtn}
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label="Abrir menú"
         >
@@ -115,8 +115,8 @@ export default function DashboardLayout({
       </header>
 
       {sidebarOpen && (
-        <div 
-          className={`${styles.sidebarOverlay} ${styles.sidebarOverlayVisible}`} 
+        <div
+          className={`${styles.sidebarOverlay} ${styles.sidebarOverlayVisible}`}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -133,8 +133,8 @@ export default function DashboardLayout({
         </div>
 
         <nav className={styles.sidebarMenu}>
-          <Link 
-            href="/dashboard" 
+          <Link
+            href="/dashboard"
             className={`${styles.menuItem} ${isActive("/dashboard") ? styles.menuItemActive : ""}`}
             onClick={() => setSidebarOpen(false)}
           >
@@ -147,8 +147,8 @@ export default function DashboardLayout({
             <span>Dashboard</span>
           </Link>
 
-          <Link 
-            href="/dashboard/ventas" 
+          <Link
+            href="/dashboard/ventas"
             className={`${styles.menuItem} ${isActive("/dashboard/ventas") ? styles.menuItemActive : ""}`}
             onClick={() => setSidebarOpen(false)}
           >
@@ -161,8 +161,8 @@ export default function DashboardLayout({
           </Link>
 
           {isUserAdmin && (
-            <Link 
-              href="/dashboard/ajustes" 
+            <Link
+              href="/dashboard/ajustes"
               className={`${styles.menuItem} ${isActive("/dashboard/ajustes") ? styles.menuItemActive : ""}`}
               onClick={() => setSidebarOpen(false)}
             >
@@ -176,8 +176,8 @@ export default function DashboardLayout({
         </nav>
 
         <div className={styles.logoutButton}>
-          <button 
-            className={styles.menuItem} 
+          <button
+            className={styles.menuItem}
             style={{ width: "100%", textAlign: "left", background: "none", border: "none" }}
             onClick={handleLogout}
             disabled={logoutLoading}

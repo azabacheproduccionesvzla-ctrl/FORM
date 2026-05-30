@@ -57,8 +57,8 @@
 }
 
 .logoSquare {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 44px;
   background-color: #000000;
   border-radius: 8px;
   display: flex;
@@ -2100,6 +2100,7 @@
 }
 
 @media (max-width: 768px) {
+
   .salesDesktopView,
   .usersDesktopView {
     display: none;
@@ -2134,9 +2135,11 @@
     padding: 1.25rem 1rem !important;
     gap: 1.25rem !important;
   }
+
   .viewModalHeader {
     padding: 1rem 1.25rem !important;
   }
+
   .viewModalBlock {
     padding: 1.25rem !important;
   }
