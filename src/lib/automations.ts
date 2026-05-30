@@ -8,7 +8,7 @@ import { getIntegrationConfig } from "@/lib/config_service";
 export async function runVentasAutomations(saleId: string) {
   try {
     console.log(`[Automations] Iniciando automatizaciones para venta ID: ${saleId}`);
-    
+
     const config = await getIntegrationConfig();
 
     const { data: sale, error: fetchErr } = await supabase
@@ -65,7 +65,7 @@ export async function runVentasAutomations(saleId: string) {
     fechaVencimiento.setMinutes(fechaVencimiento.getMinutes() + 1);
 
     const dueDateStr = fechaVencimiento.toISOString();
-    
+
     let finalCodigoVenta = sale.codigo_venta;
     let contactId = "";
     let ghlError = null;
@@ -109,7 +109,7 @@ export async function runVentasAutomations(saleId: string) {
               status_ghl: "COMPLETADO"
             })
             .eq("id", saleId);
-            
+
         } catch (e: any) {
           ghlError = e.message || "Excepción en GHL API";
           console.error(`[Automations] Error en GHL (Contacto/Factura):`, e);
@@ -131,7 +131,7 @@ export async function runVentasAutomations(saleId: string) {
           await supabase.from("ventas").update({ status_dropbox: "PROCESANDO" }).eq("id", saleId);
           console.log(`[Automations] Creando carpeta en Dropbox para ${clientInfo?.nombre || ""} ${sale.proyecto_nombre}`);
           const dropboxRes = await createDropboxFolder(clientInfo?.nombre || "Cliente", `${finalCodigoVenta} - ${sale.proyecto_nombre}`);
-          
+
           if (dropboxRes.success && dropboxRes.path) {
             dropboxUrlLink = dropboxRes.url || dropboxRes.path;
             console.log(`[Automations] Dropbox completado. Path: ${dropboxRes.path}`);
@@ -234,10 +234,10 @@ export async function runVentasAutomations(saleId: string) {
               name: "Notificaciones Azabache",
               email: email
             });
-            
+
             await sendGhlMessage(
-              teamContactId, 
-              "Email", 
+              teamContactId,
+              "Email",
               compiledHtml,
               `Nueva Venta Registrada - ${sale.proyecto_nombre}`
             );
@@ -261,8 +261,8 @@ export async function runVentasAutomations(saleId: string) {
         try {
           await supabase.from("ventas").update({ status_whatsapp: "PROCESANDO" }).eq("id", saleId);
           console.log(`[Automations] Enviando mensaje WhatsApp vía Zapier`);
-          
-          const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL || "https://hooks.zapier.com/hooks/catch/14255171/4og1c36/";
+
+          const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL || "";
 
           const zapierPayload = {
             titulo: "*NUEVA VENTA REGISTRADA*",
@@ -321,7 +321,7 @@ export async function runVentasAutomations(saleId: string) {
         comprobante_link: sale.comprobante_link,
         fecha_pago: sale.fecha_pago
       };
-      
+
       await appendRowToSheet(sheetsPayload);
     } catch (e: any) {
       console.error(`[Automations] Sheets excepción:`, e);
@@ -330,7 +330,7 @@ export async function runVentasAutomations(saleId: string) {
     try {
       console.log(`[Automations] Registrando/actualizando proyecto en base de datos`);
       const finalTrelloCardId = trelloCardId || (trelloUrl ? trelloUrl.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null);
-      
+
       const { data: existingProj } = await supabase
         .from("proyectos")
         .select("id")
