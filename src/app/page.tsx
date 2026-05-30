@@ -180,7 +180,7 @@ export default function LoginPage() {
           <form onSubmit={handleUsernameSubmit}>
             <h2 className={styles.title}>Iniciar sesión</h2>
             <p className={styles.description}>
-              Ingresa tu nombre de usuario corporativo registrado para acceder al workspace de la agencia.
+              Ingresa tu nombre de usuario para acceder al workspace de la agencia.
             </p>
 
             {error && (
