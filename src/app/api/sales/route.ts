@@ -133,6 +133,7 @@ export async function POST(request: Request) {
       es_continuacion,
       tipo_continuacion,
       proyecto_previo_id,
+      proyecto_id,
       tipo_venta,
       tipo_proyecto,
       tipo_proyecto_otro,
@@ -331,6 +332,29 @@ export async function POST(request: Request) {
 
     if (salesErr) {
       throw salesErr;
+    }
+
+    if (proyecto_id) {
+      const updateData: any = {
+        cliente_id: finalClienteId,
+        venta_id: salesInserted.id
+      };
+
+      const { error: projUpdateErr } = await supabase
+        .from("proyectos")
+        .update(updateData)
+        .eq("id", proyecto_id);
+
+      if (projUpdateErr) {
+        console.error("[Sales API] Error updating proyecto client/sale:", projUpdateErr);
+      }
+
+      if (proyecto_previo_id) {
+        await supabase
+          .from("ventas")
+          .update({ cliente_id: finalClienteId })
+          .eq("id", proyecto_previo_id);
+      }
     }
 
     runVentasAutomations(salesInserted.id).catch((err) => {

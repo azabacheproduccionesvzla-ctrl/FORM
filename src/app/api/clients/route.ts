@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
+import { verifyPin } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,6 +50,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (e) {}
+    const { pin } = body;
+
+    if (!pin) {
+      return NextResponse.json(
+        { success: false, error: "Se requiere el PIN de seguridad para iniciar la sincronización." },
+        { status: 400 }
+      );
+    }
+
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("azabache_session");
 
@@ -56,6 +70,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "No autorizado." },
         { status: 401 }
+      );
+    }
+
+    const userData = JSON.parse(sessionCookie.value);
+    if (userData.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Acceso denegado. Solo administradores pueden realizar esta sincronización." },
+        { status: 403 }
+      );
+    }
+
+    const { data: dbUser, error: fetchErr } = await supabase
+      .from("usuarios_agencia")
+      .select("pin_hash, pin_salt")
+      .eq("id", userData.id)
+      .single();
+
+    if (fetchErr || !dbUser) {
+      return NextResponse.json(
+        { success: false, error: "No se pudo recuperar la información de seguridad del usuario." },
+        { status: 403 }
+      );
+    }
+
+    const isPinValid = verifyPin(pin, dbUser.pin_hash, dbUser.pin_salt);
+    if (!isPinValid) {
+      return NextResponse.json(
+        { success: false, error: "PIN de seguridad incorrecto." },
+        { status: 403 }
       );
     }
 
@@ -71,13 +114,14 @@ export async function POST(request: NextRequest) {
 
     console.log("[Clients Sync] Iniciando sincronización de contactos desde GHL...");
     let allContacts: any[] = [];
-    let nextPageId = "";
+    let startAfter: number | null = null;
+    let startAfterId: string | null = null;
     let pageCount = 0;
 
     do {
       let url = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}&limit=100`;
-      if (nextPageId) {
-        url += `&nextPageId=${nextPageId}`;
+      if (startAfter && startAfterId) {
+        url += `&startAfter=${startAfter}&startAfterId=${startAfterId}`;
       }
 
       const res = await fetch(url, {
@@ -97,9 +141,11 @@ export async function POST(request: NextRequest) {
       const data = await res.json();
       const contacts = data.contacts || [];
       allContacts = [...allContacts, ...contacts];
-      nextPageId = data.meta?.nextPageId || "";
+      
+      startAfter = data.meta?.startAfter || null;
+      startAfterId = data.meta?.startAfterId || null;
       pageCount++;
-    } while (nextPageId && pageCount < 10);
+    } while (startAfter && startAfterId && pageCount < 10);
 
     console.log(`[Clients Sync] Obtenidos ${allContacts.length} contactos de GHL.`);
 
@@ -123,6 +169,7 @@ export async function POST(request: NextRequest) {
       const firstName = ghlContact.firstName || "";
       const lastName = ghlContact.lastName || "";
       const ghlName = (
+        ghlContact.contactName ||
         ghlContact.name ||
         [firstName, lastName].filter(Boolean).join(" ") ||
         `GHL - ${ghlContact.id}`
@@ -132,6 +179,23 @@ export async function POST(request: NextRequest) {
       const ghlPhone = ghlContact.phone || "";
       const ghlCompany = ghlContact.companyName || "";
       const ghlCountry = ghlContact.country || "";
+
+      // Try to parse platform profile link from customFields
+      let ghlPlatformLink = "";
+      if (ghlContact.customFields && Array.isArray(ghlContact.customFields)) {
+        for (const field of ghlContact.customFields) {
+          const val = String(field.value || "");
+          if (val.startsWith("http") && (
+            val.includes("workana.com") || 
+            val.includes("freelancer.com") || 
+            val.includes("upwork.com") || 
+            val.includes("fiverr.com")
+          )) {
+            ghlPlatformLink = val;
+            break;
+          }
+        }
+      }
 
       let matchedClient = dbClientsMapById.get(ghlContact.id);
       if (!matchedClient && ghlEmail) {
@@ -148,13 +212,30 @@ export async function POST(request: NextRequest) {
         if (!matchedClient.telefono && ghlPhone) updates.telefono = ghlPhone;
         if (!matchedClient.empresa && ghlCompany) updates.empresa = ghlCompany;
         if (!matchedClient.pais && ghlCountry) updates.pais = ghlCountry;
+        if (!matchedClient.link_usuario_plataforma && ghlPlatformLink) updates.link_usuario_plataforma = ghlPlatformLink;
+
+        if (ghlContact.dateAdded) {
+          try {
+            const ghlDateStr = new Date(ghlContact.dateAdded).toISOString();
+            const dbDateStr = new Date(matchedClient.creado_en).toISOString();
+            if (ghlDateStr !== dbDateStr) {
+              updates.creado_en = ghlContact.dateAdded;
+            }
+          } catch (e) {
+            console.error(`[Clients Sync] Error al procesar fecha para el cliente ${matchedClient.nombre}:`, e);
+          }
+        }
 
         if (Object.keys(updates).length > 0) {
           const { error: updErr } = await supabase
             .from("clientes")
             .update(updates)
             .eq("id", matchedClient.id);
-          if (!updErr) updatedCount++;
+          if (updErr) {
+            console.error(`[Clients Sync] Error actualizando cliente ${matchedClient.nombre}:`, updErr);
+          } else {
+            updatedCount++;
+          }
         }
       } else {
         const { error: insErr } = await supabase.from("clientes").insert([
@@ -164,10 +245,14 @@ export async function POST(request: NextRequest) {
             telefono: ghlPhone || null,
             empresa: ghlCompany || null,
             pais: ghlCountry || null,
+            link_usuario_plataforma: ghlPlatformLink || null,
             ghl_contact_id: ghlContact.id,
+            creado_en: ghlContact.dateAdded || new Date().toISOString(),
           },
         ]);
-        if (!insErr) {
+        if (insErr) {
+          console.error(`[Clients Sync] Error insertando cliente ${ghlName}:`, insErr);
+        } else {
           insertedCount++;
           dbClientsMapByName.set(ghlName.toLowerCase(), { nombre: ghlName });
         }

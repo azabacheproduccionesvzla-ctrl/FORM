@@ -49,6 +49,12 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   const [priorSales, setPriorSales] = useState<PriorSale[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
+  // New state variables for projects selection
+  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [gatingProjSearchQuery, setGatingProjSearchQuery] = useState("");
+  const [showGatingProjSuggestions, setShowGatingProjSuggestions] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+
   
   const [gatingStep, setGatingStep] = useState<"choose" | "extension" | "pago_parcial" | "none">("choose");
   const [selectedClient, setSelectedClient] = useState<string>("");
@@ -94,6 +100,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
     es_continuacion: false,
     tipo_continuacion: "", 
     proyecto_previo_id: "",
+    proyecto_id: "",
 
     
     tipo_venta: "Nueva Venta", 
@@ -163,6 +170,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       setGatingStep("choose");
       setSelectedClient("");
       setSelectedPriorProject("");
+      setGatingProjSearchQuery("");
+      setShowGatingProjSuggestions(false);
+      setSelectedProject(null);
       setMontoCCPagadoPrevio(0);
       setMontoCCTotalPrevio(0);
       setModifyProjectData(false);
@@ -189,6 +199,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         es_continuacion: false,
         tipo_continuacion: "",
         proyecto_previo_id: "",
+        proyecto_id: "",
         tipo_venta: "Nueva Venta",
         tipo_proyecto: "Precio Fijo",
         tipo_proyecto_otro: "",
@@ -230,16 +241,19 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       async function loadAuxiliaryData() {
         setLoadingData(true);
         try {
-          const [clientsRes, usersRes] = await Promise.all([
+          const [clientsRes, usersRes, projectsRes] = await Promise.all([
             fetch("/api/clients"),
-            fetch("/api/users")
+            fetch("/api/users"),
+            fetch("/api/projects")
           ]);
 
           const clientsData = await clientsRes.json();
           const usersData = await usersRes.json();
+          const projectsData = await projectsRes.json();
 
           if (clientsData.success) setClients(clientsData.clients || []);
           if (usersData.success) setUsers(usersData.users || []);
+          if (projectsData.success) setAllProjects(projectsData.projects || []);
         } catch (error) {
           console.error("Error al cargar datos del formulario:", error);
         } finally {
@@ -351,62 +365,39 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
   
   const handleConfirmGating = () => {
-    if (gatingStep === "extension") {
-      if (!selectedClient || !selectedPriorProject) {
-        setFormError("Por favor, selecciona el cliente y el proyecto previo.");
+    if (gatingStep === "extension" || gatingStep === "pago_parcial") {
+      if (!selectedProject) {
+        setFormError("Por favor, selecciona el proyecto previo.");
         return;
       }
-      const priorSale = priorSales.find(s => s.id === selectedPriorProject);
+      if (!formData.cliente_nuevo && !formData.cliente_id) {
+        setFormError("Por favor, selecciona o crea un cliente para este proyecto.");
+        return;
+      }
+      if (formData.cliente_nuevo && !formData.cliente_nombre) {
+        setFormError("Por favor, ingresa el nombre para el nuevo cliente.");
+        return;
+      }
+
+      const priorSaleId = selectedProject.venta_id || "";
 
       setFormData(prev => ({
         ...prev,
         es_continuacion: true,
-        tipo_continuacion: "extension",
-        proyecto_previo_id: selectedPriorProject,
-        tipo_venta: "Extensión de Proyecto",
-        cliente_nuevo: false,
-        cliente_id: selectedClient,
-        proyecto_nombre: priorSale ? `Extensión - ${priorSale.proyecto_nombre}` : "",
-        proyecto_link: priorSale?.proyecto_link || "",
-        proyecto_brief: priorSale?.proyecto_brief || "",
-        descripcion_operativa: priorSale?.descripcion_operativa || "",
-        deadline: priorSale?.deadline || "",
-        tipo_proyecto: priorSale?.tipo_proyecto || "Precio Fijo",
-        monto_total: priorSale?.monto_total?.toString() || "",
-        plataforma: priorSale?.plataforma || "Workana",
+        tipo_continuacion: gatingStep,
+        proyecto_previo_id: priorSaleId,
+        proyecto_id: selectedProject.id,
+        tipo_venta: gatingStep === "extension" ? "Extensión de Proyecto" : "Pago Parcial",
+        status_pago: gatingStep === "pago_parcial" ? "Pago Parcial" : prev.status_pago,
+        proyecto_nombre: gatingStep === "extension" ? `Extensión - ${selectedProject.nombre}` : selectedProject.nombre,
+        proyecto_link: selectedProject.link_trello || "",
+        carpeta_dropbox: selectedProject.carpeta_dropbox || "",
       }));
 
-      if (priorSale?.tipo_proyecto === "Por Hora") {
-        setMontoPorHora(priorSale.monto_total.toString());
+      if (selectedProject.ventas?.tipo_proyecto === "Por Hora") {
+        setMontoPorHora(selectedProject.ventas.monto_total.toString());
       }
 
-      setGatingStep("none");
-      setFormError(null);
-    } else if (gatingStep === "pago_parcial") {
-      if (!selectedClient || !selectedPriorProject) {
-        setFormError("Por favor, selecciona el cliente y el proyecto previo.");
-        return;
-      }
-      const priorSale = priorSales.find(s => s.id === selectedPriorProject);
-
-      setFormData(prev => ({
-        ...prev,
-        es_continuacion: true,
-        tipo_continuacion: "pago_parcial",
-        proyecto_previo_id: selectedPriorProject,
-        tipo_venta: "Pago Parcial",
-        status_pago: "Pago Parcial",
-        cliente_nuevo: false,
-        cliente_id: selectedClient,
-        proyecto_nombre: priorSale ? priorSale.proyecto_nombre : "",
-        proyecto_link: priorSale?.proyecto_link || "",
-        proyecto_brief: priorSale?.proyecto_brief || "",
-        descripcion_operativa: priorSale?.descripcion_operativa || "",
-        deadline: priorSale?.deadline || "",
-        tipo_proyecto: priorSale?.tipo_proyecto || "Precio Fijo",
-        monto_total: priorSale?.monto_total?.toString() || "",
-        plataforma: priorSale?.plataforma || "Workana",
-      }));
       setGatingStep("none");
       setFormError(null);
     } else {
@@ -611,6 +602,65 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   const closingCandidates = users.filter(u => u.rol === "ventas" || u.rol === "admin");
 
   
+  const filteredProjectsGating = allProjects.filter((p) => {
+    const q = gatingProjSearchQuery.toLowerCase();
+    return (
+      p.nombre?.toLowerCase().includes(q) ||
+      p.clientes?.nombre?.toLowerCase().includes(q) ||
+      (p.ventas?.codigo_venta && p.ventas.codigo_venta.toLowerCase().includes(q))
+    );
+  });
+
+  const handleProjectSelect = (proj: any) => {
+    setSelectedProject(proj);
+    setGatingProjSearchQuery(proj.nombre);
+    setShowGatingProjSuggestions(false);
+
+    if (proj.venta_id) {
+      setSelectedPriorProject(proj.venta_id);
+      const amount = proj.ventas?.monto_total || 0;
+      setMontoCCTotalPrevio(amount);
+      setMontoCCPagadoPrevio(proj.ventas?.monto_pagado || amount);
+    } else {
+      setSelectedPriorProject("");
+      setMontoCCTotalPrevio(0);
+      setMontoCCPagadoPrevio(0);
+    }
+
+    const client = proj.clientes;
+    const isGenericClient = client && client.nombre === "Cliente Trello Sin Clasificar";
+
+    if (client && !isGenericClient) {
+      setSelectedClient(client.id);
+      setGatingSearchQuery(client.nombre);
+      setFormData(prev => ({
+        ...prev,
+        cliente_nuevo: false,
+        cliente_id: client.id,
+        cliente_nombre: client.nombre,
+        cliente_telefono: client.telefono || "",
+        cliente_email: client.email || "",
+        cliente_pais: client.pais || "",
+        cliente_empresa: client.empresa || "",
+        cliente_link_usuario: client.link_usuario_plataforma || ""
+      }));
+    } else {
+      setSelectedClient("");
+      setGatingSearchQuery("");
+      setFormData(prev => ({
+        ...prev,
+        cliente_id: "",
+        cliente_nuevo: false,
+        cliente_nombre: "",
+        cliente_telefono: "",
+        cliente_email: "",
+        cliente_pais: "",
+        cliente_empresa: "",
+        cliente_link_usuario: ""
+      }));
+    }
+  };
+
   const filteredClientsGating = clients.filter(c =>
     c.nombre.toLowerCase().includes(gatingSearchQuery.toLowerCase())
   );
@@ -640,9 +690,11 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   const hasSetterOriginal = clientObj && clientObj.setter_original_id;
   const origSetterObj = hasSetterOriginal ? users.find(u => u.id === clientObj.setter_original_id) : null;
 
+  const isAnyAutocompleteOpen = showGatingProjSuggestions || showGatingSuggestions || showMainSuggestions;
+
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalContent} style={{ maxWidth: modalWidth, padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "95vh" }}>
+      <div className={styles.modalContent} style={{ maxWidth: modalWidth, padding: 0, overflow: isAnyAutocompleteOpen ? "visible" : "hidden", display: "flex", flexDirection: "column", maxHeight: "95vh" }}>
 
         {}
         <div className={styles.modalHeader} style={{ padding: "1.25rem 1.5rem", marginBottom: 0, borderBottom: "1px solid #e2e8f0", backgroundColor: "#ffffff" }}>
@@ -663,7 +715,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
         {}
         {gatingStep !== "none" ? (
-          <div style={{ flexGrow: 1, overflowY: "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem" }} className={styles.modalBodyScrollable}>
+          <div style={{ flexGrow: 1, overflowY: isAnyAutocompleteOpen ? "visible" : "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem" }} className={styles.modalBodyScrollable}>
             {gatingStep === "choose" && (
               <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                 <span className={styles.gatingTitle} style={{ alignSelf: "center", marginBottom: "0.25rem", fontWeight: "500", fontSize: "1.1rem" }}>¿Qué tipo de registro deseas realizar?</span>
@@ -717,61 +769,225 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                   {gatingStep === "extension" ? "Extensión de Proyecto" : "Pago Completo o Cierre de Proyecto"}
                 </span>
 
+                {/* 1. Selección de Proyecto Previo */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Cliente</label>
+                  <label className={styles.label}>Proyecto Previo *</label>
                   <div className={styles.autocompleteWrapper}>
                     <input
                       type="text"
-                      placeholder="Seleccionar cliente..."
+                      placeholder="Buscar por nombre de proyecto, cliente o código..."
                       className={styles.input}
-                      value={gatingSearchQuery}
+                      value={gatingProjSearchQuery}
                       onChange={(e) => {
-                        setGatingSearchQuery(e.target.value);
+                        setGatingProjSearchQuery(e.target.value);
+                        setSelectedProject(null);
                         setSelectedClient("");
-                        setShowGatingSuggestions(true);
+                        setGatingSearchQuery("");
+                        setShowGatingProjSuggestions(true);
                       }}
-                      onFocus={() => setShowGatingSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowGatingSuggestions(false), 200)}
+                      onFocus={() => setShowGatingProjSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowGatingProjSuggestions(false), 200)}
                       disabled={submitting}
                     />
-                    {showGatingSuggestions && (
+                    {showGatingProjSuggestions && (
                       <div className={styles.autocompleteResults}>
-                        {filteredClientsGating.length > 0 ? (
-                          filteredClientsGating.map(c => (
-                            <div
-                              key={c.id}
-                              className={styles.autocompleteItem}
-                              onClick={() => {
-                                setSelectedClient(c.id);
-                                setGatingSearchQuery(c.nombre);
-                                setShowGatingSuggestions(false);
-                              }}
-                            >
-                              {c.nombre}
-                            </div>
-                          ))
+                        {filteredProjectsGating.length > 0 ? (
+                          filteredProjectsGating.map(p => {
+                            const clientLabel = p.clientes && p.clientes.nombre !== "Cliente Trello Sin Clasificar"
+                              ? p.clientes.nombre
+                              : "Sin cliente clasificado";
+                            const saleCodeLabel = p.ventas?.codigo_venta ? ` [${p.ventas.codigo_venta}]` : "";
+                            return (
+                              <div
+                                key={p.id}
+                                className={styles.autocompleteItem}
+                                onClick={() => handleProjectSelect(p)}
+                              >
+                                <strong>{p.nombre}</strong>{saleCodeLabel} <span style={{ fontSize: "0.85rem", color: "#64748b" }}>- {clientLabel}</span>
+                              </div>
+                            );
+                          })
                         ) : (
-                          <div className={styles.autocompleteNoResults}>No se encontraron clientes</div>
+                          <div className={styles.autocompleteNoResults}>No se encontraron proyectos</div>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Proyecto Previo</label>
-                  <select
-                    className={styles.select}
-                    value={selectedPriorProject}
-                    onChange={(e) => handlePriorProjectSelect(e.target.value)}
-                    disabled={!selectedClient}
-                  >
-                    <option value="">Seleccionar proyecto...</option>
-                    {priorSales.map(s => <option key={s.id} value={s.id}>{s.proyecto_nombre} ({s.codigo_venta})</option>)}
-                  </select>
-                </div>
+                {/* 2. Información/Asignación de Cliente */}
+                {selectedProject && (
+                  (() => {
+                    const client = selectedProject.clientes;
+                    const isGenericClient = !client || client.nombre === "Cliente Trello Sin Clasificar";
 
-                {gatingStep === "pago_parcial" && selectedPriorProject && (
+                    if (!isGenericClient) {
+                      return (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Cliente asociado</label>
+                          <input
+                            type="text"
+                            className={styles.input}
+                            value={`${client.nombre} ${client.empresa ? `(${client.empresa})` : ""}`}
+                            disabled
+                          />
+                        </div>
+                      );
+                    }
+
+                    // No tiene cliente real -> Mostrar asignación
+                    return (
+                      <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "8px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#d97706", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                          ⚠️ Este proyecto no tiene un cliente asignado
+                        </span>
+                        <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: 0 }}>
+                          Por favor, selecciona un cliente existente o registra uno nuevo para este proyecto.
+                        </p>
+
+                        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", marginTop: "0.25rem" }}>
+                          <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontWeight: 500, color: "#374151" }}>
+                            <input
+                              type="radio"
+                              name="gatingClientType"
+                              checked={!formData.cliente_nuevo}
+                              onChange={() => {
+                                setFormData(prev => ({ ...prev, cliente_nuevo: false, cliente_id: "" }));
+                                setGatingSearchQuery("");
+                                setSelectedClient("");
+                              }}
+                            />
+                            Cliente Existente
+                          </label>
+                          <label style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontWeight: 500, color: "#374151" }}>
+                            <input
+                              type="radio"
+                              name="gatingClientType"
+                              checked={formData.cliente_nuevo}
+                              onChange={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  cliente_nuevo: true,
+                                  cliente_id: "",
+                                  cliente_nombre: "",
+                                  cliente_email: "",
+                                  cliente_telefono: "",
+                                  cliente_empresa: "",
+                                  cliente_pais: ""
+                                }));
+                              }}
+                            />
+                            Cliente Nuevo
+                          </label>
+                        </div>
+
+                        {!formData.cliente_nuevo ? (
+                          <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                            <label className={styles.label}>Seleccionar Cliente</label>
+                            <div className={styles.autocompleteWrapper}>
+                              <input
+                                type="text"
+                                placeholder="Buscar cliente..."
+                                className={styles.input}
+                                value={gatingSearchQuery}
+                                onChange={(e) => {
+                                  setGatingSearchQuery(e.target.value);
+                                  setSelectedClient("");
+                                  setFormData(prev => ({ ...prev, cliente_id: "" }));
+                                  setShowGatingSuggestions(true);
+                                }}
+                                onFocus={() => setShowGatingSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowGatingSuggestions(false), 200)}
+                              />
+                              {showGatingSuggestions && (
+                                <div className={styles.autocompleteResults}>
+                                  {filteredClientsGating.length > 0 ? (
+                                    filteredClientsGating.map(c => (
+                                      <div
+                                        key={c.id}
+                                        className={styles.autocompleteItem}
+                                        onClick={() => {
+                                          setSelectedClient(c.id);
+                                          setGatingSearchQuery(c.nombre);
+                                          setFormData(prev => ({ ...prev, cliente_id: c.id, cliente_nombre: c.nombre }));
+                                          setShowGatingSuggestions(false);
+                                        }}
+                                      >
+                                        {c.nombre}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className={styles.autocompleteNoResults}>No se encontraron clientes</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                              <label className={styles.label}>Nombre del Cliente Nuevo *</label>
+                              <input
+                                type="text"
+                                placeholder="Nombre completo"
+                                className={styles.input}
+                                value={formData.cliente_nombre}
+                                onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
+                              />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                <label className={styles.label}>Email</label>
+                                <input
+                                  type="email"
+                                  placeholder="correo@ejemplo.com"
+                                  className={styles.input}
+                                  value={formData.cliente_email}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_email: e.target.value }))}
+                                />
+                              </div>
+                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                <label className={styles.label}>Teléfono</label>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: +34..."
+                                  className={styles.input}
+                                  value={formData.cliente_telefono}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                <label className={styles.label}>Empresa</label>
+                                <input
+                                  type="text"
+                                  placeholder="Nombre empresa"
+                                  className={styles.input}
+                                  value={formData.cliente_empresa}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_empresa: e.target.value }))}
+                                />
+                              </div>
+                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                <label className={styles.label}>País</label>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: España"
+                                  className={styles.input}
+                                  value={formData.cliente_pais}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_pais: e.target.value }))}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                )}
+
+                {/* 3. Datos de pago parcial / cierre si corresponde */}
+                {gatingStep === "pago_parcial" && selectedProject?.venta_id && (
                   <div className={styles.prefilledInfoBlock}>
                     <div className={styles.prefilledRow}>
                       <span className={styles.prefilledLabel}>Monto C/C Pagado:</span>
@@ -808,7 +1024,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
           </div>
         ) : (
           /* FORMULARIO BASADO EN PASOS */
-          <form onSubmit={handleNextStep} className={styles.form} style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: "hidden", gap: 0 }}>
+          <form onSubmit={handleNextStep} className={styles.form} style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: isAnyAutocompleteOpen ? "visible" : "hidden", gap: 0 }}>
 
             <div style={{ backgroundColor: "#f8fafc", padding: "1.25rem 1.5rem", borderBottom: "1px solid #e2e8f0" }}>
               <div className={styles.stepperHeader} style={{ marginBottom: 0, paddingBottom: 0, borderBottom: "none" }}>
@@ -840,7 +1056,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
             </div>
 
             {}
-            <div style={{ flexGrow: 1, overflowY: "auto", padding: "1.5rem 1.5rem 3.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className={styles.modalBodyScrollable}>
+            <div style={{ flexGrow: 1, overflowY: isAnyAutocompleteOpen ? "visible" : "auto", padding: "1.5rem 1.5rem 3.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className={styles.modalBodyScrollable}>
 
               {}
               {step === 1 && (

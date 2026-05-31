@@ -8,23 +8,16 @@
 -- o pruebas limpias.
 -- ====================================================================
 
--- 1. Limpieza de base de datos previa
-DROP TRIGGER IF EXISTS trg_generar_codigo_venta ON ventas;
-DROP FUNCTION IF EXISTS generar_codigo_venta();
-DROP TABLE IF EXISTS proyectos;
-DROP TABLE IF EXISTS configuraciones;
-DROP TABLE IF EXISTS historial_actividades;
-DROP TABLE IF EXISTS ventas;
-DROP TABLE IF EXISTS clientes;
-DROP TABLE IF EXISTS usuarios_agencia;
-DROP TYPE IF EXISTS rol_usuario;
-DROP SEQUENCE IF EXISTS seq_codigo_venta;
-
--- 2. Definición del Tipo Enumerado para los Roles
-CREATE TYPE rol_usuario AS ENUM ('admin', 'ventas', 'auditor');
+-- 1. Definición Segura del Tipo Enumerado para los Roles (evita recreación)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'rol_usuario') THEN 
+        CREATE TYPE rol_usuario AS ENUM ('admin', 'ventas', 'auditor'); 
+    END IF; 
+END $$;
 
 -- 3. Creación de la Tabla de Usuarios Agencia
-CREATE TABLE usuarios_agencia (
+CREATE TABLE IF NOT EXISTS usuarios_agencia (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE NOT NULL,
     nombre VARCHAR(150) NOT NULL,
@@ -36,10 +29,10 @@ CREATE TABLE usuarios_agencia (
     actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_usuarios_agencia_username ON usuarios_agencia(username);
+CREATE INDEX IF NOT EXISTS idx_usuarios_agencia_username ON usuarios_agencia(username);
 
 -- 4. Creación de la Tabla de Clientes
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(150) UNIQUE NOT NULL,
     telefono VARCHAR(50),
@@ -52,8 +45,10 @@ CREATE TABLE clientes (
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ghl_contact_id VARCHAR(100);
+
 -- 5. Creación de la Tabla de Ventas
-CREATE TABLE ventas (
+CREATE TABLE IF NOT EXISTS ventas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     codigo_venta VARCHAR(100) UNIQUE,
     es_continuacion BOOLEAN DEFAULT FALSE NOT NULL,
@@ -103,7 +98,7 @@ CREATE TABLE ventas (
 );
 
 -- Secuencia y trigger para generar código autoincrementable de ventas
-CREATE SEQUENCE seq_codigo_venta START WITH 1;
+CREATE SEQUENCE IF NOT EXISTS seq_codigo_venta START WITH 1;
 
 CREATE OR REPLACE FUNCTION generar_codigo_venta()
 RETURNS TRIGGER AS $$
@@ -118,6 +113,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_generar_codigo_venta ON ventas;
+
 CREATE TRIGGER trg_generar_codigo_venta
 BEFORE INSERT ON ventas
 FOR EACH ROW
@@ -125,7 +122,7 @@ WHEN (NEW.codigo_venta IS NULL)
 EXECUTE FUNCTION generar_codigo_venta();
 
 -- 6. Creación de la Tabla de Historial de Actividades
-CREATE TABLE historial_actividades (
+CREATE TABLE IF NOT EXISTS historial_actividades (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id UUID REFERENCES usuarios_agencia(id) ON DELETE CASCADE,
     accion_descripcion TEXT NOT NULL,
@@ -133,7 +130,7 @@ CREATE TABLE historial_actividades (
 );
 
 -- 6.5 Creación de la Tabla de Configuraciones
-CREATE TABLE configuraciones (
+CREATE TABLE IF NOT EXISTS configuraciones (
     clave VARCHAR(100) PRIMARY KEY,
     valor JSONB NOT NULL,
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -141,7 +138,7 @@ CREATE TABLE configuraciones (
 );
 
 -- 6.8 Creación de la Tabla de Proyectos
-CREATE TABLE proyectos (
+CREATE TABLE IF NOT EXISTS proyectos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(255) NOT NULL,
     cliente_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
@@ -159,7 +156,8 @@ CREATE TABLE proyectos (
 INSERT INTO clientes (nombre, telefono, email, pais, empresa, link_usuario_plataforma)
 VALUES 
 ('Cliente Dev S.A.', '+34 600 000 000', 'contacto@clientedev.com', 'España', 'Devcorp Inc.', 'https://www.workana.com/u/clientedev'),
-('Chris Producciones', '+58 412 000 0000', 'chris@azabache.com', 'Venezuela', 'Azabache', 'https://www.freelancer.com/u/chrisazabache');
+('Chris Producciones', '+58 412 000 0000', 'chris@azabache.com', 'Venezuela', 'Azabache', 'https://www.freelancer.com/u/chrisazabache')
+ON CONFLICT (nombre) DO NOTHING;
 
 -- 8. Semillas de los 3 Únicos Usuarios Dev Requeridos
 -- Encriptación scrypt del PIN precalculada para coincidir con la lógica del backend
@@ -192,18 +190,23 @@ VALUES
     '14e2c6dd7214688f3c60eae2d1a35f3961faad4e1f221f9c2156a27bea7609304ac04365780830b6a54d303bafb3658e3e13a19d8783174163efe87f9a87cbb5', 
     '05d56807d038be9b190346fe7546e31a', 
     true
-);
+)
+ON CONFLICT (username) DO NOTHING;
 
 -- Insertar log inicial en historial asignado al administrador
 INSERT INTO historial_actividades (usuario_id, accion_descripcion)
-VALUES (
+SELECT 
     (SELECT id FROM usuarios_agencia WHERE username = 'admin_dev' LIMIT 1),
     'Esquema unificado inicializado y 3 usuarios de desarrollo únicos creados.'
+WHERE NOT EXISTS (
+    SELECT 1 FROM historial_actividades 
+    WHERE accion_descripcion = 'Esquema unificado inicializado y 3 usuarios de desarrollo únicos creados.'
 );
 
 -- Insertar configuración inicial por defecto para las integraciones
 INSERT INTO configuraciones (clave, valor)
-VALUES ('integraciones', '{"dropbox": true, "trello": true, "ghl_email": true, "ghl_factura": true, "zapier_whatsapp": true}'::jsonb);
+VALUES ('integraciones', '{"dropbox": true, "trello": true, "ghl_email": true, "ghl_factura": true, "zapier_whatsapp": true}'::jsonb)
+ON CONFLICT (clave) DO NOTHING;
 
 -- ====================================================================
 -- 9. Políticas de Seguridad RLS (Row Level Security)
@@ -220,6 +223,9 @@ ALTER TABLE configuraciones DISABLE ROW LEVEL SECURITY;
 ALTER TABLE proyectos DISABLE ROW LEVEL SECURITY;
 
 -- A. Políticas para usuarios_agencia
+DROP POLICY IF EXISTS "Admin completo usuarios" ON usuarios_agencia;
+DROP POLICY IF EXISTS "Lectura y login usuarios" ON usuarios_agencia;
+
 CREATE POLICY "Admin completo usuarios" ON usuarios_agencia
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 
@@ -230,6 +236,11 @@ CREATE POLICY "Lectura y login usuarios" ON usuarios_agencia
     );
 
 -- B. Políticas para clientes
+DROP POLICY IF EXISTS "Admin completo clientes" ON clientes;
+DROP POLICY IF EXISTS "Ventas/Auditor ver clientes" ON clientes;
+DROP POLICY IF EXISTS "Ventas crear clientes" ON clientes;
+DROP POLICY IF EXISTS "Ventas actualizar clientes" ON clientes;
+
 CREATE POLICY "Admin completo clientes" ON clientes
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 
@@ -243,6 +254,11 @@ CREATE POLICY "Ventas actualizar clientes" ON clientes
     FOR UPDATE USING (current_setting('app.current_user_role', true) = 'ventas');
 
 -- C. Políticas para ventas
+DROP POLICY IF EXISTS "Admin completo ventas" ON ventas;
+DROP POLICY IF EXISTS "Auditor leer todas las ventas" ON ventas;
+DROP POLICY IF EXISTS "Ventas crear sus ventas" ON ventas;
+DROP POLICY IF EXISTS "Ventas leer sus propias ventas" ON ventas;
+
 CREATE POLICY "Admin completo ventas" ON ventas
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 
@@ -262,6 +278,11 @@ CREATE POLICY "Ventas leer sus propias ventas" ON ventas
     );
 
 -- D. Políticas para historial_actividades
+DROP POLICY IF EXISTS "Admin completo historial" ON historial_actividades;
+DROP POLICY IF EXISTS "Auditor leer todo historial" ON historial_actividades;
+DROP POLICY IF EXISTS "Ventas leer propio historial" ON historial_actividades;
+DROP POLICY IF EXISTS "Cualquiera registrar historial" ON historial_actividades;
+
 CREATE POLICY "Admin completo historial" ON historial_actividades
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 
@@ -281,6 +302,9 @@ CREATE POLICY "Cualquiera registrar historial" ON historial_actividades
     );
 
 -- E. Políticas para configuraciones
+DROP POLICY IF EXISTS "Admin completo configuraciones" ON configuraciones;
+DROP POLICY IF EXISTS "Cualquiera leer configuraciones" ON configuraciones;
+
 CREATE POLICY "Admin completo configuraciones" ON configuraciones
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 
@@ -288,6 +312,9 @@ CREATE POLICY "Cualquiera leer configuraciones" ON configuraciones
     FOR SELECT USING (true);
 
 -- F. Políticas para proyectos
+DROP POLICY IF EXISTS "Admin completo proyectos" ON proyectos;
+DROP POLICY IF EXISTS "Ventas/Auditor ver proyectos" ON proyectos;
+
 CREATE POLICY "Admin completo proyectos" ON proyectos
     FOR ALL USING (current_setting('app.current_user_role', true) = 'admin');
 

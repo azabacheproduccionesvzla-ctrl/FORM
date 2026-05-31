@@ -1,7 +1,9 @@
 /* Estilos del Contenedor Principal (Layout) */
 .layoutContainer {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background-color: #f8fafc;
   /* Fondo gris claro azulado de la imagen */
   font-family: var(--font-montserrat), sans-serif;
@@ -11,6 +13,7 @@
 /* Área de contenido principal a la derecha */
 .mainContent {
   flex-grow: 1;
+  height: 100%;
   padding: 2.5rem 3rem;
   box-sizing: border-box;
   overflow-y: auto;
@@ -37,6 +40,7 @@
    ==================================================================== */
 .sidebar {
   width: 260px;
+  height: 100%;
   background-color: #ffffff;
   border-right: 1px solid #e2e8f0;
   display: flex;

@@ -56,6 +56,25 @@ export default function AjustesPage() {
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState<string | null>(null);
 
+  const [syncModal, setSyncModal] = useState({
+    isOpen: false,
+    progress: 0,
+    status: "syncing", // "syncing" | "success" | "error"
+    inserted: 0,
+    updated: 0,
+    total: 0,
+    errorMsg: "",
+    type: "trello" // "trello" | "ghl"
+  });
+
+  const handleTriggerSync = (syncType: "SYNC_TRELLO" | "SYNC_GHL") => {
+    setPendingToggleKey(syncType);
+    setPinPromptValue(Array(6).fill(""));
+    setConfigError(null);
+    setConfigSuccess(null);
+    setIsPinPromptOpen(true);
+  };
+
   const [formPinDigits, setFormPinDigits] = useState<string[]>(Array(6).fill(""));
   const formPinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -346,6 +365,71 @@ export default function AjustesPage() {
   const executeToggleChange = async (pinStr: string) => {
     setActionLoading(true);
     setConfigError(null);
+
+    if (pendingToggleKey === "SYNC_TRELLO" || pendingToggleKey === "SYNC_GHL") {
+      setIsPinPromptOpen(false);
+      const isTrello = pendingToggleKey === "SYNC_TRELLO";
+      setSyncModal({
+        isOpen: true,
+        progress: 0,
+        status: "syncing",
+        inserted: 0,
+        updated: 0,
+        total: 0,
+        errorMsg: "",
+        type: isTrello ? "trello" : "ghl"
+      });
+
+      const interval = setInterval(() => {
+        setSyncModal(prev => {
+          if (prev.progress >= 92) {
+            clearInterval(interval);
+            return prev;
+          }
+          const inc = Math.floor(Math.random() * 8) + 2;
+          return { ...prev, progress: Math.min(prev.progress + inc, 92) };
+        });
+      }, 250);
+
+      try {
+        const endpoint = isTrello ? "/api/projects/sync" : "/api/clients";
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pinStr })
+        });
+        const data = await res.json();
+        clearInterval(interval);
+
+        if (data.success) {
+          setSyncModal(prev => ({
+            ...prev,
+            progress: 100,
+            status: "success",
+            inserted: data.insertedCount,
+            updated: data.updatedCount,
+            total: data.totalSynced
+          }));
+        } else {
+          setSyncModal(prev => ({
+            ...prev,
+            status: "error",
+            errorMsg: data.error || `Error al sincronizar con ${isTrello ? "Trello" : "GHL"}.`
+          }));
+        }
+      } catch (err) {
+        clearInterval(interval);
+        setSyncModal(prev => ({
+          ...prev,
+          status: "error",
+          errorMsg: `Error de conexión al sincronizar con ${isTrello ? "Trello" : "GHL"}.`
+        }));
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
     try {
       const updatedConfig = pendingToggleKey === "ALL"
         ? {
@@ -687,6 +771,40 @@ export default function AjustesPage() {
         )}
       </div>
 
+      <div className={styles.card} style={{ padding: "1.5rem", marginTop: "1.5rem" }}>
+        <h2 className={styles.cardTitle} style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+          Sincronización Manual de Datos
+        </h2>
+        <p className={styles.cardDescription} style={{ marginBottom: "1.5rem" }}>
+          Sincroniza manualmente los datos de las plataformas externas con la base de datos. Estas acciones requieren confirmación de PIN.
+        </p>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <button
+            className={styles.btnPrimary}
+            onClick={() => handleTriggerSync("SYNC_TRELLO")}
+            disabled={actionLoading}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            <span>Sincronizar Proyectos (Trello)</span>
+          </button>
+
+          <button
+            className={styles.btnPrimary}
+            onClick={() => handleTriggerSync("SYNC_GHL")}
+            disabled={actionLoading}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", backgroundColor: "#0284c7", borderColor: "#0284c7" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            <span>Sincronizar Clientes (GHL)</span>
+          </button>
+        </div>
+      </div>
+
       {isAddModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -937,6 +1055,140 @@ export default function AjustesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {syncModal.isOpen && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div className={styles.card} style={{
+            width: "100%",
+            maxWidth: "450px",
+            padding: "2.5rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+          }}>
+            {syncModal.status === "syncing" && (
+              <>
+                <div className={styles.loadingSpinner} style={{ width: "45px", height: "45px", borderTopColor: "#0052cc", borderWidth: "3px", marginBottom: "1.5rem" }}></div>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#0f172a", marginBottom: "0.5rem" }}>
+                  Sincronizando con {syncModal.type === "trello" ? "Trello" : "GHL"}
+                </h3>
+                <p style={{ fontSize: "0.875rem", color: "#64748b", textAlign: "center", marginBottom: "2rem" }}>
+                  Por favor espera. Importando datos y vinculando registros en base de datos.
+                </p>
+
+                <div style={{ width: "100%", backgroundColor: "#e2e8f0", borderRadius: "9999px", height: "8px", overflow: "hidden", position: "relative", marginBottom: "0.5rem" }}>
+                  <div style={{
+                    width: `${syncModal.progress}%`,
+                    backgroundColor: "#0052cc",
+                    height: "100%",
+                    borderRadius: "9999px",
+                    transition: "width 0.4s ease-out"
+                  }}></div>
+                </div>
+                <span style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0052cc" }}>{syncModal.progress}%</span>
+              </>
+            )}
+
+            {syncModal.status === "success" && (
+              <>
+                <div style={{
+                  width: "55px",
+                  height: "55px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ecfdf5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#10b981",
+                  border: "2px solid #a7f3d0",
+                  marginBottom: "1.5rem"
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#0f172a", marginBottom: "0.5rem" }}>Sincronización Exitosa</h3>
+                <p style={{ fontSize: "0.875rem", color: "#64748b", textAlign: "center", marginBottom: "1.5rem" }}>
+                  Se completó el proceso de importación masiva desde {syncModal.type === "trello" ? "Trello" : "GHL"}.
+                </p>
+
+                <div style={{
+                  width: "100%",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  padding: "1rem 1.25rem",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "0.875rem",
+                  color: "#475569",
+                  marginBottom: "2rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Total Procesados:</span>
+                    <strong style={{ color: "#0f172a" }}>{syncModal.total}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Nuevos Registros:</span>
+                    <strong style={{ color: "#10b981" }}>+{syncModal.inserted}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Actualizados:</span>
+                    <strong style={{ color: "#0052cc" }}>{syncModal.updated}</strong>
+                  </div>
+                </div>
+
+                <button onClick={() => setSyncModal(prev => ({ ...prev, isOpen: false }))} className={styles.btnPrimary} style={{ width: "100%" }}>
+                  Entendido
+                </button>
+              </>
+            )}
+
+            {syncModal.status === "error" && (
+              <>
+                <div style={{
+                  width: "55px",
+                  height: "55px",
+                  borderRadius: "50%",
+                  backgroundColor: "#fef2f2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ef4444",
+                  border: "2px solid #fca5a5",
+                  marginBottom: "1.5rem"
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#0f172a", marginBottom: "0.5rem" }}>Sincronización Fallida</h3>
+                <p style={{ fontSize: "0.875rem", color: "#ef4444", textAlign: "center", marginBottom: "2rem" }}>
+                  {syncModal.errorMsg}
+                </p>
+                <button onClick={() => setSyncModal(prev => ({ ...prev, isOpen: false }))} className={styles.btnPrimary} style={{ width: "100%", backgroundColor: "#ef4444", borderColor: "#ef4444" }}>
+                  Cerrar
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

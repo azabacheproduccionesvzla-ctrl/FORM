@@ -262,7 +262,10 @@ export async function runVentasAutomations(saleId: string) {
           await supabase.from("ventas").update({ status_whatsapp: "PROCESANDO" }).eq("id", saleId);
           console.log(`[Automations] Enviando mensaje WhatsApp vía Zapier`);
 
-          const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL || "";
+          const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL;
+          if (!zapierUrl) {
+            throw new Error("ZAPIER_WHATSAPP_WEBHOOK_URL is not defined in environment variables.");
+          }
 
           const zapierPayload = {
             titulo: "*NUEVA VENTA REGISTRADA*",
