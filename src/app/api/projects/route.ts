@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const activeOnly = searchParams.get("activeOnly") !== "false";
 
     let query = supabase
       .from("proyectos")
@@ -35,14 +34,11 @@ export async function GET(request: NextRequest) {
           monto_total,
           moneda,
           fecha_pago,
-          creado_en
+          creado_en,
+          urgente
         )
       `)
       .order("creado_en", { ascending: false });
-
-    if (activeOnly) {
-      query = query.eq("activo", true);
-    }
 
     const { data: projects, error } = await query;
 
