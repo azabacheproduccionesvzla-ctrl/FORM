@@ -141,7 +141,7 @@ export default function VentasPage() {
       // Default fallback values
       setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
       const dropboxUrlLink = selectedViewSale.carpeta_dropbox || "No creada";
-      const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${selectedViewSale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
+      const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${selectedViewSale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${selectedViewSale.descripcion_operativa ? `\n\n---\n\n${selectedViewSale.descripcion_operativa}` : ""}`;
       setQuickTrelloDesc(desc);
       setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
 

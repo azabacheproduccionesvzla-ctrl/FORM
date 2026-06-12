@@ -166,7 +166,7 @@ export async function runVentasAutomations(saleId: string) {
 
               if (finalCardId) {
                 console.log(`[Automations] Dropbox completado y Trello ya estaba completado. Actualizando descripción de la tarjeta ${finalCardId}...`);
-                const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
+                const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
                 await updateTrelloCardDesc(finalCardId, trelloDesc);
                 console.log(`[Automations] Descripción de tarjeta de Trello actualizada con el link de Dropbox.`);
               }
@@ -193,7 +193,7 @@ export async function runVentasAutomations(saleId: string) {
       try {
         await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
         console.log(`[Automations] Procesando tarjeta en Trello`);
-        const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
+        const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
 
         const trelloRes = await processTrelloCard({
           projectName: sale.proyecto_nombre,
