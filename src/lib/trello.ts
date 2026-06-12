@@ -198,3 +198,43 @@ export async function updateTrelloCardDesc(
     };
   }
 }
+
+export async function updateTrelloCardFields(
+  cardId: string,
+  fields: { name?: string; desc?: string }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const key = process.env.TRELLO_API_KEY;
+    const token = process.env.TRELLO_TOKEN;
+
+    if (!key || !token) {
+      return {
+        success: false,
+        error: "Trello credentials not configured in environment variables.",
+      };
+    }
+
+    const updateUrl = new URL(`https://api.trello.com/1/cards/${cardId}`);
+    updateUrl.searchParams.append("key", key);
+    updateUrl.searchParams.append("token", token);
+    if (fields.name !== undefined) updateUrl.searchParams.append("name", fields.name);
+    if (fields.desc !== undefined) updateUrl.searchParams.append("desc", fields.desc);
+
+    const res = await fetch(updateUrl.toString(), {
+      method: "PUT",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(`Failed to update Trello card fields: ${JSON.stringify(data)}`);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Trello card fields update error:", err);
+    return {
+      success: false,
+      error: err.message || "Unknown error updating Trello card fields.",
+    };
+  }
+}

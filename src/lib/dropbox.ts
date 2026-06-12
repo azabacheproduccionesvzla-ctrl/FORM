@@ -232,3 +232,73 @@ export async function renameDropboxFolder(
     };
   }
 }
+
+export async function renameDropboxFolderDirect(
+  oldFolderName: string,
+  newFolderName: string,
+  creadoEn: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const refreshToken = process.env.DROPBOX_REFRESH_TOKEN;
+    const appKey = process.env.DROPBOX_APP_KEY;
+    const appSecret = process.env.DROPBOX_APP_SECRET;
+
+    if (!refreshToken || !appKey || !appSecret) {
+      return {
+        success: false,
+        error: "Dropbox credentials not configured in environment variables.",
+      };
+    }
+
+    const year = new Date(creadoEn).getFullYear();
+    const cleanOldFolder = oldFolderName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+    const oldPath = `/ENTREGA/${year}/${cleanOldFolder}`;
+
+    const cleanNewFolder = newFolderName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+    const newPath = `/ENTREGA/${year}/${cleanNewFolder}`;
+
+    if (oldPath.toLowerCase() === newPath.toLowerCase()) {
+      return { success: true };
+    }
+
+    const accessToken = await getAccessToken({ refreshToken, appKey, appSecret });
+
+    console.log(`[Dropbox] Renombrando carpeta de "${oldPath}" a "${newPath}"`);
+
+    const res = await fetch("https://api.dropboxapi.com/2/files/move_v2", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from_path: oldPath,
+        to_path: newPath,
+        allow_shared_folder: true,
+        autorename: false,
+        allow_ownership_transfer: true,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (
+        data.error &&
+        data.error[".tag"] === "lookup_failed"
+      ) {
+        console.warn(`[Dropbox Rename] Carpeta origen no encontrada: ${oldPath}. Saltando renombrado.`);
+        return { success: true };
+      }
+      throw new Error(`Dropbox move failed: ${JSON.stringify(data)}`);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Dropbox rename folder error:", err);
+    return {
+      success: false,
+      error: err.message || "Unknown error renaming Dropbox folder.",
+    };
+  }
+}

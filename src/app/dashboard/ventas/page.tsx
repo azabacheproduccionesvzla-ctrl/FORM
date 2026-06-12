@@ -118,6 +118,88 @@ export default function VentasPage() {
   const [selectedLogsSale, setSelectedLogsSale] = useState<Sale | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  const [quickTrelloTitle, setQuickTrelloTitle] = useState("");
+  const [quickTrelloDesc, setQuickTrelloDesc] = useState("");
+  const [quickDropboxFolder, setQuickDropboxFolder] = useState("");
+  const [isUpdatingTrello, setIsUpdatingTrello] = useState(false);
+  const [isUpdatingDropbox, setIsUpdatingDropbox] = useState(false);
+
+  useEffect(() => {
+    if (selectedViewSale) {
+      const cleanedProj = (selectedViewSale.proyecto_nombre || "")
+        .replace(/^azabache\s+producciones\s*-\s*/i, "")
+        .replace(/^azabache\s+producciones\s*/i, "")
+        .trim();
+      const clientName = selectedViewSale.clientes?.nombre || "";
+      setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
+      
+      const dropboxUrlLink = selectedViewSale.carpeta_dropbox || "No creada";
+      const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${selectedViewSale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
+      setQuickTrelloDesc(desc);
+
+      setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
+    } else {
+      setQuickTrelloTitle("");
+      setQuickTrelloDesc("");
+      setQuickDropboxFolder("");
+    }
+  }, [selectedViewSale]);
+
+  const handleUpdateTrello = async () => {
+    if (!selectedViewSale) return;
+    setIsUpdatingTrello(true);
+    try {
+      const res = await fetch("/api/sales/quick-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          saleId: selectedViewSale.id,
+          action: "trello",
+          trelloTitle: quickTrelloTitle,
+          trelloDesc: quickTrelloDesc
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Tarjeta de Trello actualizada exitosamente.");
+        fetchSales();
+      } else {
+        alert(`Error al actualizar Trello: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error de red: ${err.message}`);
+    } finally {
+      setIsUpdatingTrello(false);
+    }
+  };
+
+  const handleUpdateDropbox = async () => {
+    if (!selectedViewSale) return;
+    setIsUpdatingDropbox(true);
+    try {
+      const res = await fetch("/api/sales/quick-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          saleId: selectedViewSale.id,
+          action: "dropbox",
+          dropboxFolder: quickDropboxFolder
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Carpeta de Dropbox renombrada exitosamente y base de datos actualizada.");
+        fetchSales();
+      } else {
+        alert(`Error al renombrar Dropbox: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error de red: ${err.message}`);
+    } finally {
+      setIsUpdatingDropbox(false);
+    }
+  };
+
   const fetchSales = async () => {
     try {
       setSalesLoading(true);
@@ -997,6 +1079,73 @@ export default function VentasPage() {
                   </div>
                 )}
               </div>
+
+              {/* Bloque de Pruebas de Integración */}
+              <div className={styles.viewModalBlock} style={{ width: "100%", marginTop: "1rem", backgroundColor: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "1.25rem" }}>
+                <div className={styles.viewModalBlockTitle} style={{ color: "#475569", fontSize: "0.85rem", fontWeight: "600", marginBottom: "0.75rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
+                  🔧 Pruebas de Integración: Edición Rápida (Trello y Dropbox)
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                  {/* Columna Trello */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <h5 style={{ margin: 0, fontSize: "0.8rem", fontWeight: "600", color: "#1e293b" }}>Trello Card</h5>
+                    <div>
+                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Tarjeta</label>
+                      <input
+                        type="text"
+                        value={quickTrelloTitle}
+                        onChange={(e) => setQuickTrelloTitle(e.target.value)}
+                        className={styles.input}
+                        style={{ fontSize: "0.75rem", padding: "0.4rem" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Descripción</label>
+                      <textarea
+                        value={quickTrelloDesc}
+                        onChange={(e) => setQuickTrelloDesc(e.target.value)}
+                        className={styles.input}
+                        style={{ fontSize: "0.75rem", padding: "0.4rem", minHeight: "80px", resize: "vertical" }}
+                      />
+                    </div>
+                    <button
+                      className={styles.btnSecondary}
+                      onClick={handleUpdateTrello}
+                      disabled={isUpdatingTrello || !selectedViewSale.link_trello}
+                      style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", width: "fit-content" }}
+                    >
+                      {isUpdatingTrello ? "Actualizando..." : "Actualizar Trello"}
+                    </button>
+                  </div>
+
+                  {/* Columna Dropbox */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <h5 style={{ margin: 0, fontSize: "0.8rem", fontWeight: "600", color: "#1e293b" }}>Dropbox Folder</h5>
+                    <div>
+                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Carpeta</label>
+                      <input
+                        type="text"
+                        value={quickDropboxFolder}
+                        onChange={(e) => setQuickDropboxFolder(e.target.value)}
+                        className={styles.input}
+                        style={{ fontSize: "0.75rem", padding: "0.4rem" }}
+                      />
+                    </div>
+                    <span style={{ fontSize: "0.65rem", color: "#64748b", lineHeight: 1.4 }}>
+                      * El formato recomendado es: <code>[Nombre Cliente] - [Nombre Proyecto]</code>. Al guardar se actualizará el nombre del proyecto en la base de datos para mantenerse en sincronía.
+                    </span>
+                    <button
+                      className={styles.btnSecondary}
+                      onClick={handleUpdateDropbox}
+                      disabled={isUpdatingDropbox || !selectedViewSale.carpeta_dropbox}
+                      style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", width: "fit-content", marginTop: "auto" }}
+                    >
+                      {isUpdatingDropbox ? "Renombrando..." : "Actualizar Dropbox"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className={styles.pipelineSection}>
                 <div className={styles.pipelineTitle}>
                   Proceso de automatizaciones
