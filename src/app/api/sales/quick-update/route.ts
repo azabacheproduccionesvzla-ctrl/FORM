@@ -91,10 +91,21 @@ export async function POST(request: Request) {
       const oldFolderName = `${cleanOldClient} - ${cleanOldProj}`;
 
       console.log(`[Quick Update API] Renombrando Dropbox de "${oldFolderName}" a "${dropboxFolder}"`);
-      const dropboxRes = await renameDropboxFolderDirect(oldFolderName, dropboxFolder, creadoEn);
+      let dropboxRes = await renameDropboxFolderDirect(oldFolderName, dropboxFolder, creadoEn);
+
+      if (!dropboxRes.success && dropboxRes.error === "not_found") {
+        // Construct old raw folder name (keeping "Azabache Producciones" prefix if it was there originally)
+        const cleanOldProjRaw = oldProjectName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+        const oldFolderNameRaw = `${cleanOldClient} - ${cleanOldProjRaw}`;
+        console.log(`[Quick Update API] Carpeta limpia no encontrada. Intentando con nombre original raw: "${oldFolderNameRaw}"`);
+        dropboxRes = await renameDropboxFolderDirect(oldFolderNameRaw, dropboxFolder, creadoEn);
+      }
 
       if (!dropboxRes.success) {
-        return NextResponse.json({ success: false, error: dropboxRes.error || "Error al renombrar carpeta en Dropbox." }, { status: 500 });
+        const friendlyError = dropboxRes.error === "not_found"
+          ? `No se encontró la carpeta de origen en Dropbox. Rutas intentadas: "${oldFolderName}" y "${cleanOldClient} - ${oldProjectName.replace(/[\/\\:*?"<>|]/g, "_").trim()}"`
+          : (dropboxRes.error || "Error al renombrar carpeta en Dropbox.");
+        return NextResponse.json({ success: false, error: friendlyError }, { status: 500 });
       }
 
       // Split the new folder name to update database fields if formatted as "Client - Project"

@@ -211,12 +211,11 @@ export async function renameDropboxFolder(
     const data = await res.json();
 
     if (!res.ok) {
-      // If the old folder lookup fails, it means the folder wasn't there (maybe errors in setup).
-      // We log a warning and return success so we don't block the rest of the PUT endpoint.
-      if (
-        data.error &&
-        data.error[".tag"] === "lookup_failed"
-      ) {
+      const isNotFound = data.error && (
+        data.error[".tag"] === "lookup_failed" ||
+        (data.error[".tag"] === "from_lookup" && data.error.from_lookup && data.error.from_lookup[".tag"] === "not_found")
+      );
+      if (isNotFound) {
         console.warn(`[Dropbox Rename] Carpeta origen no encontrada: ${oldPath}. Saltando renombrado.`);
         return { success: true };
       }
@@ -283,12 +282,12 @@ export async function renameDropboxFolderDirect(
     const data = await res.json();
 
     if (!res.ok) {
-      if (
-        data.error &&
-        data.error[".tag"] === "lookup_failed"
-      ) {
-        console.warn(`[Dropbox Rename] Carpeta origen no encontrada: ${oldPath}. Saltando renombrado.`);
-        return { success: true };
+      const isNotFound = data.error && (
+        data.error[".tag"] === "lookup_failed" ||
+        (data.error[".tag"] === "from_lookup" && data.error.from_lookup && data.error.from_lookup[".tag"] === "not_found")
+      );
+      if (isNotFound) {
+        return { success: false, error: "not_found" };
       }
       throw new Error(`Dropbox move failed: ${JSON.stringify(data)}`);
     }
