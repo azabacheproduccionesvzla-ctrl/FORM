@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     status_dropbox VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_whatsapp VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_email VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
+    status_sheets VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     link_trello VARCHAR(255)
 );
 

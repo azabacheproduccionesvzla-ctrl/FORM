@@ -110,3 +110,83 @@ export async function processTrelloCard(
     };
   }
 }
+
+export async function updateTrelloCardName(
+  cardId: string,
+  newProjectName: string,
+  newClientName: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const key = process.env.TRELLO_API_KEY;
+    const token = process.env.TRELLO_TOKEN;
+
+    if (!key || !token) {
+      return {
+        success: false,
+        error: "Trello credentials not configured in environment variables.",
+      };
+    }
+
+    const newTitle = `${newProjectName} - ${newClientName}`;
+    const updateUrl = new URL(`https://api.trello.com/1/cards/${cardId}`);
+    updateUrl.searchParams.append("key", key);
+    updateUrl.searchParams.append("token", token);
+    updateUrl.searchParams.append("name", newTitle);
+
+    const res = await fetch(updateUrl.toString(), {
+      method: "PUT",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(`Failed to update Trello card name: ${JSON.stringify(data)}`);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Trello card name update error:", err);
+    return {
+      success: false,
+      error: err.message || "Unknown error updating Trello card name.",
+    };
+  }
+}
+
+export async function updateTrelloCardDesc(
+  cardId: string,
+  newDesc: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const key = process.env.TRELLO_API_KEY;
+    const token = process.env.TRELLO_TOKEN;
+
+    if (!key || !token) {
+      return {
+        success: false,
+        error: "Trello credentials not configured in environment variables.",
+      };
+    }
+
+    const updateUrl = new URL(`https://api.trello.com/1/cards/${cardId}`);
+    updateUrl.searchParams.append("key", key);
+    updateUrl.searchParams.append("token", token);
+    updateUrl.searchParams.append("desc", newDesc);
+
+    const res = await fetch(updateUrl.toString(), {
+      method: "PUT",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(`Failed to update Trello card description: ${JSON.stringify(data)}`);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Trello card description update error:", err);
+    return {
+      success: false,
+      error: err.message || "Unknown error updating Trello card description.",
+    };
+  }
+}

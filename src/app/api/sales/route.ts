@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 import { verifyPin } from "@/lib/crypto";
 import { runVentasAutomations } from "@/lib/automations";
+import { updateTrelloCardName } from "@/lib/trello";
+import { renameDropboxFolder } from "@/lib/dropbox";
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +34,8 @@ export async function GET(request: Request) {
         pais,
         empresa,
         link_usuario_plataforma,
-        setter_original_id
+        setter_original_id,
+        ghl_contact_id
       ),
       registrador:usuarios_agencia!usuario_registro_id (
         nombre
@@ -309,7 +312,8 @@ export async function POST(request: Request) {
       status_ghl: "PENDIENTE",
       status_dropbox: "PENDIENTE",
       status_whatsapp: "PENDIENTE",
-      status_email: "PENDIENTE"
+      status_email: "PENDIENTE",
+      status_sheets: "PENDIENTE"
     };
 
     if (es_continuacion && proyecto_previo_id) {
@@ -476,7 +480,18 @@ export async function PUT(request: Request) {
 
     const { data: saleData, error: findError } = await supabase
       .from("ventas")
-      .select("usuario_registro_id, codigo_venta")
+      .select(`
+        usuario_registro_id,
+        codigo_venta,
+        proyecto_nombre,
+        creado_en,
+        link_trello,
+        carpeta_dropbox,
+        cliente_id,
+        clientes (
+          nombre
+        )
+      `)
       .eq("id", id)
       .single();
 
@@ -524,6 +539,7 @@ export async function PUT(request: Request) {
       status_dropbox,
       status_whatsapp,
       status_email,
+      status_sheets,
       link_trello,
       estado_interno,
       cliente_id,
@@ -582,6 +598,7 @@ export async function PUT(request: Request) {
       status_dropbox: status_dropbox || undefined,
       status_whatsapp: status_whatsapp || undefined,
       status_email: status_email || undefined,
+      status_sheets: status_sheets || undefined,
       link_trello: link_trello !== undefined ? link_trello : undefined,
       estado_interno: estado_interno || undefined
     };
@@ -601,6 +618,52 @@ export async function PUT(request: Request) {
 
     if (updateErr) {
       throw updateErr;
+    }
+
+    try {
+      const oldProjectName = saleData.proyecto_nombre;
+      const oldClientName = (saleData.clientes as any)?.nombre || "";
+
+      const newProjectName = proyecto_nombre !== undefined ? proyecto_nombre.trim() : oldProjectName;
+      const newClientName = cliente_nombre !== undefined ? cliente_nombre.trim() : oldClientName;
+
+      if (proyecto_nombre !== undefined && oldProjectName !== newProjectName) {
+        await supabase
+          .from("proyectos")
+          .update({ nombre: newProjectName })
+          .eq("venta_id", id);
+        console.log(`[Rename] Proyecto DB unificado renombrado de "${oldProjectName}" a "${newProjectName}"`);
+      }
+
+      if (oldProjectName !== newProjectName || oldClientName !== newClientName) {
+        console.log(`[Rename] Detectados cambios en nombres. Proyecto: "${oldProjectName}" -> "${newProjectName}", Cliente: "${oldClientName}" -> "${newClientName}"`);
+
+        let cardId = "";
+        if (saleData.link_trello) {
+          const m = saleData.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+          if (m) cardId = m[1];
+        }
+
+        const { data: projDb } = await supabase
+          .from("proyectos")
+          .select("trello_card_id")
+          .eq("venta_id", id)
+          .maybeSingle();
+
+        const finalCardId = projDb?.trello_card_id || cardId;
+
+        if (finalCardId) {
+          await updateTrelloCardName(finalCardId, newProjectName, newClientName);
+          console.log(`[Rename] Tarjeta de Trello renombrada con éxito.`);
+        }
+
+        if (oldClientName && oldProjectName) {
+          await renameDropboxFolder(oldClientName, oldProjectName, newClientName, newProjectName, saleData.creado_en);
+          console.log(`[Rename] Carpeta de Dropbox renombrada con éxito.`);
+        }
+      }
+    } catch (renameErr) {
+      console.error("[Rename Exception] Error al renombrar recursos externos en PUT:", renameErr);
     }
 
     await supabase.from("historial_actividades").insert({

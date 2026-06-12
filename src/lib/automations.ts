@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { createDropboxFolder } from "@/lib/dropbox";
-import { processTrelloCard } from "@/lib/trello";
+import { processTrelloCard, updateTrelloCardDesc } from "@/lib/trello";
 import { createGhlContact, createGhlInvoice, sendGhlMessage } from "@/lib/ghl";
 import { appendRowToSheet } from "@/lib/sheets";
 import { getIntegrationConfig } from "@/lib/config_service";
@@ -10,7 +10,7 @@ export async function runVentasAutomations(saleId: string) {
     console.log(`[Automations] Iniciando automatizaciones para venta ID: ${saleId}`);
 
     const config = await getIntegrationConfig();
-    const integrationsEnabled = !!(config.dropbox || config.trello || config.ghl_factura || config.ghl_email || config.zapier_whatsapp);
+    const integrationsEnabled = !!(config.dropbox || config.trello || config.ghl_factura || config.ghl_email || config.zapier_whatsapp || config.google_sheets);
 
     if (!integrationsEnabled) {
       console.log(`[Automations] Integraciones automáticas desactivadas de forma global. Marcando estados como DESACTIVADO.`);
@@ -21,7 +21,8 @@ export async function runVentasAutomations(saleId: string) {
           status_dropbox: "DESACTIVADO",
           status_trello: "DESACTIVADO",
           status_email: "DESACTIVADO",
-          status_whatsapp: "DESACTIVADO"
+          status_whatsapp: "DESACTIVADO",
+          status_sheets: "DESACTIVADO"
         })
         .eq("id", saleId);
       return;
@@ -146,6 +147,33 @@ export async function runVentasAutomations(saleId: string) {
           dropboxUrlLink = dropboxRes.url || dropboxRes.path;
           console.log(`[Automations] Dropbox completado. Path: ${dropboxRes.path}`);
           await supabase.from("ventas").update({ status_dropbox: "COMPLETADO", carpeta_dropbox: dropboxUrlLink }).eq("id", saleId);
+
+          if (sale.status_trello === "COMPLETADO") {
+            try {
+              let cardId = "";
+              if (sale.link_trello) {
+                const match = sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+                if (match) cardId = match[1];
+              }
+
+              const { data: projDb } = await supabase
+                .from("proyectos")
+                .select("trello_card_id")
+                .eq("venta_id", saleId)
+                .maybeSingle();
+
+              const finalCardId = projDb?.trello_card_id || cardId;
+
+              if (finalCardId) {
+                console.log(`[Automations] Dropbox completado y Trello ya estaba completado. Actualizando descripción de la tarjeta ${finalCardId}...`);
+                const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
+                await updateTrelloCardDesc(finalCardId, trelloDesc);
+                console.log(`[Automations] Descripción de tarjeta de Trello actualizada con el link de Dropbox.`);
+              }
+            } catch (trelloUpdateErr) {
+              console.error("[Automations] Error al actualizar descripción de Trello pos-Dropbox:", trelloUpdateErr);
+            }
+          }
         } else {
           console.error(`[Automations] Dropbox error: ${dropboxRes.error}`);
           await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
@@ -296,29 +324,39 @@ export async function runVentasAutomations(saleId: string) {
       console.log(`[Automations] WhatsApp ya estaba completado, saltando.`);
     }
 
-    try {
-      console.log(`[Automations] Enviando datos a Google Sheets`);
-      const sheetsPayload = {
-        status_pago: sale.status_pago,
-        plataforma: sale.plataforma,
-        codigo_venta: finalCodigoVenta,
-        fecha_registro_formateada: new Date(sale.creado_en).toLocaleString(),
-        cliente_nombre: clientInfo?.nombre || "Cliente",
-        contact_id: contactId,
-        proyecto_nombre: sale.proyecto_nombre,
-        monto_total: sale.monto_total,
-        moneda: sale.moneda,
-        setter_principal_nombre: setterName,
-        setters_adicionales_nombres: settersExtrasNames,
-        closer_principal_nombre: closerName,
-        closers_adicionales_nombres: closersExtrasNames,
-        comprobante_link: sale.comprobante_link,
-        fecha_pago: sale.fecha_pago
-      };
+    if (sale.status_sheets !== "COMPLETADO") {
+      try {
+        await supabase.from("ventas").update({ status_sheets: "PROCESANDO" }).eq("id", saleId);
+        console.log(`[Automations] Enviando datos a Google Sheets`);
+        const sheetsPayload = {
+          status_pago: sale.status_pago,
+          plataforma: sale.plataforma,
+          codigo_venta: finalCodigoVenta,
+          fecha_registro_formateada: new Date(sale.creado_en).toLocaleString("es-ES", { timeZone: "America/Caracas" }),
+          cliente_nombre: clientInfo?.nombre || "Cliente",
+          contact_id: contactId || sale.clientes?.ghl_contact_id || "",
+          proyecto_nombre: sale.proyecto_nombre,
+          monto_total: sale.monto_total,
+          moneda: sale.moneda,
+          setter_principal_nombre: setterName || "",
+          setters_adicionales_nombres: settersExtrasNames || [],
+          closer_principal_nombre: closerName || "",
+          closers_adicionales_nombres: closersExtrasNames || [],
+          comprobante_link: sale.comprobante_link || "",
+          fecha_pago: sale.fecha_pago || ""
+        };
 
-      await appendRowToSheet(sheetsPayload);
-    } catch (e: any) {
-      console.error(`[Automations] Sheets excepción:`, e);
+        const sheetRes = await appendRowToSheet(sheetsPayload);
+        if (!sheetRes.success) {
+          throw new Error(sheetRes.error || "Error al insertar fila en Google Sheets");
+        }
+        await supabase.from("ventas").update({ status_sheets: "COMPLETADO" }).eq("id", saleId);
+      } catch (e: any) {
+        console.error(`[Automations] Sheets excepción:`, e);
+        await supabase.from("ventas").update({ status_sheets: "ERROR" }).eq("id", saleId);
+      }
+    } else {
+      console.log(`[Automations] Google Sheets ya estaba completado, saltando.`);
     }
 
     try {

@@ -137,6 +137,42 @@ export default function ClientesPage() {
     return true;
   });
 
+  const handleExportClientes = () => {
+    if (filteredClients.length === 0) {
+      alert("No hay clientes para exportar.");
+      return;
+    }
+
+    const headers = ["Nombre", "Email", "Teléfono", "País", "Empresa", "GHL ID", "Fecha Registro"];
+    
+    const escapeCsv = (val: string | null | undefined) => {
+      if (val === null || val === undefined) return '""';
+      const clean = val.replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filteredClients.map(client => [
+      escapeCsv(client.nombre),
+      escapeCsv(client.email),
+      escapeCsv(client.telefono),
+      escapeCsv(client.pais),
+      escapeCsv(client.empresa),
+      escapeCsv(client.ghl_contact_id),
+      escapeCsv(new Date(client.creado_en).toLocaleDateString("es-ES"))
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Clientes_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Pagination Math
   const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
   const startIndex = (currentPage - 1) * clientsPerPage;
@@ -145,8 +181,21 @@ export default function ClientesPage() {
 
   return (
     <div>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Clientes</h1>
+      <div className={styles.pageHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <h1 className={styles.pageTitle} style={{ margin: 0 }}>Clientes</h1>
+        <button
+          onClick={handleExportClientes}
+          className={styles.btnSecondary}
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
+          title="Exportar clientes a CSV"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Exportar CSV</span>
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem", alignItems: "center" }}>

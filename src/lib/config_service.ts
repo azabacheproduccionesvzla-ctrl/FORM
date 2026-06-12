@@ -10,6 +10,7 @@ export interface IntegrationConfig {
   ghl_email: boolean;
   ghl_factura: boolean;
   zapier_whatsapp: boolean;
+  google_sheets: boolean;
 }
 
 const DEFAULT_CONFIG: IntegrationConfig = {
@@ -17,7 +18,8 @@ const DEFAULT_CONFIG: IntegrationConfig = {
   trello: true,
   ghl_email: true,
   ghl_factura: true,
-  zapier_whatsapp: true
+  zapier_whatsapp: true,
+  google_sheets: true
 };
 
 export async function getIntegrationConfig(): Promise<IntegrationConfig> {

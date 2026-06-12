@@ -48,6 +48,7 @@ interface Sale {
   status_dropbox: string;
   status_whatsapp: string;
   status_email: string;
+  status_sheets: string;
   link_trello?: string;
   clientes?: {
     nombre: string;
@@ -56,6 +57,7 @@ interface Sale {
     pais?: string;
     empresa?: string;
     link_usuario_plataforma?: string;
+    ghl_contact_id?: string;
   };
   registrador?: {
     nombre: string;
@@ -156,6 +158,114 @@ export default function VentasPage() {
     }
   };
 
+  const handleExportVentas = () => {
+    if (filteredSales.length === 0) {
+      alert("No hay ventas para exportar.");
+      return;
+    }
+
+    const headers = [
+      "Etapa",
+      "Plataforma",
+      "Codigo Venta",
+      "Fecha de inicio",
+      "Cliente",
+      "Codigo Cliente (GHL ID)",
+      "Proyecto",
+      "Monto C/C",
+      "Comision",
+      "Setter I",
+      "Setter II",
+      "Closer I",
+      "Closer II",
+      "Closer III",
+      "Factura",
+      "Fecha de Pago",
+      "Comisión de transferencia",
+      "Fondo Gerencial",
+      "Lider",
+      "Asociaciado I",
+      "% Asociaciado I",
+      "Asociaciado II",
+      "% Asociaciado II",
+      "Asociaciado III",
+      "% Asociaciado III",
+      "Asociaciado IV",
+      "% Asociaciado IV",
+      "Asociaciado V",
+      "% Asociaciado V"
+    ];
+
+    const getComision = (plataforma: string) => {
+      const plat = (plataforma || "").toLowerCase();
+      if (plat === "freelancer") return "10%";
+      if (plat === "workana") return "REVISAR";
+      if (plat.includes("contrato") || plat === "freelancer con contrato") return "15%";
+      return "0%";
+    };
+
+    const escapeCsv = (val: string | number | null | undefined) => {
+      if (val === null || val === undefined) return '""';
+      const clean = String(val).replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filteredSales.map(sale => {
+      const setter2 = sale.setters_adicionales_ids && sale.setters_adicionales_ids.length > 0
+        ? (usersList.find(u => u.id === sale.setters_adicionales_ids![0])?.nombre || "")
+        : "";
+      const closer2 = sale.closers_adicionales_ids && sale.closers_adicionales_ids.length > 0
+        ? (usersList.find(u => u.id === sale.closers_adicionales_ids![0])?.nombre || "")
+        : "";
+      const closer3 = sale.closers_adicionales_ids && sale.closers_adicionales_ids.length > 1
+        ? (usersList.find(u => u.id === sale.closers_adicionales_ids![1])?.nombre || "")
+        : "";
+
+      return [
+        escapeCsv(sale.status_pago || "PAGO ADELANTADO"),
+        escapeCsv(sale.plataforma),
+        escapeCsv(sale.codigo_venta),
+        escapeCsv(new Date(sale.creado_en).toLocaleDateString("es-ES")),
+        escapeCsv(sale.clientes?.nombre),
+        escapeCsv(sale.clientes?.ghl_contact_id),
+        escapeCsv(sale.proyecto_nombre),
+        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda || "USD").toUpperCase()}`),
+        escapeCsv(getComision(sale.plataforma)),
+        escapeCsv(sale.setter_principal?.nombre),
+        escapeCsv(setter2),
+        escapeCsv(sale.closer_principal?.nombre),
+        escapeCsv(closer2),
+        escapeCsv(closer3),
+        escapeCsv(sale.comprobante_link),
+        escapeCsv(sale.fecha_pago),
+        '""', // Comisión de transferencia
+        '""', // Fondo Gerencial
+        '""', // Lider
+        '""', // Asociaciado I
+        '""', // % Asociaciado I
+        '""', // Asociaciado II
+        '""', // % Asociaciado II
+        '""', // Asociaciado III
+        '""', // % Asociaciado III
+        '""', // Asociaciado IV
+        '""', // % Asociaciado IV
+        '""', // Asociaciado V
+        '""'  // % Asociaciado V
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Cuadro_Maestro_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   useEffect(() => {
     async function loadSessionAndUsers() {
@@ -165,12 +275,10 @@ export default function VentasPage() {
         const sessionData = await sessionRes.json();
         if (sessionData.authenticated && sessionData.user) {
           setUser(sessionData.user);
-          if (sessionData.user.role === "auditor" || sessionData.user.role === "admin") {
-            const usersRes = await fetch("/api/users");
-            const usersData = await usersRes.json();
-            if (usersData.success) {
-              setUsersList(usersData.users || []);
-            }
+          const usersRes = await fetch("/api/users");
+          const usersData = await usersRes.json();
+          if (usersData.success) {
+            setUsersList(usersData.users || []);
           }
         }
       } catch (err) {
@@ -266,7 +374,7 @@ export default function VentasPage() {
               className={styles.btnSecondary}
               style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", padding: 0, borderRadius: "8px", border: "1px solid #cbd5e1" }}
               title="Exportar ventas"
-              onClick={() => alert("Exportación de ventas (Próximamente)")}
+              onClick={handleExportVentas}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -486,6 +594,18 @@ export default function VentasPage() {
                                 <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                               </svg>
                             </div>
+                            <div
+                              className={`${styles.automationIconBadge} ${sale.status_sheets === "COMPLETADO" ? styles.automationCompleted : sale.status_sheets === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                              style={getBadgeStyle(sale.status_sheets)}
+                              title={`Google Sheets: ${sale.status_sheets}`}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <line x1="3" y1="9" x2="21" y2="9" />
+                                <line x1="3" y1="15" x2="21" y2="15" />
+                                <line x1="9" y1="3" x2="9" y2="21" />
+                              </svg>
+                            </div>
                           </div>
                         </td>
                         <td style={{ textAlign: "right" }}>
@@ -619,6 +739,18 @@ export default function VentasPage() {
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                          </svg>
+                        </div>
+                        <div
+                          className={`${styles.automationIconBadge} ${sale.status_sheets === "COMPLETADO" ? styles.automationCompleted : sale.status_sheets === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                          style={getBadgeStyle(sale.status_sheets)}
+                          title={`Google Sheets: ${sale.status_sheets}`}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="3" y1="9" x2="21" y2="9" />
+                            <line x1="3" y1="15" x2="21" y2="15" />
+                            <line x1="9" y1="3" x2="9" y2="21" />
                           </svg>
                         </div>
                       </div>
@@ -990,6 +1122,32 @@ export default function VentasPage() {
                       {selectedViewSale.status_email}
                     </span>
                   </div>
+                  <div className={styles.pipelineArrow}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </div>
+                  <div
+                    className={`${styles.pipelineBox} ${selectedViewSale.status_sheets === "COMPLETADO" ? styles.pipelineBoxCompleted :
+                      selectedViewSale.status_sheets === "ERROR" ? styles.pipelineBoxError :
+                        selectedViewSale.status_sheets === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
+                      }`}
+                    style={getPipelineBoxStyle(selectedViewSale.status_sheets)}
+                  >
+                    <div className={styles.pipelineBoxHeader}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <line x1="3" y1="9" x2="21" y2="9" />
+                        <line x1="3" y1="15" x2="21" y2="15" />
+                        <line x1="9" y1="3" x2="9" y2="21" />
+                      </svg>
+                      <span>Google Sheets</span>
+                    </div>
+                    <span className={styles.pipelineBoxStatus}>
+                      {selectedViewSale.status_sheets || "PENDIENTE"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1069,6 +1227,7 @@ export default function VentasPage() {
                       {renderStatusItem("Dropbox (Carpeta)", selectedLogsSale.status_dropbox || "PENDIENTE")}
                       {renderStatusItem("Notificación Email (GHL)", selectedLogsSale.status_email || "PENDIENTE")}
                       {renderStatusItem("Notificación WhatsApp (Zapier)", selectedLogsSale.status_whatsapp || "PENDIENTE")}
+                      {renderStatusItem("Google Sheets (Fila de Excel)", selectedLogsSale.status_sheets || "PENDIENTE")}
                     </>
                   );
                 })()}
@@ -1156,7 +1315,21 @@ export default function VentasPage() {
                     </div>
                   )}
 
-                  {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR") && (
+                  {selectedLogsSale.status_sheets && (
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_sheets === "ERROR" ? "#ef4444" : selectedLogsSale.status_sheets === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                      <span style={{ fontWeight: "600" }}>[SHEETS]</span>
+                      <span>
+                        {selectedLogsSale.status_sheets === "DESACTIVADO"
+                          ? "Integración desactivada: Inserción de fila en Google Sheets omitida por el administrador."
+                          : selectedLogsSale.status_sheets === "COMPLETADO"
+                            ? "Fila insertada en Google Sheets con éxito."
+                            : `Envío a Google Sheets: ${selectedLogsSale.status_sheets}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                       <span style={{ color: "#ef4444", fontWeight: "600" }}>[!]</span>
                       <span style={{ color: "#ef4444" }}>Hay errores en el flujo. Puedes hacer clic en "Reintentar fallidos".</span>

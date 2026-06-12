@@ -570,6 +570,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
         if (sale.status_dropbox === "ERROR") failed.push("Dropbox");
         if (sale.status_email === "ERROR") failed.push("Email");
         if (sale.status_whatsapp === "ERROR") failed.push("WhatsApp");
+        if (sale.status_sheets === "ERROR") failed.push("Google Sheets");
 
         if (failed.length > 0) {
           alert(`La venta fue registrada en la base de datos, pero las siguientes integraciones fallaron: ${failed.join(", ")}. Puedes reintentarlas desde el panel de control.`);
