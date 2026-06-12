@@ -123,25 +123,51 @@ export default function VentasPage() {
   const [quickDropboxFolder, setQuickDropboxFolder] = useState("");
   const [isUpdatingTrello, setIsUpdatingTrello] = useState(false);
   const [isUpdatingDropbox, setIsUpdatingDropbox] = useState(false);
+  const [isSyncingTrello, setIsSyncingTrello] = useState(false);
+  const [trelloEditMode, setTrelloEditMode] = useState(false);
+  const [dropboxEditMode, setDropboxEditMode] = useState(false);
 
   useEffect(() => {
     if (selectedViewSale) {
+      setTrelloEditMode(false);
+      setDropboxEditMode(false);
+
       const cleanedProj = (selectedViewSale.proyecto_nombre || "")
         .replace(/^azabache\s+producciones\s*-\s*/i, "")
         .replace(/^azabache\s+producciones\s*/i, "")
         .trim();
       const clientName = selectedViewSale.clientes?.nombre || "";
-      setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
       
+      // Default fallback values
+      setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
       const dropboxUrlLink = selectedViewSale.carpeta_dropbox || "No creada";
       const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${selectedViewSale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.`;
       setQuickTrelloDesc(desc);
-
       setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
+
+      // If Trello is completed, let's sync live values from Trello API
+      if (selectedViewSale.status_trello === "COMPLETADO") {
+        setIsSyncingTrello(true);
+        fetch(`/api/sales/sync-trello?saleId=${selectedViewSale.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.synchronized) {
+              if (data.trelloTitle) setQuickTrelloTitle(data.trelloTitle);
+              if (data.trelloDesc) setQuickTrelloDesc(data.trelloDesc);
+              if (data.dbUpdated) {
+                fetchSales();
+              }
+            }
+          })
+          .catch(err => console.error("Error syncing Trello live:", err))
+          .finally(() => setIsSyncingTrello(false));
+      }
     } else {
       setQuickTrelloTitle("");
       setQuickTrelloDesc("");
       setQuickDropboxFolder("");
+      setTrelloEditMode(false);
+      setDropboxEditMode(false);
     }
   }, [selectedViewSale]);
 
@@ -162,6 +188,7 @@ export default function VentasPage() {
       const data = await res.json();
       if (data.success) {
         alert("Tarjeta de Trello actualizada exitosamente.");
+        setTrelloEditMode(false);
         fetchSales();
       } else {
         alert(`Error al actualizar Trello: ${data.error}`);
@@ -189,6 +216,7 @@ export default function VentasPage() {
       const data = await res.json();
       if (data.success) {
         alert("Carpeta de Dropbox renombrada exitosamente y base de datos actualizada.");
+        setDropboxEditMode(false);
         fetchSales();
       } else {
         alert(`Error al renombrar Dropbox: ${data.error}`);
@@ -1080,71 +1108,155 @@ export default function VentasPage() {
                 )}
               </div>
 
-              {/* Bloque de Pruebas de Integración */}
-              <div className={styles.viewModalBlock} style={{ width: "100%", marginTop: "1rem", backgroundColor: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "1.25rem" }}>
-                <div className={styles.viewModalBlockTitle} style={{ color: "#475569", fontSize: "0.85rem", fontWeight: "600", marginBottom: "0.75rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
-                  🔧 Pruebas de Integración: Edición Rápida (Trello y Dropbox)
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
-                  {/* Columna Trello */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    <h5 style={{ margin: 0, fontSize: "0.8rem", fontWeight: "600", color: "#1e293b" }}>Trello Card</h5>
-                    <div>
-                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Tarjeta</label>
-                      <input
-                        type="text"
-                        value={quickTrelloTitle}
-                        onChange={(e) => setQuickTrelloTitle(e.target.value)}
-                        className={styles.input}
-                        style={{ fontSize: "0.75rem", padding: "0.4rem" }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Descripción</label>
-                      <textarea
-                        value={quickTrelloDesc}
-                        onChange={(e) => setQuickTrelloDesc(e.target.value)}
-                        className={styles.input}
-                        style={{ fontSize: "0.75rem", padding: "0.4rem", minHeight: "80px", resize: "vertical" }}
-                      />
-                    </div>
-                    <button
-                      className={styles.btnSecondary}
-                      onClick={handleUpdateTrello}
-                      disabled={isUpdatingTrello || !selectedViewSale.link_trello}
-                      style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", width: "fit-content" }}
-                    >
-                      {isUpdatingTrello ? "Actualizando..." : "Actualizar Trello"}
-                    </button>
+              {/* Tarjeta de Trello */}
+              {selectedViewSale.status_trello === "COMPLETADO" && (
+                <div className={styles.viewModalBlock} style={{ width: "100%", marginTop: "1rem" }}>
+                  <div className={styles.viewModalBlockTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Tarjeta de Trello</span>
+                    {!trelloEditMode && (
+                      <button
+                        className={styles.btnSecondary}
+                        onClick={() => setTrelloEditMode(true)}
+                        style={{ fontSize: "0.7rem", padding: "0.3rem 0.6rem" }}
+                      >
+                        Modificar
+                      </button>
+                    )}
                   </div>
+                  {trelloEditMode ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Tarjeta</label>
+                        <input
+                          type="text"
+                          value={quickTrelloTitle}
+                          onChange={(e) => setQuickTrelloTitle(e.target.value)}
+                          className={styles.input}
+                          style={{ fontSize: "0.75rem", padding: "0.4rem" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Descripción</label>
+                        <textarea
+                          value={quickTrelloDesc}
+                          onChange={(e) => setQuickTrelloDesc(e.target.value)}
+                          className={styles.input}
+                          style={{ fontSize: "0.75rem", padding: "0.4rem", minHeight: "80px", resize: "vertical" }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button
+                          className={styles.btnSecondary}
+                          onClick={handleUpdateTrello}
+                          disabled={isUpdatingTrello}
+                          style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", backgroundColor: "#22c55e", color: "#ffffff", border: "none" }}
+                        >
+                          {isUpdatingTrello ? "Guardando..." : "Guardar"}
+                        </button>
+                        <button
+                          className={styles.btnSecondary}
+                          onClick={() => {
+                            setTrelloEditMode(false);
+                            if (selectedViewSale) {
+                              const cleanedProj = (selectedViewSale.proyecto_nombre || "")
+                                .replace(/^azabache\s+producciones\s*-\s*/i, "")
+                                .replace(/^azabache\s+producciones\s*/i, "")
+                                .trim();
+                              const clientName = selectedViewSale.clientes?.nombre || "";
+                              setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
+                            }
+                          }}
+                          style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem" }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+                      <div className={styles.viewModalDataRow}>
+                        <span className={styles.viewModalDataLabel}>Nombre en Tarjeta</span>
+                        <span className={styles.viewModalDataValue}>{isSyncingTrello ? "Sincronizando..." : quickTrelloTitle}</span>
+                      </div>
+                      <div className={styles.viewModalDataRow}>
+                        <span className={styles.viewModalDataLabel}>Descripción en Tarjeta</span>
+                        <span className={styles.viewModalDataValue} style={{ fontSize: "0.75rem", whiteSpace: "pre-wrap", backgroundColor: "#f8fafc", padding: "0.5rem", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+                          {isSyncingTrello ? "Sincronizando..." : quickTrelloDesc}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                  {/* Columna Dropbox */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    <h5 style={{ margin: 0, fontSize: "0.8rem", fontWeight: "600", color: "#1e293b" }}>Dropbox Folder</h5>
-                    <div>
-                      <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Carpeta</label>
-                      <input
-                        type="text"
-                        value={quickDropboxFolder}
-                        onChange={(e) => setQuickDropboxFolder(e.target.value)}
-                        className={styles.input}
-                        style={{ fontSize: "0.75rem", padding: "0.4rem" }}
-                      />
-                    </div>
-                    <span style={{ fontSize: "0.65rem", color: "#64748b", lineHeight: 1.4 }}>
-                      * El formato recomendado es: <code>[Nombre Cliente] - [Nombre Proyecto]</code>. Al guardar se actualizará el nombre del proyecto en la base de datos para mantenerse en sincronía.
-                    </span>
-                    <button
-                      className={styles.btnSecondary}
-                      onClick={handleUpdateDropbox}
-                      disabled={isUpdatingDropbox || !selectedViewSale.carpeta_dropbox}
-                      style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", width: "fit-content", marginTop: "auto" }}
-                    >
-                      {isUpdatingDropbox ? "Renombrando..." : "Actualizar Dropbox"}
-                    </button>
+              {/* Carpeta de Dropbox */}
+              {selectedViewSale.status_dropbox === "COMPLETADO" && (
+                <div className={styles.viewModalBlock} style={{ width: "100%", marginTop: "1rem" }}>
+                  <div className={styles.viewModalBlockTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Carpeta de Dropbox</span>
+                    {!dropboxEditMode && (
+                      <button
+                        className={styles.btnSecondary}
+                        onClick={() => setDropboxEditMode(true)}
+                        style={{ fontSize: "0.7rem", padding: "0.3rem 0.6rem" }}
+                      >
+                        Modificar
+                      </button>
+                    )}
                   </div>
+                  {dropboxEditMode ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Nombre de la Carpeta</label>
+                        <input
+                          type="text"
+                          value={quickDropboxFolder}
+                          onChange={(e) => setQuickDropboxFolder(e.target.value)}
+                          className={styles.input}
+                          style={{ fontSize: "0.75rem", padding: "0.4rem" }}
+                        />
+                      </div>
+                      <span style={{ fontSize: "0.65rem", color: "#64748b", lineHeight: 1.4 }}>
+                        * El formato recomendado es: <code>[Nombre Cliente] - [Nombre Proyecto]</code>. Al guardar se renombrará la carpeta remota y se actualizará el proyecto en Supabase.
+                      </span>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button
+                          className={styles.btnSecondary}
+                          onClick={handleUpdateDropbox}
+                          disabled={isUpdatingDropbox}
+                          style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem", backgroundColor: "#22c55e", color: "#ffffff", border: "none" }}
+                        >
+                          {isUpdatingDropbox ? "Guardando..." : "Guardar"}
+                        </button>
+                        <button
+                          className={styles.btnSecondary}
+                          onClick={() => {
+                            setDropboxEditMode(false);
+                            if (selectedViewSale) {
+                              const cleanedProj = (selectedViewSale.proyecto_nombre || "")
+                                .replace(/^azabache\s+producciones\s*-\s*/i, "")
+                                .replace(/^azabache\s+producciones\s*/i, "")
+                                .trim();
+                              const clientName = selectedViewSale.clientes?.nombre || "";
+                              setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
+                            }
+                          }}
+                          style={{ fontSize: "0.7rem", padding: "0.4rem 0.75rem" }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+                      <div className={styles.viewModalDataRow}>
+                        <span className={styles.viewModalDataLabel}>Nombre de Carpeta</span>
+                        <span className={styles.viewModalDataValue}>{quickDropboxFolder}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div className={styles.pipelineSection}>
                 <div className={styles.pipelineTitle}>
