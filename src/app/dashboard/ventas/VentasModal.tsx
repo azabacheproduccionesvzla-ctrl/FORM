@@ -680,7 +680,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   }
 
   
-  const isExtension = formData.es_continuacion && formData.tipo_continuacion === "extension";
+  const isExtension = formData.es_continuacion;
   const disableClientFields = isExtension && !modifyClientData;
   const disableProjectFields = isExtension && !modifyProjectData;
   const disablePaymentFields = isExtension && !modifyPaymentMode;
@@ -1064,7 +1064,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                   {isExtension && (
                     <div className={styles.switchesContainer}>
                       <span className={styles.label} style={{ color: "#1e3a8a", fontSize: "0.8rem", marginBottom: "0.25rem" }}>
-                        ESTA ES UNA EXTENSIÓN: Los campos se han cargado bloqueados. Usa estos interruptores para habilitar edición:
+                        PROYECTO EXISTENTE / CONTINUACIÓN: Los campos se han cargado bloqueados. Usa estos interruptores para habilitar edición:
                       </span>
                       <div className={styles.switchRow}>
                         <span className={styles.switchLabel}>¿Modificar datos del cliente?</span>
@@ -1188,6 +1188,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                 type="checkbox"
                                 checked={actualizarCliente}
                                 onChange={(e) => setActualizarCliente(e.target.checked)}
+                                disabled={disableClientFields}
                               />
                               <span className={styles.slider}></span>
                             </label>
@@ -1203,6 +1204,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_telefono}
                                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
+                                  disabled={disableClientFields}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1213,6 +1215,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_email}
                                   onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
+                                  disabled={disableClientFields}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1223,6 +1226,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_pais}
                                   onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                                  disabled={disableClientFields}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1233,6 +1237,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_empresa}
                                   onChange={(e) => setFormData({ ...formData, cliente_empresa: e.target.value })}
+                                  disabled={disableClientFields}
                                 />
                               </div>
                               <div className={styles.formGroup} style={{ gridColumn: "span 2" }}>
@@ -1243,6 +1248,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_link_usuario}
                                   onChange={(e) => setFormData({ ...formData, cliente_link_usuario: e.target.value })}
+                                  disabled={disableClientFields}
                                 />
                               </div>
                             </div>
@@ -1406,6 +1412,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                               setAgregarSetterAdicional(e.target.checked);
                               if (!e.target.checked) setSetterAdicionalId("");
                             }}
+                            disabled={disableClientFields}
                           />
                           <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
                         </label>
@@ -1417,6 +1424,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                               className={styles.select}
                               value={setterAdicionalId}
                               onChange={(e) => setSetterAdicionalId(e.target.value)}
+                              disabled={disableClientFields}
                               required
                             >
                               <option value="">Seleccionar Setter</option>
@@ -1432,6 +1440,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                           className={styles.select}
                           value={formData.setter_principal_id}
                           onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
+                          disabled={disableClientFields}
                           required
                         >
                           <option value="">Seleccionar Setter</option>
@@ -1598,6 +1607,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         type="button"
                         className={`${styles.toggleTab} ${formData.urgente ? styles.toggleTabActive : ""}`}
                         onClick={() => setFormData({ ...formData, urgente: true })}
+                        disabled={disableProjectFields}
                       >
                         Sí
                       </button>
@@ -1605,6 +1615,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         type="button"
                         className={`${styles.toggleTab} ${!formData.urgente ? styles.toggleTabActive : ""}`}
                         onClick={() => setFormData({ ...formData, urgente: false, motivo_urgencia: "" })}
+                        disabled={disableProjectFields}
                       >
                         No
                       </button>
@@ -1620,6 +1631,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         className={styles.input}
                         value={formData.motivo_urgencia}
                         onChange={(e) => setFormData({ ...formData, motivo_urgencia: e.target.value })}
+                        disabled={disableProjectFields}
                         required
                       />
                     </div>
@@ -1632,6 +1644,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         className={styles.select}
                         value={formData.moneda}
                         onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
+                        disabled={disablePaymentFields}
                       >
                         <option value="USD">USD</option>
                         <option value="EUR">EUR</option>
@@ -1649,6 +1662,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                           className={styles.input}
                           value={formData.moneda_otra}
                           onChange={(e) => setFormData({ ...formData, moneda_otra: e.target.value })}
+                          disabled={disablePaymentFields}
                           required
                         />
                       </div>
@@ -1664,6 +1678,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         className={styles.input}
                         value={formData.monto_explicacion}
                         onChange={(e) => setFormData({ ...formData, monto_explicacion: e.target.value })}
+                        disabled={disablePaymentFields}
                       />
                     </div>
                   )}
