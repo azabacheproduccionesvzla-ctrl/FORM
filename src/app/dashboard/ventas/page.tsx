@@ -1048,9 +1048,9 @@ export default function VentasPage() {
                       {selectedViewSale.status_dropbox}
                     </span>
                     {selectedViewSale.carpeta_dropbox && (
-                      <span style={{ fontSize: "0.6rem", color: "#64748b", wordBreak: "break-all", marginTop: "0.15rem", maxWidth: "120px" }}>
-                        📁 {selectedViewSale.carpeta_dropbox}
-                      </span>
+                      <a href={selectedViewSale.carpeta_dropbox} target="_blank" rel="noopener noreferrer" className={styles.btnLink} style={{ padding: "0.25rem 0.5rem", fontSize: "0.65rem", marginTop: "0.15rem", width: "fit-content" }}>
+                        <span>Ver Carpeta</span>
+                      </a>
                     )}
                   </div>
                   <div className={styles.pipelineArrow}>

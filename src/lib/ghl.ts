@@ -123,7 +123,7 @@ export async function createGhlContact(data: {
       const updatePayload = {
         name: data.name,
         email: data.email || undefined,
-        phone: hasValidSupPhone ? data.phone.trim() : undefined,
+        phone: hasValidSupPhone ? data.phone!.trim() : undefined,
         companyName: data.companyName || undefined,
         country: data.country || undefined,
       };
@@ -159,7 +159,7 @@ export async function createGhlContact(data: {
     locationId: locationId,
     name: data.name,
     email: data.email || undefined,
-    phone: hasValidSupPhone ? data.phone.trim() : undefined,
+    phone: hasValidSupPhone ? data.phone!.trim() : undefined,
     companyName: data.companyName || undefined,
     country: data.country || undefined,
   };

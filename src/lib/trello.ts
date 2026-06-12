@@ -26,7 +26,11 @@ export async function processTrelloCard(
       };
     }
 
-    const cardTitle = `${data.projectName} - ${data.clientName}`;
+    const cleanedProjectName = data.projectName
+      .replace(/^azabache\s+producciones\s*-\s*/i, "")
+      .replace(/^azabache\s+producciones\s*/i, "")
+      .trim();
+    const cardTitle = `${cleanedProjectName} - ${data.clientName}`;
     let targetListId = data.isExistingProject ? listRecurrentes : listNuevos;
 
     if (data.isExistingProject) {
@@ -127,7 +131,11 @@ export async function updateTrelloCardName(
       };
     }
 
-    const newTitle = `${newProjectName} - ${newClientName}`;
+    const cleanedProjectName = newProjectName
+      .replace(/^azabache\s+producciones\s*-\s*/i, "")
+      .replace(/^azabache\s+producciones\s*/i, "")
+      .trim();
+    const newTitle = `${cleanedProjectName} - ${newClientName}`;
     const updateUrl = new URL(`https://api.trello.com/1/cards/${cardId}`);
     updateUrl.searchParams.append("key", key);
     updateUrl.searchParams.append("token", token);

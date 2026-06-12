@@ -53,7 +53,11 @@ export async function createDropboxFolder(
 
     const year = new Date().getFullYear();
     const cleanClientName = clientName.replace(/[\/\\:*?"<>|]/g, "_").trim();
-    const cleanProjectName = projectName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+    const cleanProjectNameRaw = projectName
+      .replace(/^azabache\s+producciones\s*-\s*/i, "")
+      .replace(/^azabache\s+producciones\s*/i, "")
+      .trim();
+    const cleanProjectName = cleanProjectNameRaw.replace(/[\/\\:*?"<>|]/g, "_").trim();
     
     const folderPath = `/ENTREGA/${year}/${cleanClientName} - ${cleanProjectName}`;
 
@@ -166,11 +170,19 @@ export async function renameDropboxFolder(
 
     const year = new Date(creadoEn).getFullYear();
     const cleanOldClient = oldClientName.replace(/[\/\\:*?"<>|]/g, "_").trim();
-    const cleanOldProj = oldProjectName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+    const cleanOldProjRaw = oldProjectName
+      .replace(/^azabache\s+producciones\s*-\s*/i, "")
+      .replace(/^azabache\s+producciones\s*/i, "")
+      .trim();
+    const cleanOldProj = cleanOldProjRaw.replace(/[\/\\:*?"<>|]/g, "_").trim();
     const oldPath = `/ENTREGA/${year}/${cleanOldClient} - ${cleanOldProj}`;
 
     const cleanNewClient = newClientName.replace(/[\/\\:*?"<>|]/g, "_").trim();
-    const cleanNewProj = newProjectName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+    const cleanNewProjRaw = newProjectName
+      .replace(/^azabache\s+producciones\s*-\s*/i, "")
+      .replace(/^azabache\s+producciones\s*/i, "")
+      .trim();
+    const cleanNewProj = cleanNewProjRaw.replace(/[\/\\:*?"<>|]/g, "_").trim();
     const newPath = `/ENTREGA/${year}/${cleanNewClient} - ${cleanNewProj}`;
 
     if (oldPath.toLowerCase() === newPath.toLowerCase()) {
