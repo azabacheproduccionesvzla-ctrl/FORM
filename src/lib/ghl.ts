@@ -1,3 +1,9 @@
+function isValidPhone(p?: string): boolean {
+  if (!p) return false;
+  const clean = p.replace(/\D/g, "");
+  return clean.length >= 5;
+}
+
 export async function createGhlContact(data: {
   name: string;
   email?: string;
@@ -43,8 +49,10 @@ export async function createGhlContact(data: {
     }
   }
 
+  const hasValidSupPhone = isValidPhone(data.phone);
+
   // 2. Si no se encontró por email, buscar por teléfono
-  if (!existingContact && data.phone && data.phone.trim()) {
+  if (!existingContact && data.phone && data.phone.trim() && hasValidSupPhone) {
     const phoneClean = data.phone.trim();
     try {
       console.log(`[GHL API] Buscando contacto por teléfono: ${phoneClean}`);
@@ -94,7 +102,7 @@ export async function createGhlContact(data: {
     const supEmail = normalizeLower(data.email);
 
     const ghlPhoneDigits = getDigits(existingContact.phone);
-    const supPhoneDigits = getDigits(data.phone);
+    const supPhoneDigits = hasValidSupPhone ? getDigits(data.phone) : "";
 
     const ghlCompany = normalizeLower(existingContact.companyName);
     const supCompany = normalizeLower(data.companyName);
@@ -104,7 +112,7 @@ export async function createGhlContact(data: {
 
     const nameMismatch = ghlName !== supName;
     const emailMismatch = data.email && ghlEmail !== supEmail;
-    const phoneMismatch = data.phone && ghlPhoneDigits !== supPhoneDigits;
+    const phoneMismatch = hasValidSupPhone && ghlPhoneDigits !== supPhoneDigits;
     const companyMismatch = data.companyName && ghlCompany !== supCompany;
     const countryMismatch = data.country && ghlCountry !== supCountry;
 
@@ -115,7 +123,7 @@ export async function createGhlContact(data: {
       const updatePayload = {
         name: data.name,
         email: data.email || undefined,
-        phone: data.phone || undefined,
+        phone: hasValidSupPhone ? data.phone.trim() : undefined,
         companyName: data.companyName || undefined,
         country: data.country || undefined,
       };
@@ -151,7 +159,7 @@ export async function createGhlContact(data: {
     locationId: locationId,
     name: data.name,
     email: data.email || undefined,
-    phone: data.phone || undefined,
+    phone: hasValidSupPhone ? data.phone.trim() : undefined,
     companyName: data.companyName || undefined,
     country: data.country || undefined,
   };
