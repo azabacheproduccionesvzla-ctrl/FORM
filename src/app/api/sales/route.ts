@@ -357,18 +357,50 @@ export async function POST(request: Request) {
       }
     }
 
-    runVentasAutomations(salesInserted.id).catch((err) => {
-      console.error("[Automations] Error in runVentasAutomations promise:", err);
-    });
+    try {
+      await runVentasAutomations(salesInserted.id);
+    } catch (err) {
+      console.error("[Automations] Error en la ejecución de runVentasAutomations:", err);
+    }
+
+    // Query updated sale to send to frontend
+    const { data: finalSale } = await supabase
+      .from("ventas")
+      .select(`
+        *,
+        clientes (
+          id,
+          nombre,
+          email,
+          telefono,
+          pais,
+          empresa,
+          link_usuario_plataforma,
+          setter_original_id
+        ),
+        registrador:usuarios_agencia!usuario_registro_id (
+          nombre
+        ),
+        setter_principal:usuarios_agencia!setter_principal_id (
+          nombre
+        ),
+        closer_principal:usuarios_agencia!closer_principal_id (
+          nombre
+        )
+      `)
+      .eq("id", salesInserted.id)
+      .single();
+
+    const saleToSend = finalSale || salesInserted;
 
     await supabase.from("historial_actividades").insert({
       usuario_id: registrarUserId,
-      accion_descripcion: `Venta registrada: ${salesInserted.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
+      accion_descripcion: `Venta registrada: ${saleToSend.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
     });
 
     return NextResponse.json({
       success: true,
-      sale: salesInserted,
+      sale: saleToSend,
       message: "Venta registrada exitosamente."
     });
   } catch (error: any) {

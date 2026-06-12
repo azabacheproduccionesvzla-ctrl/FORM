@@ -102,6 +102,7 @@ export default function VentasPage() {
   const [salesLoading, setSalesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalGatingStep, setModalGatingStep] = useState<"choose" | "none">("choose");
 
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<UserSession | null>(null);
@@ -232,9 +233,18 @@ export default function VentasPage() {
           <p className={styles.cardDescription}>
             Si estás aquí, es porque estás a punto de registrar una venta.
           </p>
-          <button className={styles.btnPrimary} onClick={() => setIsModalOpen(true)}>
-            <span>Nueva venta</span>
-          </button>
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <button className={styles.btnPrimary} onClick={() => { setModalGatingStep("choose"); setIsModalOpen(true); }}>
+              <span>Nueva venta</span>
+            </button>
+            <button 
+  className={styles.btnSecondary} 
+  onClick={() => window.open("https://docs.google.com/spreadsheets/d/1wEOYyBwfo2XYQ77A_ehZlIblLh-8bpUYemdmWMTuMXc/edit", "_blank")} 
+  style={{ borderColor: "#0052cc", color: "#0052cc" }}
+>
+  <span>Cuadro maestro</span>
+</button>
+          </div>
         </div>
       )}
       { }
@@ -648,6 +658,7 @@ export default function VentasPage() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSuccess={fetchSales}
+          initialGatingStep={modalGatingStep}
         />
       )}
       { }

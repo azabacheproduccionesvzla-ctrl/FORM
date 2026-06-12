@@ -40,9 +40,10 @@ interface VentasModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialGatingStep?: "choose" | "extension" | "pago_parcial" | "none";
 }
 
-export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalProps) {
+export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingStep = "choose" }: VentasModalProps) {
   
   const [clients, setClients] = useState<Client[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -110,7 +111,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
     plataforma: "Workana",
 
     
-    cliente_nuevo: false,
+    cliente_nuevo: true,
     cliente_id: "",
     cliente_nombre: "",
     cliente_telefono: "",
@@ -167,7 +168,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   useEffect(() => {
     if (isOpen) {
       
-      setGatingStep("choose");
+      setGatingStep(initialGatingStep);
       setSelectedClient("");
       setSelectedPriorProject("");
       setGatingProjSearchQuery("");
@@ -205,7 +206,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         tipo_proyecto_otro: "",
         status_pago: "Pago Parcial",
         plataforma: "Workana",
-        cliente_nuevo: false,
+        cliente_nuevo: true,
         cliente_id: "",
         cliente_nombre: "",
         cliente_telefono: "",
@@ -263,7 +264,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
       loadAuxiliaryData();
     }
-  }, [isOpen]);
+  }, [isOpen, initialGatingStep]);
 
   
   useEffect(() => {
@@ -337,8 +338,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
   
   useEffect(() => {
-    if (formData.tipo_proyecto === "Por Hora" && montoPorHora && cantidadHoras) {
-      const calculated = (parseFloat(montoPorHora) * parseFloat(cantidadHoras)).toFixed(2);
+    if (formData.tipo_proyecto === "Por Hora" && montoPorHora) {
+      const hrs = cantidadHoras ? parseFloat(cantidadHoras) : 0;
+      const calculated = (parseFloat(montoPorHora) * hrs).toFixed(2);
       setFormData(prev => ({ ...prev, monto_total: calculated }));
     }
   }, [formData.tipo_proyecto, montoPorHora, cantidadHoras]);
@@ -392,10 +394,15 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         proyecto_nombre: gatingStep === "extension" ? `Extensión - ${selectedProject.nombre}` : selectedProject.nombre,
         proyecto_link: selectedProject.link_trello || "",
         carpeta_dropbox: selectedProject.carpeta_dropbox || "",
+        proyecto_brief: selectedProject.ventas?.proyecto_brief || "",
+        descripcion_operativa: selectedProject.ventas?.descripcion_operativa || "",
+        deadline: selectedProject.ventas?.deadline || "",
+        tipo_proyecto: selectedProject.ventas?.tipo_proyecto || "Precio Fijo",
+        moneda: selectedProject.ventas?.moneda || "USD"
       }));
 
       if (selectedProject.ventas?.tipo_proyecto === "Por Hora") {
-        setMontoPorHora(selectedProject.ventas.monto_total.toString());
+        setMontoPorHora(selectedProject.ventas.monto_total?.toString() || "");
       }
 
       setGatingStep("none");
@@ -430,9 +437,15 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       }
 
       
-      if (formData.tipo_proyecto === "Por Hora" && (!montoPorHora || !cantidadHoras)) {
-        setFormError("Debes ingresar el monto por hora y la cantidad de horas.");
-        return;
+      if (formData.tipo_proyecto === "Por Hora") {
+        if (!montoPorHora) {
+          setFormError("Debes ingresar el monto por hora.");
+          return;
+        }
+        if (formData.es_continuacion && !cantidadHoras) {
+          setFormError("Debes ingresar la cantidad de horas.");
+          return;
+        }
       }
 
       
@@ -529,14 +542,13 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         settersAdicionales = [];
       }
     }
-
     const finalPayload = {
       ...formData,
       setter_principal_id: setterPrincipal,
       setters_adicionales_ids: settersAdicionales,
       closer_principal_id: closerPrincipal,
       closers_adicionales_ids: closersAdicionales,
-      actualizar_cliente: actualizarCliente,
+      actualizar_cliente: isExtension ? modifyClientData : actualizarCliente,
       pin: pinStr
     };
 
@@ -549,6 +561,20 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al registrar la venta.");
+
+      const sale = data.sale;
+      if (sale) {
+        const failed = [];
+        if (sale.status_ghl === "ERROR") failed.push("GoHighLevel");
+        if (sale.status_trello === "ERROR") failed.push("Trello");
+        if (sale.status_dropbox === "ERROR") failed.push("Dropbox");
+        if (sale.status_email === "ERROR") failed.push("Email");
+        if (sale.status_whatsapp === "ERROR") failed.push("WhatsApp");
+
+        if (failed.length > 0) {
+          alert(`La venta fue registrada en la base de datos, pero las siguientes integraciones fallaron: ${failed.join(", ")}. Puedes reintentarlas desde el panel de control.`);
+        }
+      }
 
       onSuccess();
       setShowPinConfirm(false);
@@ -1104,33 +1130,35 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
                   <div className={styles.sectionTitle}>Datos del Cliente</div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>¿El cliente es nuevo o existente?</label>
-                    <div className={styles.toggleTabs}>
-                      <button
-                        type="button"
-                        className={`${styles.toggleTab} ${!formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
-                        onClick={() => {
-                          setFormData({ ...formData, cliente_nuevo: false });
-                          setActualizarCliente(false);
-                        }}
-                        disabled={formData.es_continuacion || disableClientFields}
-                      >
-                        Existente
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.toggleTab} ${formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
-                        onClick={() => {
-                          setFormData({ ...formData, cliente_nuevo: true, cliente_id: "" });
-                          setActualizarCliente(false);
-                        }}
-                        disabled={formData.es_continuacion || disableClientFields}
-                      >
-                        Nuevo
-                      </button>
+                  {!isExtension && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>¿El cliente es nuevo o existente?</label>
+                      <div className={styles.toggleTabs}>
+                        <button
+                          type="button"
+                          className={`${styles.toggleTab} ${!formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
+                          onClick={() => {
+                            setFormData({ ...formData, cliente_nuevo: false });
+                            setActualizarCliente(false);
+                          }}
+                          disabled={formData.es_continuacion || disableClientFields}
+                        >
+                          Existente
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.toggleTab} ${formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
+                          onClick={() => {
+                            setFormData({ ...formData, cliente_nuevo: true, cliente_id: "" });
+                            setActualizarCliente(false);
+                          }}
+                          disabled={formData.es_continuacion || disableClientFields}
+                        >
+                          Nuevo
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {!formData.cliente_nuevo ? (
                     <>
@@ -1174,27 +1202,25 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                             </div>
                           )}
                         </div>
-                      </div>
+                        {formData.cliente_id && (
+                          <div style={{ padding: "0.25rem 0", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                            {!isExtension && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem", padding: "0.25rem 0" }}>
+                                <span style={{ fontSize: "0.85rem", fontWeight: "500", color: "#334155" }}>
+                                  ¿Desea actualizar los datos de este cliente?
+                                </span>
+                                <label className={styles.switch}>
+                                  <input
+                                    type="checkbox"
+                                    checked={actualizarCliente}
+                                    onChange={(e) => setActualizarCliente(e.target.checked)}
+                                    disabled={submitting}
+                                  />
+                                  <span className={styles.slider}></span>
+                                </label>
+                              </div>
+                            )}
 
-                      {formData.cliente_id && (
-                        <div style={{ padding: "0.25rem 0", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                          {}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem", padding: "0.25rem 0" }}>
-                            <span style={{ fontSize: "0.85rem", fontWeight: "500", color: "#334155" }}>
-                              ¿Desea actualizar los datos de este cliente?
-                            </span>
-                            <label className={styles.switch}>
-                              <input
-                                type="checkbox"
-                                checked={actualizarCliente}
-                                onChange={(e) => setActualizarCliente(e.target.checked)}
-                                disabled={disableClientFields}
-                              />
-                              <span className={styles.slider}></span>
-                            </label>
-                          </div>
-
-                          {actualizarCliente && (
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>Teléfono</label>
@@ -1204,7 +1230,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_telefono}
                                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
-                                  disabled={disableClientFields}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1215,7 +1241,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_email}
                                   onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
-                                  disabled={disableClientFields}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1226,7 +1252,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_pais}
                                   onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
-                                  disabled={disableClientFields}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                               <div className={styles.formGroup}>
@@ -1237,7 +1263,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_empresa}
                                   onChange={(e) => setFormData({ ...formData, cliente_empresa: e.target.value })}
-                                  disabled={disableClientFields}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                               <div className={styles.formGroup} style={{ gridColumn: "span 2" }}>
@@ -1248,13 +1274,13 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_link_usuario}
                                   onChange={(e) => setFormData({ ...formData, cliente_link_usuario: e.target.value })}
-                                  disabled={disableClientFields}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -1572,7 +1598,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                           />
                         </div>
                         <div className={styles.formGroup}>
-                          <label className={styles.label}>Cantidad de horas *</label>
+                          <label className={styles.label}>Cantidad de horas{formData.es_continuacion ? " *" : ""}</label>
                           <input
                             type="number"
                             placeholder="Ingresa la cantidad de horas"
@@ -1580,7 +1606,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                             value={cantidadHoras}
                             onChange={(e) => setCantidadHoras(e.target.value)}
                             disabled={disablePaymentFields}
-                            required
+                            required={formData.es_continuacion}
                           />
                         </div>
                       </div>

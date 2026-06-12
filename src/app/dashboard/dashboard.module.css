@@ -685,6 +685,22 @@
   box-shadow: 0 0 0 3px rgba(78, 141, 245, 0.15);
 }
 
+.input:disabled,
+.select:disabled,
+textarea:disabled {
+  background-color: #f1f5f9 !important; /* Gris claro original */
+  color: #64748b !important; /* Texto legible pero atenuado */
+  border-color: #cbd5e1 !important; /* Borde sutil pero definido */
+  cursor: not-allowed;
+  opacity: 0.9;
+  box-shadow: none !important;
+}
+
+.input:disabled::placeholder,
+textarea:disabled::placeholder {
+  color: #94a3b8 !important;
+}
+
 .modalActions {
   display: flex;
   justify-content: flex-end;
@@ -1111,6 +1127,12 @@
   border-radius: 6px;
   transition: all 0.2s ease;
   text-align: center;
+}
+
+.toggleTab:disabled {
+  color: #cbd5e1 !important;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .toggleTabActive {

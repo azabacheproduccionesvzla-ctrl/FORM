@@ -498,10 +498,10 @@ export default function AjustesPage() {
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#f1f5f9", marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#f1f5f9", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
             <div>
-              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Integraciones automatizadas</h3>
-              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#475569" }}>Activar o desactivar todas las integraciones de automatización simultáneamente</p>
+              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Habilitar integraciones automáticas</h3>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#475569" }}>Activar o desactivar la ejecución de todo el flujo de automatizaciones (Trello, Dropbox, GHL, WhatsApp y Email) al registrar ventas.</p>
             </div>
             <label className={styles.switch}>
               <input
@@ -512,88 +512,6 @@ export default function AjustesPage() {
               />
               <span className={styles.slider}></span>
             </label>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Dropbox</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de carpeta de entrega</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.dropbox}
-                  onChange={() => handleToggleIntegration("dropbox", integrationConfig.dropbox)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Trello</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de tarjeta de proyecto</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.trello}
-                  onChange={() => handleToggleIntegration("trello", integrationConfig.trello)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Facturación (GHL)</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de contacto y factura</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.ghl_factura}
-                  onChange={() => handleToggleIntegration("ghl_factura", integrationConfig.ghl_factura)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Notificaciones por Correo</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Email interno por GHL</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.ghl_email}
-                  onChange={() => handleToggleIntegration("ghl_email", integrationConfig.ghl_email)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Notificaciones WhatsApp</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Mensajes grupales vía Zapier</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.zapier_whatsapp}
-                  onChange={() => handleToggleIntegration("zapier_whatsapp", integrationConfig.zapier_whatsapp)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
           </div>
         </div>
       )}

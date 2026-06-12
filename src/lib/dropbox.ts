@@ -55,7 +55,7 @@ export async function createDropboxFolder(
     const cleanClientName = clientName.replace(/[\/\\:*?"<>|]/g, "_").trim();
     const cleanProjectName = projectName.replace(/[\/\\:*?"<>|]/g, "_").trim();
     
-    const folderPath = `/ENTREGA/${year}/${cleanClientName} ${cleanProjectName}`;
+    const folderPath = `/ENTREGA/${year}/${cleanClientName} - ${cleanProjectName}`;
 
     const createRes = await fetch("https://api.dropboxapi.com/2/files/create_folder_v2", {
       method: "POST",

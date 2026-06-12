@@ -19,21 +19,39 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
 
-    let query = supabase
-      .from("clientes")
-      .select("*")
-      .order("nombre", { ascending: true });
+    let clients: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
 
-    if (search) {
-      query = query.or(
-        `nombre.ilike.%${search}%,email.ilike.%${search}%,telefono.ilike.%${search}%,empresa.ilike.%${search}%`
-      );
-    }
+    while (hasMore) {
+      let query = supabase
+        .from("clientes")
+        .select("*")
+        .order("nombre", { ascending: true })
+        .range(from, from + limit - 1);
 
-    const { data: clients, error } = await query;
+      if (search) {
+        query = query.or(
+          `nombre.ilike.%${search}%,email.ilike.%${search}%,telefono.ilike.%${search}%,empresa.ilike.%${search}%`
+        );
+      }
 
-    if (error) {
-      throw error;
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        clients = [...clients, ...data];
+        from += limit;
+        if (data.length < limit) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
     return NextResponse.json({

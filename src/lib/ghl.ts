@@ -12,6 +12,141 @@ export async function createGhlContact(data: {
     throw new Error("GHL_ACCESS_TOKEN o GHL_LOCATION_ID no configurados.");
   }
 
+  let existingContact: any = null;
+
+  // 1. Buscar por email si está provisto
+  if (data.email && data.email.trim()) {
+    const emailClean = data.email.trim().toLowerCase();
+    try {
+      console.log(`[GHL API] Buscando contacto por email: ${emailClean}`);
+      const queryUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}&query=${encodeURIComponent(emailClean)}`;
+      const res = await fetch(queryUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Version": "2021-07-28",
+          "Accept": "application/json"
+        }
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const contacts = result.contacts || [];
+        existingContact = contacts.find((c: any) => c.email && c.email.toLowerCase().trim() === emailClean);
+        if (existingContact) {
+          console.log(`[GHL API] Contacto encontrado por email: ${existingContact.id}`);
+        }
+      } else {
+        console.warn(`[GHL API] Error en búsqueda por email: ${res.statusText}`);
+      }
+    } catch (err) {
+      console.error(`[GHL API] Excepción al buscar por email:`, err);
+    }
+  }
+
+  // 2. Si no se encontró por email, buscar por teléfono
+  if (!existingContact && data.phone && data.phone.trim()) {
+    const phoneClean = data.phone.trim();
+    try {
+      console.log(`[GHL API] Buscando contacto por teléfono: ${phoneClean}`);
+      const queryUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}&query=${encodeURIComponent(phoneClean)}`;
+      const res = await fetch(queryUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Version": "2021-07-28",
+          "Accept": "application/json"
+        }
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const contacts = result.contacts || [];
+        const digitsOnly = (p: string) => p.replace(/\D/g, "");
+        const searchDigits = digitsOnly(phoneClean);
+        if (searchDigits) {
+          existingContact = contacts.find((c: any) => c.phone && digitsOnly(c.phone) === searchDigits);
+          if (existingContact) {
+            console.log(`[GHL API] Contacto encontrado por teléfono: ${existingContact.id}`);
+          }
+        }
+      } else {
+        console.warn(`[GHL API] Error en búsqueda por teléfono: ${res.statusText}`);
+      }
+    } catch (err) {
+      console.error(`[GHL API] Excepción al buscar por teléfono:`, err);
+    }
+  }
+
+  // Helper para normalizar textos y comparar
+  const normalize = (val: any) => (val || "").toString().trim();
+  const normalizeLower = (val: any) => normalize(val).toLowerCase();
+  const getDigits = (val: any) => normalize(val).replace(/\D/g, "");
+
+  if (existingContact) {
+    // Comparar campos entre Supabase (data) y GHL (existingContact)
+    const ghlName = normalizeLower(
+      existingContact.contactName || 
+      existingContact.name || 
+      [existingContact.firstName || "", existingContact.lastName || ""].filter(Boolean).join(" ")
+    );
+    const supName = normalizeLower(data.name);
+
+    const ghlEmail = normalizeLower(existingContact.email);
+    const supEmail = normalizeLower(data.email);
+
+    const ghlPhoneDigits = getDigits(existingContact.phone);
+    const supPhoneDigits = getDigits(data.phone);
+
+    const ghlCompany = normalizeLower(existingContact.companyName);
+    const supCompany = normalizeLower(data.companyName);
+
+    const ghlCountry = normalizeLower(existingContact.country);
+    const supCountry = normalizeLower(data.country);
+
+    const nameMismatch = ghlName !== supName;
+    const emailMismatch = data.email && ghlEmail !== supEmail;
+    const phoneMismatch = data.phone && ghlPhoneDigits !== supPhoneDigits;
+    const companyMismatch = data.companyName && ghlCompany !== supCompany;
+    const countryMismatch = data.country && ghlCountry !== supCountry;
+
+    const needsUpdate = nameMismatch || emailMismatch || phoneMismatch || companyMismatch || countryMismatch;
+
+    if (needsUpdate) {
+      console.log(`[GHL API] Los datos del contacto difieren. Actualizando contacto ${existingContact.id} en GHL.`);
+      const updatePayload = {
+        name: data.name,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        companyName: data.companyName || undefined,
+        country: data.country || undefined,
+      };
+
+      const updateRes = await fetch(`https://services.leadconnectorhq.com/contacts/${existingContact.id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Version": "2021-07-28",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      if (!updateRes.ok) {
+        const errorText = await updateRes.text();
+        console.error(`[GHL API] Error al actualizar contacto ${existingContact.id}:`, errorText);
+        throw new Error(`GHL API Contact Update Error: ${updateRes.statusText}`);
+      }
+
+      const result = await updateRes.json();
+      return result.contact?.id || existingContact.id;
+    } else {
+      console.log(`[GHL API] Los datos coinciden para el contacto ${existingContact.id}. No se requiere actualización.`);
+      return existingContact.id;
+    }
+  }
+
+  // 3. Si no existe, crear nuevo contacto
+  console.log(`[GHL API] Contacto no encontrado. Creando nuevo contacto.`);
   const payload = {
     locationId: locationId,
     name: data.name,
@@ -21,7 +156,7 @@ export async function createGhlContact(data: {
     country: data.country || undefined,
   };
 
-  const response = await fetch("https://services.leadconnectorhq.com/contacts/upsert", {
+  const response = await fetch("https://services.leadconnectorhq.com/contacts/", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,

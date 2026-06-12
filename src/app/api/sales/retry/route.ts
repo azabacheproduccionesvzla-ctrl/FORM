@@ -20,11 +20,13 @@ export async function POST(request: Request) {
     }
 
     
-    runVentasAutomations(saleId).catch(err => {
-      console.error("[Retry Endpoint] Error en la promesa:", err);
-    });
+    try {
+      await runVentasAutomations(saleId);
+    } catch (err) {
+      console.error("[Retry Endpoint] Error en la ejecución de runVentasAutomations:", err);
+    }
 
-    return NextResponse.json({ success: true, message: "Reintento iniciado en segundo plano." });
+    return NextResponse.json({ success: true, message: "Reintento de automatizaciones completado." });
 
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
