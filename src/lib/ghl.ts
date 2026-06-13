@@ -160,6 +160,8 @@ export async function createGhlInvoice(contactId: string, data: {
   amount: number;
   currency: string;
   description?: string;
+  contactName?: string;
+  contactEmail?: string;
 }) {
   const token = process.env.GHL_ACCESS_TOKEN;
   const locationId = process.env.GHL_LOCATION_ID;
@@ -170,16 +172,37 @@ export async function createGhlInvoice(contactId: string, data: {
   const payload = {
     altId: locationId,
     altType: "location",
-    contactId: contactId,
-    title: `Factura - ${data.projectName}`,
-    issueDate: issueDate,
+    name: `Factura - ${data.projectName}`,
     status: "DRAFT",
-    currency: (data.currency || "usd").toLowerCase(),
+    issueDate: issueDate,
+    dueDate: issueDate,
+    currency: (data.currency || "USD").toUpperCase(),
+    contactId: contactId,
+    businessDetails: {
+      name: "Azabache Producciones",
+      phoneNo: "+584120000000",
+      website: "https://azabacheproducciones.com",
+      address: {
+        addressLine1: "Caracas",
+        city: "Caracas",
+        state: "DF",
+        countryCode: "VE",
+        postalCode: "1010"
+      }
+    },
+    contactDetails: {
+      id: contactId,
+      name: data.contactName || "Cliente",
+      email: data.contactEmail || ""
+    },
     items: [
       {
+        productId: "6a144f8ad7158a116689a21a",
+        priceId: "6a144f8ad7158a40b889a21f",
         name: data.projectName,
-        price: priceInCents,
-        quantity: 1,
+        qty: 1,
+        amount: priceInCents,
+        currency: (data.currency || "USD").toUpperCase(),
         description: data.description || "Servicios creativos"
       }
     ]
