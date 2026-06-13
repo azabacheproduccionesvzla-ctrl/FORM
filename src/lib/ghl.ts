@@ -90,71 +90,40 @@ export async function createGhlContact(data: {
   const getDigits = (val: any) => normalize(val).replace(/\D/g, "");
 
   if (existingContact) {
-    // Comparar campos entre Supabase (data) y GHL (existingContact)
-    const ghlName = normalizeLower(
-      existingContact.contactName || 
-      existingContact.name || 
-      [existingContact.firstName || "", existingContact.lastName || ""].filter(Boolean).join(" ")
-    );
-    const supName = normalizeLower(data.name);
+    // Siempre actualizamos para asegurarnos de que la etiqueta 'nueva_venta' esté aplicada
+    console.log(`[GHL API] Agregando etiqueta 'nueva_venta' al contacto existente ${existingContact.id} en GHL.`);
+    const updatePayload = {
+      name: data.name,
+      email: data.email || undefined,
+      phone: hasValidSupPhone ? data.phone!.trim() : undefined,
+      companyName: data.companyName || undefined,
+      country: data.country || undefined,
+      tags: ["nueva_venta"]
+    };
 
-    const ghlEmail = normalizeLower(existingContact.email);
-    const supEmail = normalizeLower(data.email);
+    const updateRes = await fetch(`https://services.leadconnectorhq.com/contacts/${existingContact.id}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Version": "2021-07-28",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(updatePayload)
+    });
 
-    const ghlPhoneDigits = getDigits(existingContact.phone);
-    const supPhoneDigits = hasValidSupPhone ? getDigits(data.phone) : "";
-
-    const ghlCompany = normalizeLower(existingContact.companyName);
-    const supCompany = normalizeLower(data.companyName);
-
-    const ghlCountry = normalizeLower(existingContact.country);
-    const supCountry = normalizeLower(data.country);
-
-    const nameMismatch = ghlName !== supName;
-    const emailMismatch = data.email && ghlEmail !== supEmail;
-    const phoneMismatch = hasValidSupPhone && ghlPhoneDigits !== supPhoneDigits;
-    const companyMismatch = data.companyName && ghlCompany !== supCompany;
-    const countryMismatch = data.country && ghlCountry !== supCountry;
-
-    const needsUpdate = nameMismatch || emailMismatch || phoneMismatch || companyMismatch || countryMismatch;
-
-    if (needsUpdate) {
-      console.log(`[GHL API] Los datos del contacto difieren. Actualizando contacto ${existingContact.id} en GHL.`);
-      const updatePayload = {
-        name: data.name,
-        email: data.email || undefined,
-        phone: hasValidSupPhone ? data.phone!.trim() : undefined,
-        companyName: data.companyName || undefined,
-        country: data.country || undefined,
-      };
-
-      const updateRes = await fetch(`https://services.leadconnectorhq.com/contacts/${existingContact.id}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Version": "2021-07-28",
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(updatePayload)
-      });
-
-      if (!updateRes.ok) {
-        const errorText = await updateRes.text();
-        console.error(`[GHL API] Error al actualizar contacto ${existingContact.id}:`, errorText);
-        throw new Error(`GHL API Contact Update Error: ${updateRes.statusText}`);
-      }
-
-      const result = await updateRes.json();
-      return result.contact?.id || existingContact.id;
-    } else {
-      console.log(`[GHL API] Los datos coinciden para el contacto ${existingContact.id}. No se requiere actualización.`);
-      return existingContact.id;
+    if (!updateRes.ok) {
+      const errorText = await updateRes.text();
+      console.error(`[GHL API] Error al actualizar contacto/etiquetas ${existingContact.id}:`, errorText);
+      throw new Error(`GHL API Contact Update Error: ${updateRes.statusText}`);
     }
+
+    const result = await updateRes.json();
+    return result.contact?.id || existingContact.id;
   }
 
-  // 3. Si no existe, crear nuevo contacto
-  console.log(`[GHL API] Contacto no encontrado. Creando nuevo contacto.`);
+  // 3. Si no existe, crear nuevo contacto con la etiqueta 'nueva_venta'
+  console.log(`[GHL API] Contacto no encontrado. Creando nuevo contacto con etiqueta 'nueva_venta'.`);
   const payload = {
     locationId: locationId,
     name: data.name,
@@ -162,6 +131,7 @@ export async function createGhlContact(data: {
     phone: hasValidSupPhone ? data.phone!.trim() : undefined,
     companyName: data.companyName || undefined,
     country: data.country || undefined,
+    tags: ["nueva_venta"]
   };
 
   const response = await fetch("https://services.leadconnectorhq.com/contacts/", {
