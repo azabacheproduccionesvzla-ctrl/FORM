@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
 import VentasModal from "./VentasModal";
+import CuadroMaestroModal from "./CuadroMaestroModal";
 interface Sale {
   id: string;
   codigo_venta: string;
@@ -105,6 +106,7 @@ export default function VentasPage() {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalGatingStep, setModalGatingStep] = useState<"choose" | "none">("choose");
+  const [isCuadroMaestroOpen, setIsCuadroMaestroOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<UserSession | null>(null);
@@ -455,13 +457,15 @@ export default function VentasPage() {
             <button className={styles.btnPrimary} onClick={() => { setModalGatingStep("choose"); setIsModalOpen(true); }}>
               <span>Nueva venta</span>
             </button>
-            <button 
-  className={styles.btnSecondary} 
-  onClick={() => window.open("https://docs.google.com/spreadsheets/d/1wEOYyBwfo2XYQ77A_ehZlIblLh-8bpUYemdmWMTuMXc/edit", "_blank")} 
-  style={{ borderColor: "#0052cc", color: "#0052cc" }}
->
-  <span>Cuadro maestro</span>
-</button>
+            {(user?.role === "admin" || user?.role === "auditor") && (
+              <button 
+                className={styles.btnSecondary} 
+                onClick={() => setIsCuadroMaestroOpen(true)} 
+                style={{ borderColor: "#0052cc", color: "#0052cc" }}
+              >
+                <span>Cuadro maestro</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1628,6 +1632,16 @@ export default function VentasPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {isCuadroMaestroOpen && (
+        <CuadroMaestroModal
+          isOpen={isCuadroMaestroOpen}
+          onClose={() => setIsCuadroMaestroOpen(false)}
+          usersList={usersList}
+          userRole={user?.role || ""}
+          onRefreshSales={fetchSales}
+        />
       )}
     </div>
   );

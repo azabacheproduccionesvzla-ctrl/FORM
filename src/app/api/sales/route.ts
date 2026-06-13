@@ -5,6 +5,7 @@ import { verifyPin } from "@/lib/crypto";
 import { runVentasAutomations } from "@/lib/automations";
 import { updateTrelloCardName } from "@/lib/trello";
 import { renameDropboxFolder } from "@/lib/dropbox";
+import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
 
 export async function GET(request: Request) {
   try {
@@ -402,6 +403,12 @@ export async function POST(request: Request) {
       accion_descripcion: `Venta registrada: ${saleToSend.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
     });
 
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after POST:", localErr);
+    }
+
     return NextResponse.json({
       success: true,
       sale: saleToSend,
@@ -671,6 +678,12 @@ export async function PUT(request: Request) {
       accion_descripcion: `Venta modificada: ${updatedSale.codigo_venta} para ${cliente_nombre || "Cliente"} (Monto: ${monto_total || updatedSale.monto_total} ${moneda || updatedSale.moneda})`,
     });
 
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after PUT:", localErr);
+    }
+
     return NextResponse.json({
       success: true,
       sale: updatedSale,
@@ -736,6 +749,12 @@ export async function DELETE(request: Request) {
       usuario_id: userId,
       accion_descripcion: `Venta eliminada: ${saleData?.codigo_venta || "N/A"} (${saleData?.proyecto_nombre || "N/A"}) por administrador`,
     });
+
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after DELETE:", localErr);
+    }
 
     return NextResponse.json({
       success: true,

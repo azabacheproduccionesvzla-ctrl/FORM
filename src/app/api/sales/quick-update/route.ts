@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 import { updateTrelloCardFields } from "@/lib/trello";
 import { renameDropboxFolderDirect } from "@/lib/dropbox";
+import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
 
 export async function POST(request: Request) {
   try {
@@ -69,6 +70,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: trelloRes.error || "Error al actualizar Trello." }, { status: 500 });
       }
 
+      try {
+        await updateLocalWorkspaceSheet();
+      } catch (localErr) {
+        console.error("[Quick Update API] Error updating local sheet after trello:", localErr);
+      }
+
       return NextResponse.json({ success: true, message: "Tarjeta de Trello actualizada con éxito." });
     }
 
@@ -133,6 +140,12 @@ export async function POST(request: Request) {
           .from("clientes")
           .update({ nombre: newClientName })
           .eq("id", sale.cliente_id);
+      }
+
+      try {
+        await updateLocalWorkspaceSheet();
+      } catch (localErr) {
+        console.error("[Quick Update API] Error updating local sheet after dropbox:", localErr);
       }
 
       return NextResponse.json({ success: true, message: "Carpeta de Dropbox renombrada con éxito y base de datos actualizada." });

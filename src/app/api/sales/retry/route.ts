@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 import { runVentasAutomations } from "@/lib/automations";
+import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
       await runVentasAutomations(saleId);
     } catch (err) {
       console.error("[Retry Endpoint] Error en la ejecución de runVentasAutomations:", err);
+    }
+
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Retry Endpoint] Error updating local sheet:", localErr);
     }
 
     return NextResponse.json({ success: true, message: "Reintento de automatizaciones completado." });
