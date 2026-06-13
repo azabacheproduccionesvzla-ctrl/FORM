@@ -51,6 +51,7 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ghl_contact_id VARCHAR(100);
 CREATE TABLE IF NOT EXISTS ventas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     codigo_venta VARCHAR(100) UNIQUE,
+    codigo_factura VARCHAR(100),
     es_continuacion BOOLEAN DEFAULT FALSE NOT NULL,
     tipo_continuacion VARCHAR(50), -- 'extension', 'pago_parcial'
     proyecto_previo_id UUID REFERENCES ventas(id) ON DELETE SET NULL,

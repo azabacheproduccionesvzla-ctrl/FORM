@@ -93,7 +93,7 @@ export async function runVentasAutomations(saleId: string) {
 
     const dueDateStr = fechaVencimiento.toISOString();
 
-    let finalCodigoVenta = sale.codigo_venta;
+    let finalCodigoVenta = sale.codigo_factura || sale.codigo_venta;
     let contactId = clientInfo?.ghl_contact_id || "";
 
     // 1. GHL Contacto
@@ -162,7 +162,7 @@ export async function runVentasAutomations(saleId: string) {
             await supabase
               .from("ventas")
               .update({
-                codigo_venta: finalCodigoVenta,
+                codigo_factura: finalCodigoVenta,
                 status_ghl_factura: "COMPLETADO"
               })
               .eq("id", saleId);

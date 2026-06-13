@@ -6,6 +6,7 @@ import CuadroMaestroModal from "./CuadroMaestroModal";
 interface Sale {
   id: string;
   codigo_venta: string;
+  codigo_factura?: string | null;
   es_continuacion: boolean;
   tipo_continuacion?: string;
   proyecto_previo_id?: string;
@@ -639,7 +640,14 @@ export default function VentasPage() {
                     {filteredSales.map((sale) => (
                       <tr key={sale.id}>
                         <td>
-                          <span className={styles.salesTableCode}>{sale.codigo_venta}</span>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span className={styles.salesTableCode} title="ID/Código de la Venta (Correlativo Interno)">{sale.codigo_venta}</span>
+                            {sale.codigo_factura && (
+                              <span style={{ fontSize: "0.7rem", color: "#16a34a", marginTop: "2px", fontWeight: "600" }} title="ID/Número de Factura de GHL">
+                                Factura: {sale.codigo_factura}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           {new Date(sale.creado_en).toLocaleDateString("es-ES", {
@@ -793,7 +801,14 @@ export default function VentasPage() {
               {filteredSales.map((sale) => (
                 <div key={sale.id} className={styles.saleMobileCard}>
                   <div className={styles.saleMobileCardHeader}>
-                    <span className={styles.salesTableCode}>{sale.codigo_venta}</span>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span className={styles.salesTableCode} title="ID/Código de la Venta (Correlativo Interno)">{sale.codigo_venta}</span>
+                      {sale.codigo_factura && (
+                        <span style={{ fontSize: "0.68rem", color: "#16a34a", marginTop: "2px", fontWeight: "600" }} title="ID/Número de Factura de GHL">
+                          Factura GHL: {sale.codigo_factura}
+                        </span>
+                      )}
+                    </div>
                     <span className={styles.saleMobileCardDate}>
                       {new Date(sale.creado_en).toLocaleDateString("es-ES", {
                         year: "numeric",
@@ -964,9 +979,14 @@ export default function VentasPage() {
             <div className={styles.viewModalHeader}>
               <div className={styles.viewModalTitleRow}>
                 <h3 className={styles.viewModalTitle} style={{ fontWeight: "600" }}>Detalle de Venta</h3>
-                <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem" }}>
-                  {selectedViewSale.codigo_venta}
+                <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem" }} title="ID/Código de la Venta (Correlativo Interno)">
+                  Venta: {selectedViewSale.codigo_venta}
                 </span>
+                {selectedViewSale.codigo_factura && (
+                  <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", backgroundColor: "#f0fdf4", color: "#16a34a", borderColor: "#bbf7d0" }} title="ID/Número de Factura de GHL">
+                    Factura GHL: {selectedViewSale.codigo_factura}
+                  </span>
+                )}
                 <span className={`${styles.badge} ${selectedViewSale.estado_interno === "Finalizada" ? styles.badgeActive : styles.roleventas}`} style={{ fontWeight: "500", fontSize: "0.75rem" }}>
                   {selectedViewSale.estado_interno}
                 </span>
@@ -1506,9 +1526,14 @@ export default function VentasPage() {
                 <h3 className={styles.viewModalTitle} style={{ fontWeight: "600", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   Estado de la venta
                 </h3>
-                <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", backgroundColor: "#f1f5f9" }}>
-                  {selectedLogsSale.codigo_venta}
+                <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", backgroundColor: "#f1f5f9" }} title="ID/Código de la Venta (Correlativo Interno)">
+                  Venta: {selectedLogsSale.codigo_venta}
                 </span>
+                {selectedLogsSale.codigo_factura && (
+                  <span className={styles.salesTableCode} style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", backgroundColor: "#f0fdf4", color: "#16a34a", borderColor: "#bbf7d0" }} title="ID/Número de Factura de GHL">
+                    Factura GHL: {selectedLogsSale.codigo_factura}
+                  </span>
+                )}
               </div>
               <button className={styles.closeBtn} onClick={() => setSelectedLogsSale(null)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

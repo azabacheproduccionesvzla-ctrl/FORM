@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 interface Sale {
   id: string;
   codigo_venta: string;
+  codigo_factura?: string | null;
   es_continuacion: boolean;
   tipo_venta: string;
   tipo_proyecto: string;
@@ -392,7 +393,7 @@ export default function CuadroMaestroModal({
               <polyline points="10 9 9 9 8 9" />
             </svg>
             <div>
-              <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600", color: "#1e293b" }}>Cuadro Maestro interactivo</h2>
+              <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600", color: "#1e293b" }}>Cuadro Maestro</h2>
               <p style={{ margin: 0, fontSize: "0.8rem", color: "#64748b" }}>
                 {isReadOnly ? "Vista de lectura de planilla de ventas." : "Haz doble clic o haz clic sobre una celda para editar los campos directamente."}
               </p>
