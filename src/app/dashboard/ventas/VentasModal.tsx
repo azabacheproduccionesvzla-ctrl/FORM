@@ -565,7 +565,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
       const sale = data.sale;
       if (sale) {
         const failed = [];
-        if (sale.status_ghl === "ERROR") failed.push("GoHighLevel");
+        if (sale.status_ghl === "ERROR" || sale.status_ghl_contacto === "ERROR" || sale.status_ghl_factura === "ERROR") failed.push("GoHighLevel");
         if (sale.status_trello === "ERROR") failed.push("Trello");
         if (sale.status_dropbox === "ERROR") failed.push("Dropbox");
         if (sale.status_email === "ERROR") failed.push("Email");

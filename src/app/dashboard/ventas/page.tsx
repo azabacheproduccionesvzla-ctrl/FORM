@@ -45,7 +45,9 @@ interface Sale {
   creado_en: string;
   estado_interno: string;
   status_trello: string;
-  status_ghl: string;
+  status_ghl_contacto: string;
+  status_ghl_factura: string;
+  status_ghl?: string;
   status_dropbox: string;
   status_whatsapp: string;
   status_email: string;
@@ -83,7 +85,7 @@ interface UserListItem {
   rol: string;
 }
 export default function VentasPage() {
-  const getBadgeStyle = (status: string) => {
+  const getBadgeStyle = (status?: string) => {
     if (status === "ERROR") {
       return { backgroundColor: "#fee2e2", borderColor: "#fecaca", color: "#b91c1c" };
     }
@@ -93,7 +95,7 @@ export default function VentasPage() {
     return {};
   };
 
-  const getPipelineBoxStyle = (status: string) => {
+  const getPipelineBoxStyle = (status?: string) => {
     if (status === "DESACTIVADO") {
       return { opacity: 0.5, borderStyle: "dashed" as const, borderColor: "#cbd5e1" };
     }
@@ -119,6 +121,24 @@ export default function VentasPage() {
   const [selectedViewSale, setSelectedViewSale] = useState<Sale | null>(null);
   const [selectedLogsSale, setSelectedLogsSale] = useState<Sale | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [saleLogs, setSaleLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  useEffect(() => {
+    if (selectedLogsSale) {
+      setLoadingLogs(true);
+      setSaleLogs([]);
+      fetch(`/api/sales/logs?saleId=${selectedLogsSale.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setSaleLogs(data.logs || []);
+          }
+        })
+        .catch(err => console.error("Error fetching logs:", err))
+        .finally(() => setLoadingLogs(false));
+    }
+  }, [selectedLogsSale]);
 
   const [quickTrelloTitle, setQuickTrelloTitle] = useState("");
   const [quickTrelloDesc, setQuickTrelloDesc] = useState("");
@@ -681,12 +701,27 @@ export default function VentasPage() {
                               </svg>
                             </div>
                             <div
-                              className={`${styles.automationIconBadge} ${sale.status_ghl === "COMPLETADO" ? styles.automationCompleted : sale.status_ghl === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
-                              style={getBadgeStyle(sale.status_ghl)}
-                              title={`Go High Level: ${sale.status_ghl}`}
+                              className={`${styles.automationIconBadge} ${(sale.status_ghl_contacto || sale.status_ghl) === "COMPLETADO" ? styles.automationCompleted : (sale.status_ghl_contacto || sale.status_ghl) === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                              style={getBadgeStyle(sale.status_ghl_contacto || sale.status_ghl)}
+                              title={`GHL Contacto: ${sale.status_ghl_contacto || sale.status_ghl || "PENDIENTE"}`}
                             >
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                              </svg>
+                            </div>
+
+                            <div
+                              className={`${styles.automationIconBadge} ${(sale.status_ghl_factura || sale.status_ghl) === "COMPLETADO" ? styles.automationCompleted : (sale.status_ghl_factura || sale.status_ghl) === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                              style={getBadgeStyle(sale.status_ghl_factura || sale.status_ghl)}
+                              title={`GHL Factura: ${sale.status_ghl_factura || sale.status_ghl || "PENDIENTE"}`}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                                <polyline points="10 9 9 9 8 9" />
                               </svg>
                             </div>
 
@@ -827,12 +862,27 @@ export default function VentasPage() {
                         </div>
 
                         <div
-                          className={`${styles.automationIconBadge} ${sale.status_ghl === "COMPLETADO" ? styles.automationCompleted : sale.status_ghl === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
-                          style={getBadgeStyle(sale.status_ghl)}
-                          title={`Go High Level: ${sale.status_ghl}`}
+                          className={`${styles.automationIconBadge} ${(sale.status_ghl_contacto || sale.status_ghl) === "COMPLETADO" ? styles.automationCompleted : (sale.status_ghl_contacto || sale.status_ghl) === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                          style={getBadgeStyle(sale.status_ghl_contacto || sale.status_ghl)}
+                          title={`GHL Contacto: ${sale.status_ghl_contacto || sale.status_ghl || "PENDIENTE"}`}
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+
+                        <div
+                          className={`${styles.automationIconBadge} ${(sale.status_ghl_factura || sale.status_ghl) === "COMPLETADO" ? styles.automationCompleted : (sale.status_ghl_factura || sale.status_ghl) === "ERROR" ? styles.statusBadgeError : styles.automationPending}`}
+                          style={getBadgeStyle(sale.status_ghl_factura || sale.status_ghl)}
+                          title={`GHL Factura: ${sale.status_ghl_factura || sale.status_ghl || "PENDIENTE"}`}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
                           </svg>
                         </div>
 
@@ -1325,20 +1375,48 @@ export default function VentasPage() {
                     </svg>
                   </div>
                   <div
-                    className={`${styles.pipelineBox} ${selectedViewSale.status_ghl === "COMPLETADO" ? styles.pipelineBoxCompleted :
-                      selectedViewSale.status_ghl === "ERROR" ? styles.pipelineBoxError :
-                        selectedViewSale.status_ghl === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
+                    className={`${styles.pipelineBox} ${(selectedViewSale.status_ghl_contacto || selectedViewSale.status_ghl) === "COMPLETADO" ? styles.pipelineBoxCompleted :
+                      (selectedViewSale.status_ghl_contacto || selectedViewSale.status_ghl) === "ERROR" ? styles.pipelineBoxError :
+                        (selectedViewSale.status_ghl_contacto || selectedViewSale.status_ghl) === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
                       }`}
-                    style={getPipelineBoxStyle(selectedViewSale.status_ghl)}
+                    style={getPipelineBoxStyle(selectedViewSale.status_ghl_contacto || selectedViewSale.status_ghl)}
                   >
                     <div className={styles.pipelineBoxHeader}>
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                       </svg>
-                      <span>GHL Oportunidad</span>
+                      <span>GHL Contacto</span>
                     </div>
                     <span className={styles.pipelineBoxStatus}>
-                      {selectedViewSale.status_ghl}
+                      {selectedViewSale.status_ghl_contacto || selectedViewSale.status_ghl || "PENDIENTE"}
+                    </span>
+                  </div>
+                  <div className={styles.pipelineArrow}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </div>
+                  <div
+                    className={`${styles.pipelineBox} ${(selectedViewSale.status_ghl_factura || selectedViewSale.status_ghl) === "COMPLETADO" ? styles.pipelineBoxCompleted :
+                      (selectedViewSale.status_ghl_factura || selectedViewSale.status_ghl) === "ERROR" ? styles.pipelineBoxError :
+                        (selectedViewSale.status_ghl_factura || selectedViewSale.status_ghl) === "PROCESANDO" ? styles.pipelineBoxProcessing : styles.pipelineBoxPending
+                      }`}
+                    style={getPipelineBoxStyle(selectedViewSale.status_ghl_factura || selectedViewSale.status_ghl)}
+                  >
+                    <div className={styles.pipelineBoxHeader}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                      <span>GHL Factura</span>
+                    </div>
+                    <span className={styles.pipelineBoxStatus}>
+                      {selectedViewSale.status_ghl_factura || selectedViewSale.status_ghl || "PENDIENTE"}
                     </span>
                   </div>
                   <div className={styles.pipelineArrow}>
@@ -1460,8 +1538,8 @@ export default function VentasPage() {
                 </button>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "1.25rem", backgroundColor: "#fafafa" }}>
-
+              {/* Status summary */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "1rem", backgroundColor: "#fafafa", marginBottom: "1.5rem" }}>
                 {(() => {
                   const renderStatusItem = (name: string, status: string) => {
                     const isError = status === "ERROR";
@@ -1470,14 +1548,14 @@ export default function VentasPage() {
                     const isPending = !isError && !isCompleted && !isDeactivated;
 
                     return (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.75rem", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{ fontSize: "0.9rem", color: "#334155", fontWeight: "500" }}>{name}</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          {isCompleted && <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#22c55e" }}></span>}
-                          {isError && <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ef4444" }}></span>}
-                          {isDeactivated && <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#94a3b8" }}></span>}
-                          {isPending && <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#cbd5e1" }}></span>}
-                          <span style={{ fontSize: "0.8rem", color: isError ? "#ef4444" : isCompleted ? "#22c55e" : isDeactivated ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{ fontSize: "0.8rem", color: "#475569", fontWeight: "500" }}>{name}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                          {isCompleted && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#22c55e" }}></span>}
+                          {isError && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444" }}></span>}
+                          {isDeactivated && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#94a3b8" }}></span>}
+                          {isPending && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#cbd5e1" }}></span>}
+                          <span style={{ fontSize: "0.75rem", color: isError ? "#ef4444" : isCompleted ? "#22c55e" : isDeactivated ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                             {status}
                           </span>
                         </div>
@@ -1487,16 +1565,49 @@ export default function VentasPage() {
 
                   return (
                     <>
-                      {renderStatusItem("GoHighLevel (Contacto/Factura)", selectedLogsSale.status_ghl || "PENDIENTE")}
+                      {renderStatusItem("GHL Contacto", selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl || "PENDIENTE")}
+                      {renderStatusItem("GHL Factura", selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl || "PENDIENTE")}
                       {renderStatusItem("Trello (Tarjeta)", selectedLogsSale.status_trello || "PENDIENTE")}
                       {renderStatusItem("Dropbox (Carpeta)", selectedLogsSale.status_dropbox || "PENDIENTE")}
-                      {renderStatusItem("Notificación Email (GHL)", selectedLogsSale.status_email || "PENDIENTE")}
-                      {renderStatusItem("Notificación WhatsApp (Zapier)", selectedLogsSale.status_whatsapp || "PENDIENTE")}
-                      {renderStatusItem("Google Sheets (Fila de Excel)", selectedLogsSale.status_sheets || "PENDIENTE")}
+                      {renderStatusItem("WhatsApp (Zapier)", selectedLogsSale.status_whatsapp || "PENDIENTE")}
+                      {renderStatusItem("Email Equipo (GHL)", selectedLogsSale.status_email || "PENDIENTE")}
+                      {renderStatusItem("Cuadro Maestro Local", selectedLogsSale.status_sheets || "PENDIENTE")}
                     </>
                   );
                 })()}
+              </div>
 
+              {/* Detailed logs history */}
+              <div style={{ marginTop: "1rem" }}>
+                <h4 style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.5rem" }}>
+                  Historial Detallado de Logs
+                </h4>
+                <div style={{ backgroundColor: "#0f172a", borderRadius: "8px", padding: "1rem", border: "1px solid #1e293b", fontFamily: "monospace", fontSize: "0.8rem", color: "#e2e8f0", minHeight: "220px", maxHeight: "300px", overflowY: "auto" }}>
+                  {loadingLogs ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "180px", color: "#94a3b8" }}>
+                      <span>Cargando historial...</span>
+                    </div>
+                  ) : saleLogs.length === 0 ? (
+                    <div style={{ color: "#64748b", padding: "1rem", textAlign: "center" }}>
+                      <p style={{ margin: 0 }}>No hay logs detallados en base de datos para esta venta.</p>
+                      <p style={{ margin: "4px 0 0 0", fontSize: "0.7rem" }}>Mostrando logs heredados arriba en el resumen.</p>
+                    </div>
+                  ) : (
+                    saleLogs.map((log: any) => {
+                      const isError = log.tipo === "ERROR";
+                      const isSuccess = log.tipo === "SUCCESS";
+                      const color = isError ? "#f87171" : isSuccess ? "#4ade80" : "#94a3b8";
+
+                      return (
+                        <div key={log.id} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.4rem", lineHeight: "1.3" }}>
+                          <span style={{ color: "#64748b" }}>[{new Date(log.creado_en).toLocaleTimeString("es-ES")}]</span>
+                          <span style={{ color: color, fontWeight: "600" }}>[{log.integracion}]</span>
+                          <span style={{ color: isError ? "#fca5a5" : "#e2e8f0" }}>{log.mensaje}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               <div style={{ marginTop: "1.5rem" }}>
@@ -1510,16 +1621,30 @@ export default function VentasPage() {
                     <span>Registro creado exitosamente en la base de datos principal.</span>
                   </div>
 
-                  {selectedLogsSale.status_ghl && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_ghl === "ERROR" ? "#ef4444" : selectedLogsSale.status_ghl === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                  {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) && (
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
                       <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[GHL]</span>
+                      <span style={{ fontWeight: "600" }}>[GHL CONTACTO]</span>
                       <span>
-                        {selectedLogsSale.status_ghl === "DESACTIVADO"
-                          ? "Integración desactivada: Creación de contacto y factura en GHL omitida por el administrador."
-                          : selectedLogsSale.status_ghl === "COMPLETADO"
-                            ? "Facturación y creación de contacto en GHL completadas con éxito."
-                            : `Proceso de facturación GHL: ${selectedLogsSale.status_ghl}`}
+                        {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO"
+                          ? "Integración desactivada: Creación/sincronización de contacto en GHL omitida por el administrador."
+                          : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "COMPLETADO"
+                            ? "Búsqueda/creación de contacto en GHL completada con éxito."
+                            : `Proceso de contacto GHL: ${selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) && (
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                      <span style={{ fontWeight: "600" }}>[GHL FACTURA]</span>
+                      <span>
+                        {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO"
+                          ? "Integración desactivada: Creación de factura borrador en GHL omitida por el administrador."
+                          : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "COMPLETADO"
+                            ? "Generación de factura borrador en GHL completada con éxito."
+                            : `Proceso de factura GHL: ${selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl}`}
                       </span>
                     </div>
                   )}
@@ -1594,7 +1719,7 @@ export default function VentasPage() {
                     </div>
                   )}
 
-                  {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
+                  {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_ghl_contacto === "ERROR" || selectedLogsSale.status_ghl_factura === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                       <span style={{ color: "#ef4444", fontWeight: "600" }}>[!]</span>
                       <span style={{ color: "#ef4444" }}>Hay errores en el flujo. Puedes hacer clic en "Reintentar fallidos".</span>

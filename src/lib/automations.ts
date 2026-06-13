@@ -4,6 +4,7 @@ import { processTrelloCard, updateTrelloCardDesc } from "@/lib/trello";
 import { createGhlContact, createGhlInvoice, sendGhlMessage } from "@/lib/ghl";
 import { getIntegrationConfig } from "@/lib/config_service";
 import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
+import { addSaleLog } from "@/lib/logs";
 
 export async function runVentasAutomations(saleId: string) {
   try {
@@ -17,7 +18,8 @@ export async function runVentasAutomations(saleId: string) {
       await supabase
         .from("ventas")
         .update({
-          status_ghl: "DESACTIVADO",
+          status_ghl_contacto: "DESACTIVADO",
+          status_ghl_factura: "DESACTIVADO",
           status_dropbox: "DESACTIVADO",
           status_trello: "DESACTIVADO",
           status_email: "DESACTIVADO",
@@ -25,6 +27,14 @@ export async function runVentasAutomations(saleId: string) {
           status_sheets: "DESACTIVADO"
         })
         .eq("id", saleId);
+
+      await addSaleLog(saleId, "GHL Contacto", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "GHL Factura", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "Dropbox", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "Trello", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "Email", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "WhatsApp", "INFO", "Integraciones automáticas desactivadas de forma global.");
+      await addSaleLog(saleId, "Cuadro Maestro", "INFO", "Integraciones automáticas desactivadas de forma global.");
       return;
     }
 
@@ -84,33 +94,60 @@ export async function runVentasAutomations(saleId: string) {
     const dueDateStr = fechaVencimiento.toISOString();
 
     let finalCodigoVenta = sale.codigo_venta;
-    let contactId = "";
-    let ghlError = null;
+    let contactId = clientInfo?.ghl_contact_id || "";
 
-    if (sale.status_ghl !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_ghl: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Creando/Buscando Contacto en GHL`);
-        contactId = await createGhlContact({
-          name: clientInfo?.nombre || "Cliente",
-          email: clientInfo?.email || undefined,
-          phone: clientInfo?.telefono || undefined,
-          companyName: clientInfo?.empresa || undefined,
-          country: clientInfo?.pais || undefined
-        });
-
-        if (contactId && sale.cliente_id) {
-          await supabase
-            .from("clientes")
-            .update({ ghl_contact_id: contactId })
-            .eq("id", sale.cliente_id);
-          console.log(`[Automations] Guardado ghl_contact_id: ${contactId} en cliente: ${sale.cliente_id}`);
-        }
-
-        console.log(`[Automations] Contacto creado con ID: ${contactId}. Generando Factura...`);
-        let invoiceData = null;
+    // 1. GHL Contacto
+    if (sale.status_ghl_contacto !== "COMPLETADO") {
+      if (config.ghl_factura) {
         try {
-          invoiceData = await createGhlInvoice(contactId, {
+          await addSaleLog(saleId, "GHL Contacto", "INFO", "Iniciando búsqueda o creación de contacto en GoHighLevel...");
+          await supabase.from("ventas").update({ status_ghl_contacto: "PROCESANDO" }).eq("id", saleId);
+          
+          contactId = await createGhlContact({
+            name: clientInfo?.nombre || "Cliente",
+            email: clientInfo?.email || undefined,
+            phone: clientInfo?.telefono || undefined,
+            companyName: clientInfo?.empresa || undefined,
+            country: clientInfo?.pais || undefined
+          });
+
+          if (contactId && sale.cliente_id) {
+            await supabase
+              .from("clientes")
+              .update({ ghl_contact_id: contactId })
+              .eq("id", sale.cliente_id);
+            await addSaleLog(saleId, "GHL Contacto", "SUCCESS", `Contacto sincronizado exitosamente con ID: ${contactId}`);
+          } else {
+            await addSaleLog(saleId, "GHL Contacto", "SUCCESS", "Contacto verificado en GoHighLevel.");
+          }
+
+          await supabase.from("ventas").update({ status_ghl_contacto: "COMPLETADO" }).eq("id", saleId);
+        } catch (e: any) {
+          const errorMsg = e.message || "Excepción en GHL Contact API";
+          await addSaleLog(saleId, "GHL Contacto", "ERROR", `Error al sincronizar contacto: ${errorMsg}`);
+          await supabase.from("ventas").update({ status_ghl_contacto: "ERROR" }).eq("id", saleId);
+        }
+      } else {
+        await addSaleLog(saleId, "GHL Contacto", "INFO", "La integración de GoHighLevel está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_ghl_contacto: "DESACTIVADO" }).eq("id", saleId);
+      }
+    } else {
+      await addSaleLog(saleId, "GHL Contacto", "INFO", "El contacto en GHL ya estaba completado, saltando.");
+    }
+
+    // 2. GHL Factura
+    if (sale.status_ghl_factura !== "COMPLETADO") {
+      if (config.ghl_factura) {
+        try {
+          await addSaleLog(saleId, "GHL Factura", "INFO", "Iniciando generación de factura borrador en GoHighLevel...");
+          await supabase.from("ventas").update({ status_ghl_factura: "PROCESANDO" }).eq("id", saleId);
+
+          const finalContactId = contactId || clientInfo?.ghl_contact_id;
+          if (!finalContactId) {
+            throw new Error("No se dispone de un ID de contacto de GHL válido para crear la factura.");
+          }
+
+          const invoiceData = await createGhlInvoice(finalContactId, {
             projectName: sale.proyecto_nombre,
             amount: sale.monto_total,
             currency: sale.moneda || "usd",
@@ -118,120 +155,132 @@ export async function runVentasAutomations(saleId: string) {
             contactName: clientInfo?.nombre || "Cliente",
             contactEmail: clientInfo?.email || undefined
           });
-        } catch (invoiceErr: any) {
-          console.error(`[Automations] Error al crear factura en GHL:`, invoiceErr);
+
+          if (invoiceData) {
+            finalCodigoVenta = invoiceData.invoiceNumber;
+            await addSaleLog(saleId, "GHL Factura", "SUCCESS", `Factura creada con éxito. Número de factura: ${finalCodigoVenta}`);
+            await supabase
+              .from("ventas")
+              .update({
+                codigo_venta: finalCodigoVenta,
+                status_ghl_factura: "COMPLETADO"
+              })
+              .eq("id", saleId);
+          } else {
+            throw new Error("La respuesta de facturación de GHL no retornó datos de factura válidos.");
+          }
+        } catch (e: any) {
+          const errorMsg = e.message || "Excepción en GHL Invoice API";
+          await addSaleLog(saleId, "GHL Factura", "ERROR", `Error al generar factura: ${errorMsg}`);
+          await supabase.from("ventas").update({ status_ghl_factura: "ERROR" }).eq("id", saleId);
         }
-
-        if (invoiceData) {
-          finalCodigoVenta = invoiceData.invoiceNumber;
-          console.log(`[Automations] Factura creada. Nuevo código de venta: ${finalCodigoVenta}`);
-        } else {
-          console.log(`[Automations] Omitiendo actualización de código de venta ya que la creación de factura falló/se omitió. Código usado: ${finalCodigoVenta}`);
-        }
-
-        await supabase
-          .from("ventas")
-          .update({
-            codigo_venta: finalCodigoVenta,
-            status_ghl: "COMPLETADO"
-          })
-          .eq("id", saleId);
-
-      } catch (e: any) {
-        ghlError = e.message || "Excepción en GHL API";
-        console.error(`[Automations] Error en GHL (Contacto/Factura):`, e);
-        await supabase.from("ventas").update({ status_ghl: "ERROR" }).eq("id", saleId);
+      } else {
+        await addSaleLog(saleId, "GHL Factura", "INFO", "La integración de GoHighLevel está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_ghl_factura: "DESACTIVADO" }).eq("id", saleId);
       }
     } else {
-      console.log(`[Automations] GHL ya estaba completado, saltando.`);
+      await addSaleLog(saleId, "GHL Factura", "INFO", "La factura en GHL ya estaba completada, saltando.");
     }
 
     let dropboxUrlLink = sale.carpeta_dropbox;
 
+    // 3. Dropbox
     if (sale.status_dropbox !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_dropbox: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Creando carpeta en Dropbox para ${clientInfo?.nombre || "Cliente"} - ${sale.proyecto_nombre}`);
-        const dropboxRes = await createDropboxFolder(clientInfo?.nombre || "Cliente", sale.proyecto_nombre);
+      if (config.dropbox) {
+        try {
+          await addSaleLog(saleId, "Dropbox", "INFO", `Creando carpeta en Dropbox para: ${clientInfo?.nombre || "Cliente"} - ${sale.proyecto_nombre}`);
+          await supabase.from("ventas").update({ status_dropbox: "PROCESANDO" }).eq("id", saleId);
+          const dropboxRes = await createDropboxFolder(clientInfo?.nombre || "Cliente", sale.proyecto_nombre);
 
-        if (dropboxRes.success && dropboxRes.path) {
-          dropboxUrlLink = dropboxRes.url || dropboxRes.path;
-          console.log(`[Automations] Dropbox completado. Path: ${dropboxRes.path}`);
-          await supabase.from("ventas").update({ status_dropbox: "COMPLETADO", carpeta_dropbox: dropboxUrlLink }).eq("id", saleId);
+          if (dropboxRes.success && dropboxRes.path) {
+            dropboxUrlLink = dropboxRes.url || dropboxRes.path;
+            await addSaleLog(saleId, "Dropbox", "SUCCESS", `Carpeta creada exitosamente. Enlace: ${dropboxUrlLink}`);
+            await supabase.from("ventas").update({ status_dropbox: "COMPLETADO", carpeta_dropbox: dropboxUrlLink }).eq("id", saleId);
 
-          if (sale.status_trello === "COMPLETADO") {
-            try {
-              let cardId = "";
-              if (sale.link_trello) {
-                const match = sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
-                if (match) cardId = match[1];
+            if (sale.status_trello === "COMPLETADO") {
+              try {
+                let cardId = "";
+                if (sale.link_trello) {
+                  const match = sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+                  if (match) cardId = match[1];
+                }
+
+                const { data: projDb } = await supabase
+                  .from("proyectos")
+                  .select("trello_card_id")
+                  .eq("venta_id", saleId)
+                  .maybeSingle();
+
+                const finalCardId = projDb?.trello_card_id || cardId;
+
+                if (finalCardId) {
+                  await addSaleLog(saleId, "Trello", "INFO", "Dropbox completado pos-Trello. Actualizando descripción de tarjeta...");
+                  const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+                  await updateTrelloCardDesc(finalCardId, trelloDesc);
+                  await addSaleLog(saleId, "Trello", "SUCCESS", "Descripción de tarjeta de Trello actualizada con enlace de Dropbox.");
+                }
+              } catch (trelloUpdateErr: any) {
+                console.error("[Automations] Error al actualizar descripción de Trello pos-Dropbox:", trelloUpdateErr);
+                await addSaleLog(saleId, "Trello", "ERROR", `Fallo al actualizar descripción post-Dropbox: ${trelloUpdateErr.message}`);
               }
-
-              const { data: projDb } = await supabase
-                .from("proyectos")
-                .select("trello_card_id")
-                .eq("venta_id", saleId)
-                .maybeSingle();
-
-              const finalCardId = projDb?.trello_card_id || cardId;
-
-              if (finalCardId) {
-                console.log(`[Automations] Dropbox completado y Trello ya estaba completado. Actualizando descripción de la tarjeta ${finalCardId}...`);
-                const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
-                await updateTrelloCardDesc(finalCardId, trelloDesc);
-                console.log(`[Automations] Descripción de tarjeta de Trello actualizada con el link de Dropbox.`);
-              }
-            } catch (trelloUpdateErr) {
-              console.error("[Automations] Error al actualizar descripción de Trello pos-Dropbox:", trelloUpdateErr);
             }
+          } else {
+            await addSaleLog(saleId, "Dropbox", "ERROR", `Error de Dropbox: ${dropboxRes.error}`);
+            await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
           }
-        } else {
-          console.error(`[Automations] Dropbox error: ${dropboxRes.error}`);
+        } catch (e: any) {
+          await addSaleLog(saleId, "Dropbox", "ERROR", `Excepción al procesar Dropbox: ${e.message}`);
           await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
         }
-      } catch (e: any) {
-        console.error(`[Automations] Dropbox excepción:`, e);
-        await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
+      } else {
+        await addSaleLog(saleId, "Dropbox", "INFO", "La integración con Dropbox está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_dropbox: "DESACTIVADO" }).eq("id", saleId);
       }
     } else {
-      console.log(`[Automations] Dropbox ya estaba completado, saltando.`);
+      await addSaleLog(saleId, "Dropbox", "INFO", "La carpeta de Dropbox ya estaba completada, saltando.");
     }
 
     let trelloUrl = sale.link_trello;
     let trelloCardId: string | null = null;
 
+    // 4. Trello
     if (sale.status_trello !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Procesando tarjeta en Trello`);
-        const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+      if (config.trello) {
+        try {
+          await addSaleLog(saleId, "Trello", "INFO", "Creando tarjeta de operaciones en Trello...");
+          await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
+          const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
 
-        const trelloRes = await processTrelloCard({
-          projectName: sale.proyecto_nombre,
-          clientName: clientInfo?.nombre || "Cliente",
-          desc: trelloDesc,
-          urgent: sale.urgente,
-          dueDateStr: dueDateStr,
-          isExistingProject: sale.es_continuacion,
-          montoStr: `${sale.monto_total} ${sale.moneda}`,
-          tipoVenta: sale.tipo_venta
-        });
+          const trelloRes = await processTrelloCard({
+            projectName: sale.proyecto_nombre,
+            clientName: clientInfo?.nombre || "Cliente",
+            desc: trelloDesc,
+            urgent: sale.urgente,
+            dueDateStr: dueDateStr,
+            isExistingProject: sale.es_continuacion,
+            montoStr: `${sale.monto_total} ${sale.moneda}`,
+            tipoVenta: sale.tipo_venta
+          });
 
-        if (trelloRes.success && trelloRes.url) {
-          trelloUrl = trelloRes.url;
-          trelloCardId = trelloRes.id || null;
-          console.log(`[Automations] Trello completado. URL: ${trelloUrl}`);
-          await supabase.from("ventas").update({ status_trello: "COMPLETADO", link_trello: trelloUrl }).eq("id", saleId);
-        } else {
-          console.error(`[Automations] Trello error: ${trelloRes.error}`);
+          if (trelloRes.success && trelloRes.url) {
+            trelloUrl = trelloRes.url;
+            trelloCardId = trelloRes.id || null;
+            await addSaleLog(saleId, "Trello", "SUCCESS", `Tarjeta creada exitosamente en Trello. URL: ${trelloUrl}`);
+            await supabase.from("ventas").update({ status_trello: "COMPLETADO", link_trello: trelloUrl }).eq("id", saleId);
+          } else {
+            await addSaleLog(saleId, "Trello", "ERROR", `Error de Trello: ${trelloRes.error}`);
+            await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
+          }
+        } catch (e: any) {
+          await addSaleLog(saleId, "Trello", "ERROR", `Excepción al procesar tarjeta de Trello: ${e.message}`);
           await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
         }
-      } catch (e: any) {
-        console.error(`[Automations] Trello excepción:`, e);
-        await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
+      } else {
+        await addSaleLog(saleId, "Trello", "INFO", "La integración con Trello está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_trello: "DESACTIVADO" }).eq("id", saleId);
       }
     } else {
-      console.log(`[Automations] Trello ya estaba completado, saltando.`);
+      await addSaleLog(saleId, "Trello", "INFO", "La tarjeta en Trello ya estaba completada, saltando.");
     }
 
     const allSetters = [setterName, ...settersExtrasNames].filter(s => s && s !== "N/A");
@@ -241,117 +290,137 @@ export async function runVentasAutomations(saleId: string) {
     if (allClosers.length > 0) equipoParts.push(`Closers: ${allClosers.join(", ")}`);
     const equipoStr = equipoParts.join(" | ") || "Ninguno";
 
+    // 5. Email Notificación
     if (sale.status_email !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_email: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Enviando notificación de email al equipo`);
+      if (config.ghl_email) {
+        try {
+          await addSaleLog(saleId, "Email", "INFO", "Preparando envío de email de notificación al equipo...");
+          await supabase.from("ventas").update({ status_email: "PROCESANDO" }).eq("id", saleId);
 
-        const teamEmails = (process.env.NOTIFICACION_EMAIL_DESTINATARIOS || "alvarezchristopherve@gmail.com")
-          .split(",")
-          .map(e => e.trim())
-          .filter(Boolean);
+          const teamEmails = (process.env.NOTIFICACION_EMAIL_DESTINATARIOS || "alvarezchristopherve@gmail.com")
+            .split(",")
+            .map(e => e.trim())
+            .filter(Boolean);
 
-        const emailTemplate = `<div style="background-color:#f4f5f7;padding:30px 15px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#24292e"><div style="max-width:600px;margin:0 auto;background-color:#ffffff;border:1px solid #e1e4e8;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden"><div style="padding:25px 30px;border-bottom:1px solid #e1e4e8;background-color:#fafbfc"><h2 style="margin: 0;color: #24292e;font-size: 20px;font-weight: 600;letter-spacing: -0.5px;"><strong>Nueva Venta Registrada</strong></h2></div><div style="padding:30px 30px 10px 30px"><div style="margin-bottom:20px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Proyecto</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 600;color: #24292e;"><strong>{{PROYECTO_NOMBRE}}</strong></p></div><div style="display:table;width:100%;margin-bottom:20px"><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Cliente</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;"><strong>{{CLIENTE_NOMBRE}}</strong></p></div><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;color: #22863a;"><strong>{{MONTO}}</strong></p></div></div></div><div style="padding-left: 30px!important;; padding-left:30px!important;padding-left:30px!important;margin:0 30px;border-top:1px solid #e1e4e8"></div><div style="padding:10px 0 20px 0"><table style="width:100%;border-collapse:collapse;margin:0"><tbody><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;width:45%;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Plataforma</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;width:55%;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{PLATAFORMA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Proyecto</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_PROYECTO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Venta</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_VENTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tarjeta Trello</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TRELLO_LINK}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Factura GHL</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{CODIGO_FACTURA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Oferta de</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{OFERTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Equipo de Cierre</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{EQUIPO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Registro</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-weight:400;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">{{FECHA_REGISTRO}}</p></td></tr></tbody></table></div></div></div>`;
+          const emailTemplate = `<div style="background-color:#f4f5f7;padding:30px 15px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#24292e"><div style="max-width:600px;margin:0 auto;background-color:#ffffff;border:1px solid #e1e4e8;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden"><div style="padding:25px 30px;border-bottom:1px solid #e1e4e8;background-color:#fafbfc"><h2 style="margin: 0;color: #24292e;font-size: 20px;font-weight: 600;letter-spacing: -0.5px;"><strong>Nueva Venta Registrada</strong></h2></div><div style="padding:30px 30px 10px 30px"><div style="margin-bottom:20px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Proyecto</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 600;color: #24292e;"><strong>{{PROYECTO_NOMBRE}}</strong></p></div><div style="display:table;width:100%;margin-bottom:20px"><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Cliente</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;"><strong>{{CLIENTE_NOMBRE}}</strong></p></div><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;color: #22863a;"><strong>{{MONTO}}</strong></p></div></div></div><div style="padding-left: 30px!important;; padding-left:30px!important;padding-left:30px!important;margin:0 30px;border-top:1px solid #e1e4e8"></div><div style="padding:10px 0 20px 0"><table style="width:100%;border-collapse:collapse;margin:0"><tbody><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;width:45%;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Plataforma</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;width:55%;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{PLATAFORMA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Proyecto</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_PROYECTO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Venta</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_VENTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tarjeta Trello</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TRELLO_LINK}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Factura GHL</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{CODIGO_FACTURA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Oferta de</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{OFERTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Equipo de Cierre</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{EQUIPO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Registro</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-weight:400;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">{{FECHA_REGISTRO}}</p></td></tr></tbody></table></div></div></div>`;
 
-        const trelloLinkVal = trelloUrl ? `<a href="${trelloUrl}" target="_blank" style="color: #0052cc; text-decoration: underline;">Ver Tarjeta</a>` : "No generada";
+          const trelloLinkVal = trelloUrl ? `<a href="${trelloUrl}" target="_blank" style="color: #0052cc; text-decoration: underline;">Ver Tarjeta</a>` : "No generada";
 
-        const compiledHtml = emailTemplate
-          .replace("{{PROYECTO_NOMBRE}}", sale.proyecto_nombre || "")
-          .replace("{{CLIENTE_NOMBRE}}", clientInfo?.nombre || "Cliente")
-          .replace("{{MONTO}}", `${sale.monto_total} ${sale.moneda}`)
-          .replace("{{PLATAFORMA}}", sale.plataforma || "")
-          .replace("{{TIPO_PROYECTO}}", `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}`)
-          .replace("{{TIPO_VENTA}}", sale.tipo_venta || "")
-          .replace("{{TRELLO_LINK}}", trelloLinkVal)
-          .replace("{{CODIGO_FACTURA}}", finalCodigoVenta || "No generada")
-          .replace("{{OFERTA}}", sale.oferta_presentada || sale.condiciones_acordadas || "N/A")
-          .replace("{{EQUIPO}}", equipoStr)
-          .replace("{{FECHA_REGISTRO}}", new Date(sale.creado_en).toLocaleString("es-ES"));
+          const compiledHtml = emailTemplate
+            .replace("{{PROYECTO_NOMBRE}}", sale.proyecto_nombre || "")
+            .replace("{{CLIENTE_NOMBRE}}", clientInfo?.nombre || "Cliente")
+            .replace("{{MONTO}}", `${sale.monto_total} ${sale.moneda}`)
+            .replace("{{PLATAFORMA}}", sale.plataforma || "")
+            .replace("{{TIPO_PROYECTO}}", `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}`)
+            .replace("{{TIPO_VENTA}}", sale.tipo_venta || "")
+            .replace("{{TRELLO_LINK}}", trelloLinkVal)
+            .replace("{{CODIGO_FACTURA}}", finalCodigoVenta || "No generada")
+            .replace("{{OFERTA}}", sale.oferta_presentada || sale.condiciones_acordadas || "N/A")
+            .replace("{{EQUIPO}}", equipoStr)
+            .replace("{{FECHA_REGISTRO}}", new Date(sale.creado_en).toLocaleString("es-ES"));
 
-        for (const email of teamEmails) {
-          console.log(`[Automations] Enviando email de equipo a: ${email}`);
-          const teamContactId = await createGhlContact({
-            name: "Notificaciones Azabache",
-            email: email
+          for (const email of teamEmails) {
+            await addSaleLog(saleId, "Email", "INFO", `Despachando correo a destinatario: ${email}`);
+            const teamContactId = await createGhlContact({
+              name: "Notificaciones Azabache",
+              email: email
+            });
+
+            await sendGhlMessage(
+              teamContactId,
+              "Email",
+              compiledHtml,
+              `Nueva Venta Registrada - ${sale.proyecto_nombre}`
+            );
+            await addSaleLog(saleId, "Email", "SUCCESS", `Email enviado correctamente a: ${email}`);
+          }
+
+          await supabase.from("ventas").update({ status_email: "COMPLETADO" }).eq("id", saleId);
+        } catch (e: any) {
+          await addSaleLog(saleId, "Email", "ERROR", `Error de correo GHL: ${e.message}`);
+          await supabase.from("ventas").update({ status_email: "ERROR" }).eq("id", saleId);
+        }
+      } else {
+        await addSaleLog(saleId, "Email", "INFO", "La integración de Email de Notificación está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_email: "DESACTIVADO" }).eq("id", saleId);
+      }
+    } else {
+      await addSaleLog(saleId, "Email", "INFO", "La notificación de Email ya estaba completada, saltando.");
+    }
+
+    // 6. WhatsApp (Zapier)
+    if (sale.status_whatsapp !== "COMPLETADO") {
+      if (config.zapier_whatsapp) {
+        try {
+          await addSaleLog(saleId, "WhatsApp", "INFO", "Enviando alerta a WhatsApp grupal mediante Zapier Webhook...");
+          await supabase.from("ventas").update({ status_whatsapp: "PROCESANDO" }).eq("id", saleId);
+
+          const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL;
+          if (!zapierUrl) {
+            throw new Error("ZAPIER_WHATSAPP_WEBHOOK_URL is not defined in environment variables.");
+          }
+
+          const zapierPayload = {
+            titulo: "*NUEVA VENTA REGISTRADA*",
+            plataforma: sale.plataforma || "",
+            proyecto: sale.proyecto_nombre || "",
+            cliente: clientInfo?.nombre || "Cliente",
+            oferta: sale.oferta_presentada || sale.condiciones_acordadas || "N/A",
+            equipo: equipoStr,
+            monto: `${sale.monto_total} ${sale.moneda}`,
+            factura: finalCodigoVenta
+          };
+
+          const zapierRes = await fetch(zapierUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(zapierPayload)
           });
 
-          await sendGhlMessage(
-            teamContactId,
-            "Email",
-            compiledHtml,
-            `Nueva Venta Registrada - ${sale.proyecto_nombre}`
-          );
-        }
+          if (!zapierRes.ok) {
+            const errText = await zapierRes.text();
+            throw new Error(`Zapier webhook error ${zapierRes.status}: ${errText}`);
+          }
 
-        await supabase.from("ventas").update({ status_email: "COMPLETADO" }).eq("id", saleId);
-      } catch (e: any) {
-        console.error(`[Automations] Error en email equipo GHL:`, e);
-        await supabase.from("ventas").update({ status_email: "ERROR" }).eq("id", saleId);
+          await addSaleLog(saleId, "WhatsApp", "SUCCESS", "Mensaje de WhatsApp notificado con éxito vía Zapier.");
+          await supabase.from("ventas").update({ status_whatsapp: "COMPLETADO" }).eq("id", saleId);
+        } catch (e: any) {
+          await addSaleLog(saleId, "WhatsApp", "ERROR", `Fallo al enviar WhatsApp: ${e.message}`);
+          await supabase.from("ventas").update({ status_whatsapp: "ERROR" }).eq("id", saleId);
+        }
+      } else {
+        await addSaleLog(saleId, "WhatsApp", "INFO", "La integración de WhatsApp (Zapier) está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_whatsapp: "DESACTIVADO" }).eq("id", saleId);
       }
     } else {
-      console.log(`[Automations] Email ya estaba completado, saltando.`);
+      await addSaleLog(saleId, "WhatsApp", "INFO", "La notificación de WhatsApp ya estaba completada, saltando.");
     }
 
-    if (sale.status_whatsapp !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_whatsapp: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Enviando mensaje WhatsApp vía Zapier`);
-
-        const zapierUrl = process.env.ZAPIER_WHATSAPP_WEBHOOK_URL;
-        if (!zapierUrl) {
-          throw new Error("ZAPIER_WHATSAPP_WEBHOOK_URL is not defined in environment variables.");
-        }
-
-        const zapierPayload = {
-          titulo: "*NUEVA VENTA REGISTRADA*",
-          plataforma: sale.plataforma || "",
-          proyecto: sale.proyecto_nombre || "",
-          cliente: clientInfo?.nombre || "Cliente",
-          oferta: sale.oferta_presentada || sale.condiciones_acordadas || "N/A",
-          equipo: equipoStr,
-          monto: `${sale.monto_total} ${sale.moneda}`,
-          factura: finalCodigoVenta
-        };
-
-        const zapierRes = await fetch(zapierUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(zapierPayload)
-        });
-
-        if (!zapierRes.ok) {
-          const errText = await zapierRes.text();
-          throw new Error(`Zapier webhook error ${zapierRes.status}: ${errText}`);
-        }
-
-        console.log(`[Automations] Zapier WhatsApp enviado exitosamente`);
-        await supabase.from("ventas").update({ status_whatsapp: "COMPLETADO" }).eq("id", saleId);
-      } catch (e: any) {
-        console.error(`[Automations] Error en WhatsApp Zapier:`, e);
-        await supabase.from("ventas").update({ status_whatsapp: "ERROR" }).eq("id", saleId);
-      }
-    } else {
-      console.log(`[Automations] WhatsApp ya estaba completado, saltando.`);
-    }
-
+    // 7. Cuadro Maestro (Local Sheets)
     if (sale.status_sheets !== "COMPLETADO") {
-      try {
-        await supabase.from("ventas").update({ status_sheets: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Escribiendo datos en Cuadro Maestro local`);
-        await updateLocalWorkspaceSheet();
-        await supabase.from("ventas").update({ status_sheets: "COMPLETADO" }).eq("id", saleId);
-      } catch (e: any) {
-        console.error(`[Automations] Cuadro Maestro local excepción:`, e);
-        await supabase.from("ventas").update({ status_sheets: "ERROR" }).eq("id", saleId);
+      if (config.google_sheets) {
+        try {
+          await addSaleLog(saleId, "Cuadro Maestro", "INFO", "Sincronizando datos en Cuadro Maestro local (archivo CSV)...");
+          await supabase.from("ventas").update({ status_sheets: "PROCESANDO" }).eq("id", saleId);
+          await updateLocalWorkspaceSheet();
+          await addSaleLog(saleId, "Cuadro Maestro", "SUCCESS", "Datos agregados y sincronizados correctamente en Cuadro Maestro local.");
+          await supabase.from("ventas").update({ status_sheets: "COMPLETADO" }).eq("id", saleId);
+        } catch (e: any) {
+          await addSaleLog(saleId, "Cuadro Maestro", "ERROR", `Error de guardado local: ${e.message}`);
+          await supabase.from("ventas").update({ status_sheets: "ERROR" }).eq("id", saleId);
+        }
+      } else {
+        await addSaleLog(saleId, "Cuadro Maestro", "INFO", "La integración con Cuadro Maestro está desactivada en ajustes.");
+        await supabase.from("ventas").update({ status_sheets: "DESACTIVADO" }).eq("id", saleId);
       }
     } else {
-      console.log(`[Automations] Cuadro Maestro local ya estaba completado, saltando.`);
+      await addSaleLog(saleId, "Cuadro Maestro", "INFO", "La sincronización del Cuadro Maestro ya estaba completada, saltando.");
     }
 
+    // Registrar proyecto
     try {
-      console.log(`[Automations] Registrando/actualizando proyecto en base de datos`);
       const finalTrelloCardId = trelloCardId || (trelloUrl ? trelloUrl.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null);
 
       const { data: existingProj } = await supabase
@@ -376,20 +445,13 @@ export async function runVentasAutomations(saleId: string) {
           .from("proyectos")
           .update(projectPayload)
           .eq("id", existingProj.id);
-        console.log(`[Automations] Proyecto actualizado en BD: ${existingProj.id}`);
       } else {
-        const { data: newProj, error: insertProjErr } = await supabase
+        await supabase
           .from("proyectos")
           .insert([{
             ...projectPayload,
             creado_en: new Date().toISOString()
-          }])
-          .select();
-        if (insertProjErr) {
-          console.error("[Automations] Error al insertar proyecto en BD:", insertProjErr);
-        } else {
-          console.log(`[Automations] Proyecto registrado en BD exitosamente`);
-        }
+          }]);
       }
     } catch (e: any) {
       console.error(`[Automations] Error al persistir proyecto en BD:`, e);
