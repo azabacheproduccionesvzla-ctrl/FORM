@@ -11,6 +11,7 @@ export interface IntegrationConfig {
   ghl_factura: boolean;
   zapier_whatsapp: boolean;
   google_sheets: boolean;
+  email_destinatarios?: string;
 }
 
 const DEFAULT_CONFIG: IntegrationConfig = {
@@ -19,7 +20,8 @@ const DEFAULT_CONFIG: IntegrationConfig = {
   ghl_email: true,
   ghl_factura: true,
   zapier_whatsapp: true,
-  google_sheets: true
+  google_sheets: true,
+  email_destinatarios: "alvarezchristopherve@gmail.com"
 };
 
 export async function getIntegrationConfig(): Promise<IntegrationConfig> {

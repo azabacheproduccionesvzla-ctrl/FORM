@@ -297,7 +297,8 @@ export async function runVentasAutomations(saleId: string) {
           await addSaleLog(saleId, "Email", "INFO", "Preparando envío de email de notificación al equipo...");
           await supabase.from("ventas").update({ status_email: "PROCESANDO" }).eq("id", saleId);
 
-          const teamEmails = (process.env.NOTIFICACION_EMAIL_DESTINATARIOS || "alvarezchristopherve@gmail.com")
+          const emailsConfigStr = config.email_destinatarios || process.env.NOTIFICACION_EMAIL_DESTINATARIOS || "alvarezchristopherve@gmail.com";
+          const teamEmails = emailsConfigStr
             .split(",")
             .map(e => e.trim())
             .filter(Boolean);

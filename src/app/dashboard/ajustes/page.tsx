@@ -18,6 +18,7 @@ interface IntegrationConfig {
   ghl_email: boolean;
   ghl_factura: boolean;
   zapier_whatsapp: boolean;
+  email_destinatarios?: string;
 }
 
 export default function AjustesPage() {
@@ -46,13 +47,14 @@ export default function AjustesPage() {
     trello: true,
     ghl_email: true,
     ghl_factura: true,
-    zapier_whatsapp: true
+    zapier_whatsapp: true,
+    email_destinatarios: ""
   });
   const [isPinPromptOpen, setIsPinPromptOpen] = useState(false);
   const [pinPromptValue, setPinPromptValue] = useState<string[]>(Array(6).fill(""));
   const pinPromptRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [pendingToggleKey, setPendingToggleKey] = useState<string | null>(null);
-  const [pendingToggleValue, setPendingToggleValue] = useState<boolean>(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | string>(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState<string | null>(null);
 
@@ -431,18 +433,28 @@ export default function AjustesPage() {
     }
 
     try {
-      const updatedConfig = pendingToggleKey === "ALL"
-        ? {
-          dropbox: pendingToggleValue,
-          trello: pendingToggleValue,
-          ghl_factura: pendingToggleValue,
-          ghl_email: pendingToggleValue,
-          zapier_whatsapp: pendingToggleValue
-        }
-        : {
-          ...integrationConfig,
-          [pendingToggleKey!]: pendingToggleValue
+      let updatedConfig: IntegrationConfig;
+      if (pendingToggleKey === "ALL") {
+        const val = pendingToggleValue as boolean;
+        updatedConfig = {
+          dropbox: val,
+          trello: val,
+          ghl_factura: val,
+          ghl_email: val,
+          zapier_whatsapp: val,
+          email_destinatarios: integrationConfig.email_destinatarios
         };
+      } else if (pendingToggleKey === "email_destinatarios") {
+        updatedConfig = {
+          ...integrationConfig,
+          email_destinatarios: pendingToggleValue as string
+        };
+      } else {
+        updatedConfig = {
+          ...integrationConfig,
+          [pendingToggleKey!]: pendingToggleValue as boolean
+        };
+      }
       const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -512,6 +524,39 @@ export default function AjustesPage() {
               />
               <span className={styles.slider}></span>
             </label>
+          </div>
+
+          <div style={{ padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#ffffff", marginTop: "1rem" }}>
+            <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Destinatarios de Notificación por Correo</h3>
+            <p style={{ margin: "0.25rem 0 1rem 0", fontSize: "0.8rem", color: "#475569" }}>
+              Direcciones de correo electrónico (separadas por comas) que recibirán la notificación cuando se registre una venta.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <input
+                type="text"
+                className={styles.input}
+                style={{ flexGrow: 1, padding: "0.5rem 0.75rem", fontSize: "0.875rem", margin: 0 }}
+                placeholder="correo1@test.com, correo2@test.com"
+                value={integrationConfig.email_destinatarios || ""}
+                onChange={(e) => setIntegrationConfig({ ...integrationConfig, email_destinatarios: e.target.value })}
+              />
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                style={{ padding: "0.55rem 1.25rem", fontSize: "0.85rem", height: "42px", margin: 0, whiteSpace: "nowrap" }}
+                disabled={actionLoading}
+                onClick={() => {
+                  setPendingToggleKey("email_destinatarios");
+                  setPendingToggleValue(integrationConfig.email_destinatarios || "");
+                  setPinPromptValue(Array(6).fill(""));
+                  setConfigError(null);
+                  setConfigSuccess(null);
+                  setIsPinPromptOpen(true);
+                }}
+              >
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
       )}
