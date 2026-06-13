@@ -22,7 +22,7 @@ export async function updateLocalWorkspaceSheet() {
           nombre
         )
       `)
-      .order("creado_en", { ascending: false });
+      .order("creado_en", { ascending: true });
 
     if (salesErr || !sales) {
       console.error("[Local Sheets] Error al obtener ventas para CSV local:", salesErr);

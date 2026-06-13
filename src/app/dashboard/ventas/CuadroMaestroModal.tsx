@@ -95,8 +95,9 @@ export default function CuadroMaestroModal({
       const res = await fetch("/api/sales");
       const data = await res.json();
       if (data.success) {
-        setSales(data.sales || []);
-        setGridData(JSON.parse(JSON.stringify(data.sales || []))); // Deep clone for local editing
+        const orderedSales = (data.sales || []).slice().reverse();
+        setSales(orderedSales);
+        setGridData(JSON.parse(JSON.stringify(orderedSales))); // Deep clone for local editing
         setModifiedRows(new Map());
         setEditingCell(null);
       } else {

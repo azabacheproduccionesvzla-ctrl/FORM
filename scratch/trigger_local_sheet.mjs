@@ -31,7 +31,7 @@ async function run() {
           nombre
         )
       `)
-      .order("creado_en", { ascending: false });
+      .order("creado_en", { ascending: true });
 
     if (salesErr || !sales) {
       console.error("[Rebuild CSV] Error fetching sales:", salesErr);
