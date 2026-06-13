@@ -108,15 +108,24 @@ export async function runVentasAutomations(saleId: string) {
         }
 
         console.log(`[Automations] Contacto creado con ID: ${contactId}. Generando Factura...`);
-        const invoiceData = await createGhlInvoice(contactId, {
-          projectName: sale.proyecto_nombre,
-          amount: sale.monto_total,
-          currency: sale.moneda || "usd",
-          description: sale.descripcion_operativa || undefined
-        });
+        let invoiceData = null;
+        try {
+          invoiceData = await createGhlInvoice(contactId, {
+            projectName: sale.proyecto_nombre,
+            amount: sale.monto_total,
+            currency: sale.moneda || "usd",
+            description: sale.descripcion_operativa || undefined
+          });
+        } catch (invoiceErr: any) {
+          console.error(`[Automations] Error al crear factura en GHL (puede deberse a falta de Stripe integrado en el sub-account):`, invoiceErr);
+        }
 
-        finalCodigoVenta = invoiceData.invoiceNumber;
-        console.log(`[Automations] Factura creada. Nuevo código de venta: ${finalCodigoVenta}`);
+        if (invoiceData) {
+          finalCodigoVenta = invoiceData.invoiceNumber;
+          console.log(`[Automations] Factura creada. Nuevo código de venta: ${finalCodigoVenta}`);
+        } else {
+          console.log(`[Automations] Omitiendo actualización de código de venta ya que la creación de factura falló/se omitió. Código usado: ${finalCodigoVenta}`);
+        }
 
         await supabase
           .from("ventas")

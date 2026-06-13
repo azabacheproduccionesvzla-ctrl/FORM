@@ -249,12 +249,14 @@ export async function sendGhlMessage(
 
   const payload: any = {
     contactId: contactId,
-    type: type,
-    message: message
+    type: type
   };
 
-  if (type === "Email" && subject) {
-    payload.subject = subject;
+  if (type === "Email") {
+    payload.html = message;
+    if (subject) payload.subject = subject;
+  } else {
+    payload.message = message;
   }
 
   const response = await fetch("https://services.leadconnectorhq.com/conversations/messages", {
