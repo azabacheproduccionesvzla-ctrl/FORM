@@ -1577,153 +1577,151 @@ export default function VentasPage() {
                 })()}
               </div>
 
-              {/* Detailed logs history */}
-              <div style={{ marginTop: "1rem" }}>
-                <h4 style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.5rem" }}>
-                  Historial Detallado de Logs
-                </h4>
-                <div style={{ backgroundColor: "#0f172a", borderRadius: "8px", padding: "1rem", border: "1px solid #1e293b", fontFamily: "monospace", fontSize: "0.8rem", color: "#e2e8f0", minHeight: "220px", maxHeight: "300px", overflowY: "auto" }}>
-                  {loadingLogs ? (
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "180px", color: "#94a3b8" }}>
-                      <span>Cargando historial...</span>
-                    </div>
-                  ) : saleLogs.length === 0 ? (
-                    <div style={{ color: "#64748b", padding: "1rem", textAlign: "center" }}>
-                      <p style={{ margin: 0 }}>No hay logs detallados en base de datos para esta venta.</p>
-                      <p style={{ margin: "4px 0 0 0", fontSize: "0.7rem" }}>Mostrando logs heredados arriba en el resumen.</p>
-                    </div>
-                  ) : (
-                    saleLogs.map((log: any) => {
-                      const isError = log.tipo === "ERROR";
-                      const isSuccess = log.tipo === "SUCCESS";
-                      const color = isError ? "#f87171" : isSuccess ? "#4ade80" : "#94a3b8";
-
-                      return (
-                        <div key={log.id} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.4rem", lineHeight: "1.3" }}>
-                          <span style={{ color: "#64748b" }}>[{new Date(log.creado_en).toLocaleTimeString("es-ES")}]</span>
-                          <span style={{ color: color, fontWeight: "600" }}>[{log.integracion}]</span>
-                          <span style={{ color: isError ? "#fca5a5" : "#e2e8f0" }}>{log.mensaje}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
               <div style={{ marginTop: "1.5rem" }}>
                 <h4 style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.75rem" }}>
                   Registro de Eventos (Logs)
                 </h4>
-                <div style={{ backgroundColor: "#f1f5f9", borderRadius: "8px", padding: "1rem", border: "1px solid #e2e8f0", fontFamily: "monospace", fontSize: "0.8rem", color: "#475569", minHeight: "150px" }}>
-                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                    <span style={{ fontWeight: "600" }}>[SYSTEM]</span>
-                    <span>Registro creado exitosamente en la base de datos principal.</span>
-                  </div>
-
-                  {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[GHL CONTACTO]</span>
-                      <span>
-                        {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO"
-                          ? "Integración desactivada: Creación/sincronización de contacto en GHL omitida por el administrador."
-                          : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "COMPLETADO"
-                            ? "Búsqueda/creación de contacto en GHL completada con éxito."
-                            : `Proceso de contacto GHL: ${selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl}`}
-                      </span>
+                <div style={{ backgroundColor: "#f1f5f9", borderRadius: "8px", padding: "1rem", border: "1px solid #e2e8f0", fontFamily: "monospace", fontSize: "0.8rem", color: "#475569", minHeight: "150px", maxHeight: "350px", overflowY: "auto" }}>
+                  {loadingLogs ? (
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100px", color: "#94a3b8" }}>
+                      <span>Cargando historial de logs...</span>
                     </div>
-                  )}
+                  ) : saleLogs.length > 0 ? (
+                    <>
+                      {saleLogs.map((log: any) => {
+                        const isError = log.tipo === "ERROR";
+                        const isSuccess = log.tipo === "SUCCESS";
+                        const isDeactivated = log.tipo === "INFO" && (log.mensaje.toLowerCase().includes("desactivada") || log.mensaje.toLowerCase().includes("desactivado") || log.mensaje.toLowerCase().includes("desactivar"));
+                        const color = isError ? "#ef4444" : isDeactivated ? "#94a3b8" : "inherit";
 
-                  {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[GHL FACTURA]</span>
-                      <span>
-                        {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO"
-                          ? "Integración desactivada: Creación de factura borrador en GHL omitida por el administrador."
-                          : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "COMPLETADO"
-                            ? "Generación de factura borrador en GHL completada con éxito."
-                            : `Proceso de factura GHL: ${selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl}`}
-                      </span>
-                    </div>
-                  )}
+                        return (
+                          <div key={log.id} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: color, lineHeight: "1.4" }}>
+                            <span style={{ color: "#94a3b8" }}>[{new Date(log.creado_en).toLocaleTimeString("es-ES")}]</span>
+                            <span style={{ fontWeight: "600", color: isError ? "#ef4444" : isSuccess ? "#16a34a" : "#475569" }}>[{log.integracion.toUpperCase()}]</span>
+                            <span>{log.mensaje}</span>
+                          </div>
+                        );
+                      })}
+                      {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_ghl_contacto === "ERROR" || selectedLogsSale.status_ghl_factura === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                          <span style={{ color: "#ef4444", fontWeight: "600" }}>[!]</span>
+                          <span style={{ color: "#ef4444" }}>Hay errores en el flujo. Puedes hacer clic en "Reintentar fallidos".</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                        <span style={{ fontWeight: "600" }}>[SYSTEM]</span>
+                        <span>Registro creado exitosamente en la base de datos principal.</span>
+                      </div>
 
-                  {selectedLogsSale.status_trello && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_trello === "ERROR" ? "#ef4444" : selectedLogsSale.status_trello === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[TRELLO]</span>
-                      <span>
-                        {selectedLogsSale.status_trello === "DESACTIVADO"
-                          ? "Integración desactivada: Creación de tarjeta de proyecto en Trello omitida por el administrador."
-                          : selectedLogsSale.status_trello === "COMPLETADO"
-                            ? "Tarjeta de proyecto creada en Trello con éxito."
-                            : `Sincronización de tablero Trello: ${selectedLogsSale.status_trello}`}
-                      </span>
-                    </div>
-                  )}
+                      {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[GHL CONTACTO]</span>
+                          <span>
+                            {(selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "DESACTIVADO"
+                              ? "Integración desactivada: Creación/sincronización de contacto en GHL omitida por el administrador."
+                              : (selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl) === "COMPLETADO"
+                                ? "Búsqueda/creación de contacto en GHL completada con éxito."
+                                : `Proceso de contacto GHL: ${selectedLogsSale.status_ghl_contacto || selectedLogsSale.status_ghl}`}
+                          </span>
+                        </div>
+                      )}
 
-                  {selectedLogsSale.status_dropbox && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_dropbox === "ERROR" ? "#ef4444" : selectedLogsSale.status_dropbox === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[DROPBOX]</span>
-                      <span>
-                        {selectedLogsSale.status_dropbox === "DESACTIVADO"
-                          ? "Integración desactivada: Creación de carpeta en Dropbox omitida por el administrador."
-                          : selectedLogsSale.status_dropbox === "COMPLETADO"
-                            ? "Carpeta de proyecto en Dropbox creada con éxito."
-                            : `Creación de directorio Dropbox: ${selectedLogsSale.status_dropbox}`}
-                      </span>
-                    </div>
-                  )}
+                      {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "ERROR" ? "#ef4444" : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[GHL FACTURA]</span>
+                          <span>
+                            {(selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "DESACTIVADO"
+                              ? "Integración desactivada: Creación de factura borrador en GHL omitida por el administrador."
+                              : (selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl) === "COMPLETADO"
+                                ? "Generación de factura borrador en GHL completada con éxito."
+                                : `Proceso de factura GHL: ${selectedLogsSale.status_ghl_factura || selectedLogsSale.status_ghl}`}
+                          </span>
+                        </div>
+                      )}
 
-                  {selectedLogsSale.status_email && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_email === "ERROR" ? "#ef4444" : selectedLogsSale.status_email === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[EMAIL]</span>
-                      <span>
-                        {selectedLogsSale.status_email === "DESACTIVADO"
-                          ? "Integración desactivada: Notificación de email interno omitida por el administrador."
-                          : selectedLogsSale.status_email === "COMPLETADO"
-                            ? "Notificación de email al equipo enviada con éxito."
-                            : `Envío de email de notificación: ${selectedLogsSale.status_email}`}
-                      </span>
-                    </div>
-                  )}
+                      {selectedLogsSale.status_trello && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_trello === "ERROR" ? "#ef4444" : selectedLogsSale.status_trello === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[TRELLO]</span>
+                          <span>
+                            {selectedLogsSale.status_trello === "DESACTIVADO"
+                              ? "Integración desactivada: Creación de tarjeta de proyecto en Trello omitida por el administrador."
+                              : selectedLogsSale.status_trello === "COMPLETADO"
+                                ? "Tarjeta de proyecto creada en Trello con éxito."
+                                : `Sincronización de tablero Trello: ${selectedLogsSale.status_trello}`}
+                          </span>
+                        </div>
+                      )}
 
-                  {selectedLogsSale.status_whatsapp && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_whatsapp === "ERROR" ? "#ef4444" : selectedLogsSale.status_whatsapp === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[WHATSAPP]</span>
-                      <span>
-                        {selectedLogsSale.status_whatsapp === "DESACTIVADO"
-                          ? "Integración desactivada: Notificación de WhatsApp por Zapier omitida por el administrador."
-                          : selectedLogsSale.status_whatsapp === "COMPLETADO"
-                            ? "Notificación de WhatsApp enviada al grupo con éxito."
-                            : `Envío de mensaje de WhatsApp: ${selectedLogsSale.status_whatsapp}`}
-                      </span>
-                    </div>
-                  )}
+                      {selectedLogsSale.status_dropbox && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_dropbox === "ERROR" ? "#ef4444" : selectedLogsSale.status_dropbox === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[DROPBOX]</span>
+                          <span>
+                            {selectedLogsSale.status_dropbox === "DESACTIVADO"
+                              ? "Integración desactivada: Creación de carpeta en Dropbox omitida por el administrador."
+                              : selectedLogsSale.status_dropbox === "COMPLETADO"
+                                ? "Carpeta de proyecto en Dropbox creada con éxito."
+                                : `Creación de directorio Dropbox: ${selectedLogsSale.status_dropbox}`}
+                          </span>
+                        </div>
+                      )}
 
-                  {selectedLogsSale.status_sheets && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_sheets === "ERROR" ? "#ef4444" : selectedLogsSale.status_sheets === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
-                      <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
-                      <span style={{ fontWeight: "600" }}>[SHEETS]</span>
-                      <span>
-                        {selectedLogsSale.status_sheets === "DESACTIVADO"
-                          ? "Integración desactivada: Inserción de fila en Google Sheets omitida por el administrador."
-                          : selectedLogsSale.status_sheets === "COMPLETADO"
-                            ? "Fila insertada en Google Sheets con éxito."
-                            : `Envío a Google Sheets: ${selectedLogsSale.status_sheets}`}
-                      </span>
-                    </div>
-                  )}
+                      {selectedLogsSale.status_email && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_email === "ERROR" ? "#ef4444" : selectedLogsSale.status_email === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[EMAIL]</span>
+                          <span>
+                            {selectedLogsSale.status_email === "DESACTIVADO"
+                              ? "Integración desactivada: Notificación de email interno omitida por el administrador."
+                              : selectedLogsSale.status_email === "COMPLETADO"
+                                ? "Notificación de email al equipo enviada con éxito."
+                                : `Envío de email de notificación: ${selectedLogsSale.status_email}`}
+                          </span>
+                        </div>
+                      )}
 
-                  {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_ghl_contacto === "ERROR" || selectedLogsSale.status_ghl_factura === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
-                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                      <span style={{ color: "#ef4444", fontWeight: "600" }}>[!]</span>
-                      <span style={{ color: "#ef4444" }}>Hay errores en el flujo. Puedes hacer clic en "Reintentar fallidos".</span>
-                    </div>
+                      {selectedLogsSale.status_whatsapp && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_whatsapp === "ERROR" ? "#ef4444" : selectedLogsSale.status_whatsapp === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[WHATSAPP]</span>
+                          <span>
+                            {selectedLogsSale.status_whatsapp === "DESACTIVADO"
+                              ? "Integración desactivada: Notificación de WhatsApp por Zapier omitida por el administrador."
+                              : selectedLogsSale.status_whatsapp === "COMPLETADO"
+                                ? "Notificación de WhatsApp enviada al grupo con éxito."
+                                : `Envío de mensaje de WhatsApp: ${selectedLogsSale.status_whatsapp}`}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedLogsSale.status_sheets && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", color: selectedLogsSale.status_sheets === "ERROR" ? "#ef4444" : selectedLogsSale.status_sheets === "DESACTIVADO" ? "#94a3b8" : "inherit" }}>
+                          <span style={{ color: "#94a3b8" }}>[{new Date(selectedLogsSale.creado_en).toLocaleTimeString()}]</span>
+                          <span style={{ fontWeight: "600" }}>[SHEETS]</span>
+                          <span>
+                            {selectedLogsSale.status_sheets === "DESACTIVADO"
+                              ? "Integración desactivada: Inserción de fila en Google Sheets omitida por el administrador."
+                              : selectedLogsSale.status_sheets === "COMPLETADO"
+                                ? "Fila insertada en Google Sheets con éxito."
+                                : `Envío a Google Sheets: ${selectedLogsSale.status_sheets}`}
+                          </span>
+                        </div>
+                      )}
+
+                      {(selectedLogsSale.status_trello === "ERROR" || selectedLogsSale.status_dropbox === "ERROR" || selectedLogsSale.status_ghl === "ERROR" || selectedLogsSale.status_ghl_contacto === "ERROR" || selectedLogsSale.status_ghl_factura === "ERROR" || selectedLogsSale.status_email === "ERROR" || selectedLogsSale.status_whatsapp === "ERROR" || selectedLogsSale.status_sheets === "ERROR") && (
+                        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                          <span style={{ color: "#ef4444", fontWeight: "600" }}>[!]</span>
+                          <span style={{ color: "#ef4444" }}>Hay errores en el flujo. Puedes hacer clic en "Reintentar fallidos".</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
