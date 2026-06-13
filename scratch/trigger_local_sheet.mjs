@@ -1,12 +1,21 @@
 import fs from "fs";
 import path from "path";
-import { supabase } from "./supabase";
+import { createClient } from "@supabase/supabase-js";
 
-export async function updateLocalWorkspaceSheet() {
+async function run() {
   try {
-    console.log("[Local Sheets] Actualizando Cuadro Maestro local en el workspace...");
-    
-    // 1. Obtener todas las ventas con sus clientes y usuarios principales
+    const envPath = path.resolve(process.cwd(), ".env.local");
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    const getEnvVal = (key) => {
+      const match = envContent.match(new RegExp(`^${key}=(.*)$`, "m"));
+      return match ? match[1].trim() : null;
+    };
+
+    const supabaseUrl = getEnvVal("SUPABASE_URL");
+    const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    console.log("[Rebuild CSV] Fetching sales from Supabase...");
     const { data: sales, error: salesErr } = await supabase
       .from("ventas")
       .select(`
@@ -25,16 +34,15 @@ export async function updateLocalWorkspaceSheet() {
       .order("creado_en", { ascending: false });
 
     if (salesErr || !sales) {
-      console.error("[Local Sheets] Error al obtener ventas para CSV local:", salesErr);
+      console.error("[Rebuild CSV] Error fetching sales:", salesErr);
       return;
     }
 
-    // 2. Obtener todos los usuarios de la agencia para resolver setters/closers adicionales
-    const { data: users, error: usersErr } = await supabase
+    const { data: users } = await supabase
       .from("usuarios_agencia")
       .select("id, nombre");
 
-    const usersMap = new Map<string, string>();
+    const usersMap = new Map();
     if (users) {
       users.forEach(u => usersMap.set(u.id, u.nombre));
     }
@@ -72,7 +80,7 @@ export async function updateLocalWorkspaceSheet() {
       "% Asociaciado V"
     ];
 
-    const getComision = (plataforma: string) => {
+    const getComision = (plataforma) => {
       const plat = (plataforma || "").toLowerCase();
       if (plat === "freelancer") return "10%";
       if (plat === "workana") return "REVISAR";
@@ -80,7 +88,7 @@ export async function updateLocalWorkspaceSheet() {
       return "0%";
     };
 
-    const escapeCsv = (val: string | number | null | undefined) => {
+    const escapeCsv = (val) => {
       if (val === null || val === undefined) return '""';
       const clean = String(val).replace(/"/g, '""');
       return `"${clean}"`;
@@ -97,8 +105,8 @@ export async function updateLocalWorkspaceSheet() {
         ? (usersMap.get(sale.closers_adicionales_ids[1]) || "")
         : "";
 
-      const clientName = (sale.clientes as any)?.nombre || "Cliente";
-      const clientGhlId = (sale.clientes as any)?.ghl_contact_id || "";
+      const clientName = sale.clientes?.nombre || "Cliente";
+      const clientGhlId = sale.clientes?.ghl_contact_id || "";
 
       return [
         escapeCsv(sale.status_pago || "PAGO ADELANTADO"),
@@ -111,34 +119,36 @@ export async function updateLocalWorkspaceSheet() {
         escapeCsv(sale.proyecto_nombre),
         escapeCsv(`${sale.monto_total || 0} ${(sale.moneda || "USD").toUpperCase()}`),
         escapeCsv(getComision(sale.plataforma)),
-        escapeCsv((sale.setter_principal as any)?.nombre || ""),
+        escapeCsv(sale.setter_principal?.nombre || ""),
         escapeCsv(setter2),
-        escapeCsv((sale.closer_principal as any)?.nombre || ""),
+        escapeCsv(sale.closer_principal?.nombre || ""),
         escapeCsv(closer2),
         escapeCsv(closer3),
         escapeCsv(sale.comprobante_link),
         escapeCsv(sale.fecha_pago),
-        '""', // Comisión de transferencia
-        '""', // Fondo Gerencial
-        '""', // Lider
-        '""', // Asociaciado I
-        '""', // % Asociaciado I
-        '""', // Asociaciado II
-        '""', // % Asociaciado II
-        '""', // Asociaciado III
-        '""', // % Asociaciado III
-        '""', // Asociaciado IV
-        '""', // % Asociaciado IV
-        '""', // Asociaciado V
-        '""'  // % Asociaciado V
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""',
+        '""'
       ];
     });
 
     const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
     const filePath = path.join(process.cwd(), "Cuadro Maestro (Local).csv");
     fs.writeFileSync(filePath, csvContent, "utf-8");
-    console.log(`[Local Sheets] Archivo guardado con éxito en: ${filePath}`);
+    console.log(`[Rebuild CSV] Saved successfully to: ${filePath}`);
   } catch (err) {
-    console.error("[Local Sheets] Excepción al escribir Cuadro Maestro local:", err);
+    console.error("[Rebuild CSV] Exception:", err);
   }
 }
+
+run();

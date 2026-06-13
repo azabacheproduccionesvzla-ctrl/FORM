@@ -241,6 +241,7 @@ export default function CuadroMaestroModal({
       "Etapa",
       "Plataforma",
       "Codigo Venta",
+      "Codigo Factura",
       "Fecha de inicio",
       "Cliente",
       "Codigo Cliente (GHL ID)",
@@ -284,6 +285,7 @@ export default function CuadroMaestroModal({
         sale.status_pago || "PAGO ADELANTADO",
         sale.plataforma || "",
         sale.codigo_venta || "",
+        sale.codigo_factura || "",
         new Date(sale.creado_en).toLocaleDateString("es-ES"),
         sale.clientes?.nombre || "Cliente",
         sale.clientes?.ghl_contact_id || "",
@@ -504,7 +506,7 @@ export default function CuadroMaestroModal({
                 {/* Fila superior de letras de columna tipo Google Sheets (A, B, C...) */}
                 <tr>
                   <th style={indexHeaderStyle}></th>
-                  {Array.from({ length: 29 }).map((_, i) => (
+                  {Array.from({ length: 30 }).map((_, i) => (
                     <th key={i} style={letterHeaderStyle}>
                       {getColLetter(i)}
                     </th>
@@ -516,6 +518,7 @@ export default function CuadroMaestroModal({
                   <th style={fieldHeaderStyle}>Etapa (Pago)</th>
                   <th style={fieldHeaderStyle}>Plataforma</th>
                   <th style={fieldHeaderStyle}>Código Venta</th>
+                  <th style={fieldHeaderStyle}>Código Factura</th>
                   <th style={fieldHeaderStyle}>Fecha Inicio</th>
                   <th style={fieldHeaderStyle}>Cliente</th>
                   <th style={fieldHeaderStyle}>Código Cliente (GHL ID)</th>
@@ -532,7 +535,7 @@ export default function CuadroMaestroModal({
                   <th style={fieldHeaderStyle}>Fecha de Pago</th>
                   {Array.from({ length: 12 }).map((_, i) => (
                     <th key={i} style={fieldHeaderStyleEmpty}>
-                      Columna Reservada {getColLetter(17 + i)}
+                      Columna Reservada {getColLetter(18 + i)}
                     </th>
                   ))}
                 </tr>
@@ -677,6 +680,9 @@ export default function CuadroMaestroModal({
                       </td>
                       <td style={cellStyle}>
                         {renderCell("codigo_venta", sale.codigo_venta, "text")}
+                      </td>
+                      <td style={cellStyle}>
+                        {renderCell("codigo_factura", sale.codigo_factura, "text")}
                       </td>
                       <td style={cellReadOnlyStyle}>
                         {new Date(sale.creado_en).toLocaleDateString("es-ES")}
