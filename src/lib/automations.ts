@@ -107,30 +107,11 @@ export async function runVentasAutomations(saleId: string) {
           console.log(`[Automations] Guardado ghl_contact_id: ${contactId} en cliente: ${sale.cliente_id}`);
         }
 
-        console.log(`[Automations] Contacto creado con ID: ${contactId}. Generando Factura...`);
-        let invoiceData = null;
-        try {
-          invoiceData = await createGhlInvoice(contactId, {
-            projectName: sale.proyecto_nombre,
-            amount: sale.monto_total,
-            currency: sale.moneda || "usd",
-            description: sale.descripcion_operativa || undefined
-          });
-        } catch (invoiceErr: any) {
-          console.error(`[Automations] Error al crear factura en GHL (puede deberse a falta de Stripe integrado en el sub-account):`, invoiceErr);
-        }
-
-        if (invoiceData) {
-          finalCodigoVenta = invoiceData.invoiceNumber;
-          console.log(`[Automations] Factura creada. Nuevo código de venta: ${finalCodigoVenta}`);
-        } else {
-          console.log(`[Automations] Omitiendo actualización de código de venta ya que la creación de factura falló/se omitió. Código usado: ${finalCodigoVenta}`);
-        }
-
+        console.log(`[Automations] Contacto creado/actualizado con ID: ${contactId} en GHL (se disparará workflow mediante la etiqueta 'nueva_venta').`);
+        
         await supabase
           .from("ventas")
           .update({
-            codigo_venta: finalCodigoVenta,
             status_ghl: "COMPLETADO"
           })
           .eq("id", saleId);
@@ -241,48 +222,10 @@ export async function runVentasAutomations(saleId: string) {
 
     if (sale.status_email !== "COMPLETADO") {
       try {
-        await supabase.from("ventas").update({ status_email: "PROCESANDO" }).eq("id", saleId);
-        console.log(`[Automations] Enviando notificación de email al equipo`);
-
-        const teamEmails = (process.env.NOTIFICACION_EMAIL_DESTINATARIOS || "alvarezchristopherve@gmail.com")
-          .split(",")
-          .map(e => e.trim())
-          .filter(Boolean);
-
-        const emailTemplate = `<div style="background-color:#f4f5f7;padding:30px 15px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#24292e"><div style="max-width:600px;margin:0 auto;background-color:#ffffff;border:1px solid #e1e4e8;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden"><div style="padding:25px 30px;border-bottom:1px solid #e1e4e8;background-color:#fafbfc"><h2 style="margin: 0;color: #24292e;font-size: 20px;font-weight: 600;letter-spacing: -0.5px;"><strong>Nueva Venta Registrada</strong></h2></div><div style="padding:30px 30px 10px 30px"><div style="margin-bottom:20px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Proyecto</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 600;color: #24292e;"><strong>{{PROYECTO_NOMBRE}}</strong></p></div><div style="display:table;width:100%;margin-bottom:20px"><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;color: #586069;text-transform: uppercase;letter-spacing: 0.5px;font-weight: 600;"><strong>Cliente</strong></p><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;"><strong>{{CLIENTE_NOMBRE}}</strong></p></div><div style="display:table-cell;width:50%"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;font-weight: 500;color: #22863a;"><strong>{{MONTO}}</strong></p></div></div></div><div style="padding-left: 30px!important;; padding-left:30px!important;padding-left:30px!important;margin:0 30px;border-top:1px solid #e1e4e8"></div><div style="padding:10px 0 20px 0"><table style="width:100%;border-collapse:collapse;margin:0"><tbody><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;width:45%;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Plataforma</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;width:55%;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{PLATAFORMA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Proyecto</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_PROYECTO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tipo de Venta</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TIPO_VENTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Tarjeta Trello</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{TRELLO_LINK}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Oferta de</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{OFERTA}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#586069;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Equipo de Cierre</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;border-bottom:1px solid #f0f3f6;color:#24292e;font-weight:500;font-size:14px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;"><strong>{{EQUIPO}}</strong></p></td></tr><tr><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">Registro</p></td><td colspan="1" rowspan="1" style="padding:15px 30px;color:#586069;font-weight:400;font-size:13px"><p style="margin:0px;font-family:verdana,geneva,sans-serif;font-size:16px; margin: 0px;font-family: verdana,geneva,sans-serif;font-size: 16px;">{{FECHA_REGISTRO}}</p></td></tr></tbody></table></div></div></div>`;
-
-        const trelloLinkVal = trelloUrl ? `<a href="${trelloUrl}" target="_blank" style="color: #0052cc; text-decoration: underline;">Ver Tarjeta</a>` : "No generada";
-
-        const compiledHtml = emailTemplate
-          .replace("{{PROYECTO_NOMBRE}}", sale.proyecto_nombre || "")
-          .replace("{{CLIENTE_NOMBRE}}", clientInfo?.nombre || "Cliente")
-          .replace("{{MONTO}}", `${sale.monto_total} ${sale.moneda}`)
-          .replace("{{PLATAFORMA}}", sale.plataforma || "")
-          .replace("{{TIPO_PROYECTO}}", `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}`)
-          .replace("{{TIPO_VENTA}}", sale.tipo_venta || "")
-          .replace("{{TRELLO_LINK}}", trelloLinkVal)
-          .replace("{{OFERTA}}", sale.oferta_presentada || sale.condiciones_acordadas || "N/A")
-          .replace("{{EQUIPO}}", equipoStr)
-          .replace("{{FECHA_REGISTRO}}", new Date(sale.creado_en).toLocaleString("es-ES"));
-
-        for (const email of teamEmails) {
-          console.log(`[Automations] Enviando email de equipo a: ${email}`);
-          const teamContactId = await createGhlContact({
-            name: "Notificaciones Azabache",
-            email: email
-          });
-
-          await sendGhlMessage(
-            teamContactId,
-            "Email",
-            compiledHtml,
-            `Nueva Venta Registrada - ${sale.proyecto_nombre}`
-          );
-        }
-
+        console.log(`[Automations] Omitiendo envío directo de email, se ejecutará vía workflow en GHL para el contacto.`);
         await supabase.from("ventas").update({ status_email: "COMPLETADO" }).eq("id", saleId);
       } catch (e: any) {
-        console.error(`[Automations] Error en email equipo GHL:`, e);
+        console.error(`[Automations] Error al actualizar status de email:`, e);
         await supabase.from("ventas").update({ status_email: "ERROR" }).eq("id", saleId);
       }
     } else {
