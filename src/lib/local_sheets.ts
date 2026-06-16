@@ -2,6 +2,22 @@ import fs from "fs";
 import path from "path";
 import { supabase } from "./supabase";
 
+function formatExcelDate(dateStr?: string | Date | null) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayName = days[date.getUTCDay()];
+  const monthName = months[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${dayName} ${monthName} ${day} ${hours}:${minutes}:${seconds} +0000 ${year}`;
+}
+
 export async function updateLocalWorkspaceSheet() {
   try {
     console.log("[Local Sheets] Actualizando Cuadro Maestro local en el workspace...");
@@ -43,10 +59,10 @@ export async function updateLocalWorkspaceSheet() {
       "Etapa",
       "Plataforma",
       "Codigo Venta",
-      "Codigo Factura",
+      "ID Factura",
       "Fecha de inicio",
-      "Cliente",
-      "Codigo Cliente (GHL ID)",
+      "Cliente ",
+      "Codigo Cliente",
       "Proyecto",
       "Monto C/C",
       "Comision",
@@ -105,11 +121,11 @@ export async function updateLocalWorkspaceSheet() {
         escapeCsv(sale.plataforma),
         escapeCsv(sale.codigo_venta),
         escapeCsv(sale.codigo_factura),
-        escapeCsv(new Date(sale.creado_en).toLocaleDateString("es-ES")),
+        escapeCsv(formatExcelDate(sale.creado_en)),
         escapeCsv(clientName),
         escapeCsv(clientGhlId),
         escapeCsv(sale.proyecto_nombre),
-        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda || "USD").toUpperCase()}`),
+        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
         escapeCsv(getComision(sale.plataforma)),
         escapeCsv((sale.setter_principal as any)?.nombre || ""),
         escapeCsv(setter2),

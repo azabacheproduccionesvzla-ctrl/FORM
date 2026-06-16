@@ -12,6 +12,7 @@ export interface IntegrationConfig {
   zapier_whatsapp: boolean;
   google_sheets: boolean;
   email_destinatarios?: string;
+  trello_default_members?: string[];
 }
 
 const DEFAULT_CONFIG: IntegrationConfig = {
@@ -21,7 +22,13 @@ const DEFAULT_CONFIG: IntegrationConfig = {
   ghl_factura: true,
   zapier_whatsapp: true,
   google_sheets: true,
-  email_destinatarios: "alvarezchristopherve@gmail.com"
+  email_destinatarios: "alvarezchristopherve@gmail.com",
+  trello_default_members: [
+    "6234bce84174cf4ea0ee02fb",
+    "5728ceaca2d6d5913b8cb5cd",
+    "5ff29a0bd4a465505546a8b3",
+    "58e43e1d3360cf5e81ee5e0a"
+  ]
 };
 
 export async function getIntegrationConfig(): Promise<IntegrationConfig> {

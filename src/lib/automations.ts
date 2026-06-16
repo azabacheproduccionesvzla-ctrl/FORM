@@ -259,7 +259,8 @@ export async function runVentasAutomations(saleId: string) {
             dueDateStr: dueDateStr,
             isExistingProject: sale.es_continuacion,
             montoStr: `${sale.monto_total} ${sale.moneda}`,
-            tipoVenta: sale.tipo_venta
+            tipoVenta: sale.tipo_venta,
+            trelloMembers: config.trello_default_members
           });
 
           if (trelloRes.success && trelloRes.url) {

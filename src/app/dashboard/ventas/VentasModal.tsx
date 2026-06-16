@@ -36,6 +36,56 @@ interface PriorSale {
   plataforma?: string;
 }
 
+const COUNTRIES_AMERICA = [
+  "Antigua y Barbuda",
+  "Argentina",
+  "Bahamas",
+  "Barbados",
+  "Belice",
+  "Bolivia",
+  "Brasil",
+  "Canadá",
+  "Chile",
+  "Colombia",
+  "Costa Rica",
+  "Cuba",
+  "Dominica",
+  "Ecuador",
+  "El Salvador",
+  "Estados Unidos",
+  "Granada",
+  "Guatemala",
+  "Guyana",
+  "Haití",
+  "Honduras",
+  "Jamaica",
+  "México",
+  "Nicaragua",
+  "Panamá",
+  "Paraguay",
+  "Perú",
+  "Puerto Rico",
+  "República Dominicana",
+  "San Cristóbal y Nieves",
+  "San Vicente y las Granadinas",
+  "Santa Lucía",
+  "Surinam",
+  "Trinidad y Tobago",
+  "Uruguay",
+  "Venezuela"
+];
+
+const COUNTRIES_EUROPE = [
+  "España",
+  "Portugal",
+  "Francia",
+  "Inglaterra"
+];
+
+const isPredefinedCountry = (c: string) => {
+  return COUNTRIES_AMERICA.includes(c) || COUNTRIES_EUROPE.includes(c);
+};
+
 interface VentasModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -96,6 +146,10 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
   const [agregarSetterAdicional, setAgregarSetterAdicional] = useState(false);
 
   
+  const [showCustomGating, setShowCustomGating] = useState(false);
+  const [showCustomEdit, setShowCustomEdit] = useState(false);
+  const [showCustomNew, setShowCustomNew] = useState(false);
+
   const [formData, setFormData] = useState({
     
     es_continuacion: false,
@@ -318,6 +372,25 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
       setGatingSearchQuery("");
     }
   }, [selectedClient, clients]);
+
+  useEffect(() => {
+    if (formData.cliente_pais) {
+      const isPre = isPredefinedCountry(formData.cliente_pais);
+      if (!isPre) {
+        setShowCustomGating(true);
+        setShowCustomEdit(true);
+        setShowCustomNew(true);
+      } else {
+        setShowCustomGating(false);
+        setShowCustomEdit(false);
+        setShowCustomNew(false);
+      }
+    } else {
+      setShowCustomGating(false);
+      setShowCustomEdit(false);
+      setShowCustomNew(false);
+    }
+  }, [formData.cliente_pais]);
 
   
   useEffect(() => {
@@ -997,13 +1070,39 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                               </div>
                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
                                 <label className={styles.label}>País</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ej: España"
-                                  className={styles.input}
-                                  value={formData.cliente_pais}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_pais: e.target.value }))}
-                                />
+                                <select
+                                  className={styles.select}
+                                  value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomGating ? "Otro" : "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "Otro") {
+                                      setShowCustomGating(true);
+                                      setFormData(prev => ({ ...prev, cliente_pais: "" }));
+                                    } else {
+                                      setShowCustomGating(false);
+                                      setFormData(prev => ({ ...prev, cliente_pais: val }));
+                                    }
+                                  }}
+                                >
+                                  <option value="">Seleccionar país...</option>
+                                  <optgroup label="América">
+                                    {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <optgroup label="Europa">
+                                    {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <option value="Otro">Otro (Especificar)</option>
+                                </select>
+                                {(showCustomGating || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                                  <input
+                                    type="text"
+                                    placeholder="Especifica el país"
+                                    className={styles.input}
+                                    style={{ marginTop: "0.5rem" }}
+                                    value={formData.cliente_pais}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, cliente_pais: e.target.value }))}
+                                  />
+                                ) : null}
                               </div>
                             </div>
                           </div>
@@ -1247,14 +1346,41 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                               </div>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>País</label>
-                                <input
-                                  type="text"
-                                  placeholder="Coloca el país del cliente"
-                                  className={styles.input}
-                                  value={formData.cliente_pais}
-                                  onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                                <select
+                                  className={styles.select}
+                                  value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomEdit ? "Otro" : "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "Otro") {
+                                      setShowCustomEdit(true);
+                                      setFormData({ ...formData, cliente_pais: "" });
+                                    } else {
+                                      setShowCustomEdit(false);
+                                      setFormData({ ...formData, cliente_pais: val });
+                                    }
+                                  }}
                                   disabled={isExtension ? !modifyClientData : !actualizarCliente}
-                                />
+                                >
+                                  <option value="">Seleccionar país...</option>
+                                  <optgroup label="América">
+                                    {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <optgroup label="Europa">
+                                    {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <option value="Otro">Otro (Especificar)</option>
+                                </select>
+                                {(showCustomEdit || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                                  <input
+                                    type="text"
+                                    placeholder="Especifica el país"
+                                    className={styles.input}
+                                    style={{ marginTop: "0.5rem" }}
+                                    value={formData.cliente_pais}
+                                    onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                                    disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                  />
+                                ) : null}
                               </div>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>Empresa</label>
@@ -1321,14 +1447,41 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>País</label>
-                        <input
-                          type="text"
-                          placeholder="Coloca el país del cliente"
-                          className={styles.input}
-                          value={formData.cliente_pais}
-                          onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                        <select
+                          className={styles.select}
+                          value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomNew ? "Otro" : "")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "Otro") {
+                              setShowCustomNew(true);
+                              setFormData({ ...formData, cliente_pais: "" });
+                            } else {
+                              setShowCustomNew(false);
+                              setFormData({ ...formData, cliente_pais: val });
+                            }
+                          }}
                           disabled={disableClientFields}
-                        />
+                        >
+                          <option value="">Seleccionar país...</option>
+                          <optgroup label="América">
+                            {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <optgroup label="Europa">
+                            {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <option value="Otro">Otro (Especificar)</option>
+                        </select>
+                        {(showCustomNew || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                          <input
+                            type="text"
+                            placeholder="Especifica el país"
+                            className={styles.input}
+                            style={{ marginTop: "0.5rem" }}
+                            value={formData.cliente_pais}
+                            onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                            disabled={disableClientFields}
+                          />
+                        ) : null}
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>Empresa</label>
@@ -1513,6 +1666,52 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                     </div>
                   </div>
 
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Moneda</label>
+                      <select
+                        className={styles.select}
+                        value={formData.moneda}
+                        onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
+                        disabled={disablePaymentFields}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="VES">VES</option>
+                        <option value="COP">COP</option>
+                        <option value="Otra">Otra</option>
+                      </select>
+                    </div>
+                    {formData.moneda === "Otra" && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Especificar moneda *</label>
+                        <input
+                          type="text"
+                          placeholder="Ingresa las siglas de la divisa"
+                          className={styles.input}
+                          value={formData.moneda_otra}
+                          onChange={(e) => setFormData({ ...formData, moneda_otra: e.target.value })}
+                          disabled={disablePaymentFields}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.moneda !== "USD" && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Aclaración o conversión manual a USD</label>
+                      <input
+                        type="text"
+                        placeholder="Aclara la equivalencia o conversión de la divisa"
+                        className={styles.input}
+                        value={formData.monto_explicacion}
+                        onChange={(e) => setFormData({ ...formData, monto_explicacion: e.target.value })}
+                        disabled={disablePaymentFields}
+                      />
+                    </div>
+                  )}
+
                   {formData.tipo_proyecto === "Precio Fijo" && (
                     <>
                       <div className={styles.formGroup}>
@@ -1664,51 +1863,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                     </div>
                   )}
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Moneda</label>
-                      <select
-                        className={styles.select}
-                        value={formData.moneda}
-                        onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
-                        disabled={disablePaymentFields}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="VES">VES</option>
-                        <option value="COP">COP</option>
-                        <option value="Otra">Otra</option>
-                      </select>
-                    </div>
-                    {formData.moneda === "Otra" && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Especificar moneda *</label>
-                        <input
-                          type="text"
-                          placeholder="Ingresa las siglas de la divisa"
-                          className={styles.input}
-                          value={formData.moneda_otra}
-                          onChange={(e) => setFormData({ ...formData, moneda_otra: e.target.value })}
-                          disabled={disablePaymentFields}
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
 
-                  {formData.moneda !== "USD" && (
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Aclaración o conversión manual a USD</label>
-                      <input
-                        type="text"
-                        placeholder="Aclara la equivalencia o conversión de la divisa"
-                        className={styles.input}
-                        value={formData.monto_explicacion}
-                        onChange={(e) => setFormData({ ...formData, monto_explicacion: e.target.value })}
-                        disabled={disablePaymentFields}
-                      />
-                    </div>
-                  )}
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Notas internas</label>

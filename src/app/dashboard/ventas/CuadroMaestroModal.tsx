@@ -17,6 +17,7 @@ interface Sale {
   proyecto_nombre: string;
   monto_total: number;
   moneda: string;
+  moneda_otra?: string | null;
   fecha_pago?: string;
   comprobante_link?: string;
   setter_principal_id?: string;
@@ -50,6 +51,22 @@ interface CuadroMaestroModalProps {
   usersList: UserListItem[];
   userRole: string;
   onRefreshSales: () => void;
+}
+
+function formatExcelDate(dateStr?: string | Date | null) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayName = days[date.getUTCDay()];
+  const monthName = months[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${dayName} ${monthName} ${day} ${hours}:${minutes}:${seconds} +0000 ${year}`;
 }
 
 export default function CuadroMaestroModal({
@@ -242,10 +259,10 @@ export default function CuadroMaestroModal({
       "Etapa",
       "Plataforma",
       "Codigo Venta",
-      "Codigo Factura",
+      "ID Factura",
       "Fecha de inicio",
-      "Cliente",
-      "Codigo Cliente (GHL ID)",
+      "Cliente ",
+      "Codigo Cliente",
       "Proyecto",
       "Monto C/C",
       "Comision",
@@ -287,11 +304,11 @@ export default function CuadroMaestroModal({
         sale.plataforma || "",
         sale.codigo_venta || "",
         sale.codigo_factura || "",
-        new Date(sale.creado_en).toLocaleDateString("es-ES"),
+        formatExcelDate(sale.creado_en),
         sale.clientes?.nombre || "Cliente",
         sale.clientes?.ghl_contact_id || "",
         sale.proyecto_nombre || "",
-        `${sale.monto_total || 0} ${(sale.moneda || "USD").toUpperCase()}`,
+        `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`,
         getComisionValue(sale.plataforma),
         sale.setter_principal?.nombre || "",
         setter2,
@@ -516,29 +533,36 @@ export default function CuadroMaestroModal({
                 {/* Encabezados de campos */}
                 <tr>
                   <th style={indexHeaderStyle}></th>
-                  <th style={fieldHeaderStyle}>Etapa (Pago)</th>
+                  <th style={fieldHeaderStyle}>Etapa</th>
                   <th style={fieldHeaderStyle}>Plataforma</th>
-                  <th style={fieldHeaderStyle}>Código Venta</th>
-                  <th style={fieldHeaderStyle}>Código Factura</th>
-                  <th style={fieldHeaderStyle}>Fecha Inicio</th>
-                  <th style={fieldHeaderStyle}>Cliente</th>
-                  <th style={fieldHeaderStyle}>Código Cliente (GHL ID)</th>
+                  <th style={fieldHeaderStyle}>Codigo Venta</th>
+                  <th style={fieldHeaderStyle}>ID Factura</th>
+                  <th style={fieldHeaderStyle}>Fecha de inicio</th>
+                  <th style={fieldHeaderStyle}>Cliente </th>
+                  <th style={fieldHeaderStyle}>Codigo Cliente</th>
                   <th style={fieldHeaderStyle}>Proyecto</th>
-                  <th style={fieldHeaderStyle}>Monto</th>
-                  <th style={fieldHeaderStyle}>Moneda</th>
-                  <th style={fieldHeaderStyle}>Comisión</th>
+                  <th style={fieldHeaderStyle}>Monto C/C</th>
+                  <th style={fieldHeaderStyle}>Comision</th>
                   <th style={fieldHeaderStyle}>Setter I</th>
                   <th style={fieldHeaderStyle}>Setter II</th>
                   <th style={fieldHeaderStyle}>Closer I</th>
                   <th style={fieldHeaderStyle}>Closer II</th>
                   <th style={fieldHeaderStyle}>Closer III</th>
-                  <th style={fieldHeaderStyle}>Factura (Link)</th>
+                  <th style={fieldHeaderStyle}>Factura</th>
                   <th style={fieldHeaderStyle}>Fecha de Pago</th>
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <th key={i} style={fieldHeaderStyleEmpty}>
-                      Columna Reservada {getColLetter(18 + i)}
-                    </th>
-                  ))}
+                  <th style={fieldHeaderStyleEmpty}>Comisión de transferencia</th>
+                  <th style={fieldHeaderStyleEmpty}>Fondo Gerencial</th>
+                  <th style={fieldHeaderStyleEmpty}>Lider</th>
+                  <th style={fieldHeaderStyleEmpty}>Asociaciado I</th>
+                  <th style={fieldHeaderStyleEmpty}>% Asociaciado I</th>
+                  <th style={fieldHeaderStyleEmpty}>Asociaciado II</th>
+                  <th style={fieldHeaderStyleEmpty}>% Asociaciado II</th>
+                  <th style={fieldHeaderStyleEmpty}>Asociaciado III</th>
+                  <th style={fieldHeaderStyleEmpty}>% Asociaciado III</th>
+                  <th style={fieldHeaderStyleEmpty}>Asociaciado IV</th>
+                  <th style={fieldHeaderStyleEmpty}>% Asociaciado IV</th>
+                  <th style={fieldHeaderStyleEmpty}>Asociaciado V</th>
+                  <th style={fieldHeaderStyleEmpty}>% Asociaciado V</th>
                 </tr>
               </thead>
               <tbody>
@@ -556,7 +580,13 @@ export default function CuadroMaestroModal({
                     ? sale.closers_adicionales_ids[1]
                     : "";
 
-                  const renderCell = (field: string, displayVal: any, type: "text" | "select" | "date" | "number", selectOptions?: string[] | { id: string; name: string }[]) => {
+                  const renderCell = (
+                    field: string,
+                    displayVal: any,
+                    type: "text" | "select" | "date" | "number",
+                    selectOptions?: string[] | { id: string; name: string }[],
+                    customRenderVal?: React.ReactNode
+                  ) => {
                     const isEditing = editingCell?.saleId === sale.id && editingCell?.field === field;
 
                     if (isEditing && !isReadOnly) {
@@ -663,7 +693,7 @@ export default function CuadroMaestroModal({
                           userSelect: "none",
                         }}
                       >
-                        {displayVal || <span style={{ color: "#cbd5e1", fontSize: "0.75rem" }}>--</span>}
+                        {customRenderVal !== undefined ? customRenderVal : (displayVal || <span style={{ color: "#cbd5e1", fontSize: "0.75rem" }}>--</span>)}
                       </div>
                     );
                   };
@@ -686,7 +716,7 @@ export default function CuadroMaestroModal({
                         {renderCell("codigo_factura", sale.codigo_factura, "text")}
                       </td>
                       <td style={cellReadOnlyStyle}>
-                        {new Date(sale.creado_en).toLocaleDateString("es-ES")}
+                        {formatExcelDate(sale.creado_en)}
                       </td>
                       <td style={cellStyle}>
                         {renderCell("cliente_nombre", sale.clientes?.nombre, "text")}
@@ -698,10 +728,13 @@ export default function CuadroMaestroModal({
                         {renderCell("proyecto_nombre", sale.proyecto_nombre, "text")}
                       </td>
                       <td style={cellStyle}>
-                        {renderCell("monto_total", sale.monto_total, "number")}
-                      </td>
-                      <td style={cellStyle}>
-                        {renderCell("moneda", sale.moneda, "select", currencyOptions)}
+                        {renderCell(
+                          "monto_total",
+                          sale.monto_total,
+                          "number",
+                          undefined,
+                          `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`
+                        )}
                       </td>
                       <td style={cellReadOnlyStyle}>
                         {getComisionValue(sale.plataforma)}
@@ -711,7 +744,8 @@ export default function CuadroMaestroModal({
                           "setter_principal_id",
                           sale.setter_principal_id,
                           "select",
-                          usersList.map((u) => ({ id: u.id, name: u.nombre }))
+                          usersList.map((u) => ({ id: u.id, name: u.nombre })),
+                          usersList.find((u) => u.id === sale.setter_principal_id)?.nombre
                         )}
                       </td>
                       <td style={cellStyle}>
@@ -719,7 +753,8 @@ export default function CuadroMaestroModal({
                           "setter_adicional_id",
                           setter2,
                           "select",
-                          usersList.map((u) => ({ id: u.id, name: u.nombre }))
+                          usersList.map((u) => ({ id: u.id, name: u.nombre })),
+                          usersList.find((u) => u.id === setter2)?.nombre
                         )}
                       </td>
                       <td style={cellStyle}>
@@ -727,7 +762,8 @@ export default function CuadroMaestroModal({
                           "closer_principal_id",
                           sale.closer_principal_id,
                           "select",
-                          usersList.map((u) => ({ id: u.id, name: u.nombre }))
+                          usersList.map((u) => ({ id: u.id, name: u.nombre })),
+                          usersList.find((u) => u.id === sale.closer_principal_id)?.nombre
                         )}
                       </td>
                       <td style={cellStyle}>
@@ -735,7 +771,8 @@ export default function CuadroMaestroModal({
                           "closer_adicional_1_id",
                           closer2,
                           "select",
-                          usersList.map((u) => ({ id: u.id, name: u.nombre }))
+                          usersList.map((u) => ({ id: u.id, name: u.nombre })),
+                          usersList.find((u) => u.id === closer2)?.nombre
                         )}
                       </td>
                       <td style={cellStyle}>
@@ -743,17 +780,34 @@ export default function CuadroMaestroModal({
                           "closer_adicional_2_id",
                           closer3,
                           "select",
-                          usersList.map((u) => ({ id: u.id, name: u.nombre }))
+                          usersList.map((u) => ({ id: u.id, name: u.nombre })),
+                          usersList.find((u) => u.id === closer3)?.nombre
                         )}
                       </td>
                       <td style={cellStyle}>
-                        {renderCell("comprobante_link", sale.comprobante_link, "text")}
+                        {renderCell(
+                          "comprobante_link",
+                          sale.comprobante_link,
+                          "text",
+                          undefined,
+                          sale.comprobante_link ? (
+                            <a href={sale.comprobante_link} target="_blank" rel="noopener noreferrer" style={{ color: "#0052cc", textDecoration: "underline" }}>
+                              {sale.comprobante_link.length > 30 ? sale.comprobante_link.substring(0, 27) + "..." : sale.comprobante_link}
+                            </a>
+                          ) : undefined
+                        )}
                       </td>
                       <td style={cellStyle}>
-                        {renderCell("fecha_pago", sale.fecha_pago, "date")}
+                        {renderCell(
+                          "fecha_pago",
+                          sale.fecha_pago,
+                          "date",
+                          undefined,
+                          sale.fecha_pago ? new Date(sale.fecha_pago + "T00:00:00").toLocaleDateString("es-ES") : undefined
+                        )}
                       </td>
                       {/* Celdas reservadas vacías */}
-                      {Array.from({ length: 12 }).map((_, i) => (
+                      {Array.from({ length: 13 }).map((_, i) => (
                         <td key={i} style={cellEmptyStyle}></td>
                       ))}
                     </tr>

@@ -149,6 +149,9 @@ export default function VentasPage() {
   const [isSyncingTrello, setIsSyncingTrello] = useState(false);
   const [trelloEditMode, setTrelloEditMode] = useState(false);
   const [dropboxEditMode, setDropboxEditMode] = useState(false);
+  const [trelloCardMembers, setTrelloCardMembers] = useState<string[]>([]);
+  const [originalTrelloCardMembers, setOriginalTrelloCardMembers] = useState<string[]>([]);
+  const [trelloBoardMembers, setTrelloBoardMembers] = useState<{ id: string; fullName: string; username: string }[]>([]);
 
   useEffect(() => {
     if (selectedViewSale) {
@@ -167,6 +170,9 @@ export default function VentasPage() {
       const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${selectedViewSale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${selectedViewSale.descripcion_operativa ? `\n\n---\n\n${selectedViewSale.descripcion_operativa}` : ""}`;
       setQuickTrelloDesc(desc);
       setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
+      setTrelloCardMembers([]);
+      setOriginalTrelloCardMembers([]);
+      setTrelloBoardMembers([]);
 
       // If Trello is completed, let's sync live values from Trello API
       if (selectedViewSale.status_trello === "COMPLETADO") {
@@ -177,6 +183,11 @@ export default function VentasPage() {
             if (data.success && data.synchronized) {
               if (data.trelloTitle) setQuickTrelloTitle(data.trelloTitle);
               if (data.trelloDesc) setQuickTrelloDesc(data.trelloDesc);
+              if (data.cardMembers) {
+                setTrelloCardMembers(data.cardMembers);
+                setOriginalTrelloCardMembers(data.cardMembers);
+              }
+              if (data.boardMembers) setTrelloBoardMembers(data.boardMembers);
               if (data.dbUpdated) {
                 fetchSales();
               }
@@ -191,6 +202,9 @@ export default function VentasPage() {
       setQuickDropboxFolder("");
       setTrelloEditMode(false);
       setDropboxEditMode(false);
+      setTrelloCardMembers([]);
+      setOriginalTrelloCardMembers([]);
+      setTrelloBoardMembers([]);
     }
   }, [selectedViewSale]);
 
@@ -205,7 +219,8 @@ export default function VentasPage() {
           saleId: selectedViewSale.id,
           action: "trello",
           trelloTitle: quickTrelloTitle,
-          trelloDesc: quickTrelloDesc
+          trelloDesc: quickTrelloDesc,
+          trelloMembers: trelloCardMembers
         })
       });
       const data = await res.json();
@@ -297,13 +312,30 @@ export default function VentasPage() {
       return;
     }
 
+    const formatExcelDate = (dateStr?: string | Date | null) => {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dayName = days[date.getUTCDay()];
+      const monthName = months[date.getUTCMonth()];
+      const day = date.getUTCDate();
+      const year = date.getUTCFullYear();
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+      return `${dayName} ${monthName} ${day} ${hours}:${minutes}:${seconds} +0000 ${year}`;
+    };
+
     const headers = [
       "Etapa",
       "Plataforma",
       "Codigo Venta",
+      "ID Factura",
       "Fecha de inicio",
-      "Cliente",
-      "Codigo Cliente (GHL ID)",
+      "Cliente ",
+      "Codigo Cliente",
       "Proyecto",
       "Monto C/C",
       "Comision",
@@ -358,11 +390,12 @@ export default function VentasPage() {
         escapeCsv(sale.status_pago || "PAGO ADELANTADO"),
         escapeCsv(sale.plataforma),
         escapeCsv(sale.codigo_venta),
-        escapeCsv(new Date(sale.creado_en).toLocaleDateString("es-ES")),
-        escapeCsv(sale.clientes?.nombre),
+        escapeCsv(sale.codigo_factura),
+        escapeCsv(formatExcelDate(sale.creado_en)),
+        escapeCsv(sale.clientes?.nombre || "Cliente"),
         escapeCsv(sale.clientes?.ghl_contact_id),
         escapeCsv(sale.proyecto_nombre),
-        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda || "USD").toUpperCase()}`),
+        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
         escapeCsv(getComision(sale.plataforma)),
         escapeCsv(sale.setter_principal?.nombre),
         escapeCsv(setter2),
@@ -1218,6 +1251,34 @@ export default function VentasPage() {
                           style={{ fontSize: "0.75rem", padding: "0.4rem", minHeight: "80px", resize: "vertical" }}
                         />
                       </div>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>Participantes asignados</label>
+                        {trelloBoardMembers.length === 0 ? (
+                          <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>No se encontraron participantes.</span>
+                        ) : (
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", backgroundColor: "#f8fafc", maxHeight: "120px", overflowY: "auto" }}>
+                            {trelloBoardMembers.map((member) => {
+                              const isChecked = trelloCardMembers.includes(member.id);
+                              return (
+                                <label key={member.id} style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", cursor: "pointer" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setTrelloCardMembers(prev => [...prev, member.id]);
+                                      } else {
+                                        setTrelloCardMembers(prev => prev.filter(id => id !== member.id));
+                                      }
+                                    }}
+                                  />
+                                  <span>{member.fullName}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ display: "flex", gap: "0.5rem" }}>
                         <button
                           className={styles.btnSecondary}
@@ -1231,6 +1292,7 @@ export default function VentasPage() {
                           className={styles.btnSecondary}
                           onClick={() => {
                             setTrelloEditMode(false);
+                            setTrelloCardMembers(originalTrelloCardMembers);
                             if (selectedViewSale) {
                               const cleanedProj = (selectedViewSale.proyecto_nombre || "")
                                 .replace(/^azabache\s+producciones\s*-\s*/i, "")
@@ -1256,6 +1318,19 @@ export default function VentasPage() {
                         <span className={styles.viewModalDataLabel}>Descripción en Tarjeta</span>
                         <span className={styles.viewModalDataValue} style={{ fontSize: "0.75rem", whiteSpace: "pre-wrap", backgroundColor: "#f8fafc", padding: "0.5rem", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
                           {isSyncingTrello ? "Sincronizando..." : quickTrelloDesc}
+                        </span>
+                      </div>
+                      <div className={styles.viewModalDataRow}>
+                        <span className={styles.viewModalDataLabel}>Miembros Asignados</span>
+                        <span className={styles.viewModalDataValue} style={{ fontSize: "0.75rem" }}>
+                          {isSyncingTrello ? "Sincronizando..." : (
+                            trelloCardMembers.length === 0 ? "Ninguno" : (
+                              trelloBoardMembers
+                                .filter(m => trelloCardMembers.includes(m.id))
+                                .map(m => m.fullName)
+                                .join(", ")
+                            )
+                          )}
                         </span>
                       </div>
                     </div>

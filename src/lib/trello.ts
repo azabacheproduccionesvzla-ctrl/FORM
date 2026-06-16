@@ -7,6 +7,7 @@ interface TrelloCardData {
   isExistingProject: boolean;
   montoStr?: string;
   tipoVenta?: string;
+  trelloMembers?: string[];
 }
 
 export async function processTrelloCard(
@@ -81,7 +82,10 @@ export async function processTrelloCard(
     createUrl.searchParams.append("name", cardTitle);
     createUrl.searchParams.append("desc", data.desc);
     createUrl.searchParams.append("pos", "bottom");
-    createUrl.searchParams.append("idMembers", "6234bce84174cf4ea0ee02fb,5728ceaca2d6d5913b8cb5cd,5ff29a0bd4a465505546a8b3,58e43e1d3360cf5e81ee5e0a");
+    const defaultMembers = data.trelloMembers && data.trelloMembers.length > 0
+      ? data.trelloMembers.join(",")
+      : "6234bce84174cf4ea0ee02fb,5728ceaca2d6d5913b8cb5cd,5ff29a0bd4a465505546a8b3,58e43e1d3360cf5e81ee5e0a";
+    createUrl.searchParams.append("idMembers", defaultMembers);
 
     const labelId = data.urgent ? "68ac8a1c6b2b8bdfa33fce90" : "67c5eddd229eaba704057ca0";
     createUrl.searchParams.append("idLabels", labelId);
@@ -201,7 +205,7 @@ export async function updateTrelloCardDesc(
 
 export async function updateTrelloCardFields(
   cardId: string,
-  fields: { name?: string; desc?: string }
+  fields: { name?: string; desc?: string; idMembers?: string }
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const key = process.env.TRELLO_API_KEY;
@@ -219,6 +223,7 @@ export async function updateTrelloCardFields(
     updateUrl.searchParams.append("token", token);
     if (fields.name !== undefined) updateUrl.searchParams.append("name", fields.name);
     if (fields.desc !== undefined) updateUrl.searchParams.append("desc", fields.desc);
+    if (fields.idMembers !== undefined) updateUrl.searchParams.append("idMembers", fields.idMembers);
 
     const res = await fetch(updateUrl.toString(), {
       method: "PUT",
@@ -238,3 +243,48 @@ export async function updateTrelloCardFields(
     };
   }
 }
+
+export async function getTrelloBoardMembers(): Promise<{ id: string; fullName: string; username: string }[]> {
+  const key = process.env.TRELLO_API_KEY;
+  const token = process.env.TRELLO_TOKEN;
+  const listId = process.env.TRELLO_ID_LIST_NUEVOS || "5b6dce32c6725d037217ab3b";
+
+  const staticFallback = [
+    { id: "6234bce84174cf4ea0ee02fb", fullName: "Christopher Alvarez", username: "christopheralvarez" },
+    { id: "5728ceaca2d6d5913b8cb5cd", fullName: "User 2", username: "user2" },
+    { id: "5ff29a0bd4a465505546a8b3", fullName: "User 3", username: "user3" },
+    { id: "58e43e1d3360cf5e81ee5e0a", fullName: "User 4", username: "user4" }
+  ];
+
+  if (!key || !token) {
+    return staticFallback;
+  }
+
+  try {
+    // 1. Get board ID from list ID
+    const boardUrl = `https://api.trello.com/1/lists/${listId}/board?key=${key}&token=${token}`;
+    const boardRes = await fetch(boardUrl);
+    if (!boardRes.ok) throw new Error("Failed to fetch board from list");
+    const boardData = await boardRes.json();
+    const boardId = boardData.id;
+
+    // 2. Get board members
+    const membersUrl = `https://api.trello.com/1/boards/${boardId}/members?key=${key}&token=${token}`;
+    const membersRes = await fetch(membersUrl);
+    if (!membersRes.ok) throw new Error("Failed to fetch board members");
+    const membersData = await membersRes.json();
+
+    if (Array.isArray(membersData)) {
+      return membersData.map((m: any) => ({
+        id: m.id,
+        fullName: m.fullName || m.username,
+        username: m.username
+      }));
+    }
+    return staticFallback;
+  } catch (err) {
+    console.error("Error fetching Trello board members:", err);
+    return staticFallback;
+  }
+}
+

@@ -1,7 +1,13 @@
 {
-  "dropbox": false,
-  "trello": false,
-  "ghl_factura": false,
-  "ghl_email": false,
-  "zapier_whatsapp": false
+  "dropbox": true,
+  "trello": true,
+  "ghl_email": true,
+  "ghl_factura": true,
+  "zapier_whatsapp": true,
+  "google_sheets": true,
+  "email_destinatarios": "alvarezchristopherve@gmail.com",
+  "trello_default_members": [
+    "6234bce84174cf4ea0ee02fb",
+    "5728ceaca2d6d5913b8cb5cd"
+  ]
 }

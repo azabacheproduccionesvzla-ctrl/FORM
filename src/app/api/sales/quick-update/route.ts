@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
-    const { saleId, action, trelloTitle, trelloDesc, dropboxFolder } = await request.json();
+    const { saleId, action, trelloTitle, trelloDesc, dropboxFolder, trelloMembers } = await request.json();
 
     if (!saleId || !action) {
       return NextResponse.json({ success: false, error: "Missing saleId or action." }, { status: 400 });
@@ -63,7 +63,8 @@ export async function POST(request: Request) {
       console.log(`[Quick Update API] Actualizando Trello Card ID: ${finalCardId}`);
       const trelloRes = await updateTrelloCardFields(finalCardId, {
         name: trelloTitle,
-        desc: trelloDesc || ""
+        desc: trelloDesc || "",
+        idMembers: Array.isArray(trelloMembers) ? trelloMembers.join(",") : undefined
       });
 
       if (!trelloRes.success) {

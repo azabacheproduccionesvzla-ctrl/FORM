@@ -19,6 +19,7 @@ interface IntegrationConfig {
   ghl_factura: boolean;
   zapier_whatsapp: boolean;
   email_destinatarios?: string;
+  trello_default_members?: string[];
 }
 
 export default function AjustesPage() {
@@ -54,10 +55,10 @@ export default function AjustesPage() {
   const [pinPromptValue, setPinPromptValue] = useState<string[]>(Array(6).fill(""));
   const pinPromptRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [pendingToggleKey, setPendingToggleKey] = useState<string | null>(null);
-  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | string>(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | string | string[]>(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState<string | null>(null);
-
+  const [trelloMembers, setTrelloMembers] = useState<{ id: string; fullName: string; username: string }[]>([]);
   const [syncModal, setSyncModal] = useState({
     isOpen: false,
     progress: 0,
@@ -194,6 +195,12 @@ export default function AjustesPage() {
       const configData = await configRes.json();
       if (configData.success) {
         setIntegrationConfig(configData.config);
+      }
+
+      const trelloRes = await fetch("/api/trello/members");
+      const trelloData = await trelloRes.json();
+      if (trelloData.success) {
+        setTrelloMembers(trelloData.members);
       }
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
@@ -442,12 +449,18 @@ export default function AjustesPage() {
           ghl_factura: val,
           ghl_email: val,
           zapier_whatsapp: val,
-          email_destinatarios: integrationConfig.email_destinatarios
+          email_destinatarios: integrationConfig.email_destinatarios,
+          trello_default_members: integrationConfig.trello_default_members
         };
       } else if (pendingToggleKey === "email_destinatarios") {
         updatedConfig = {
           ...integrationConfig,
           email_destinatarios: pendingToggleValue as string
+        };
+      } else if (pendingToggleKey === "trello_default_members") {
+        updatedConfig = {
+          ...integrationConfig,
+          trello_default_members: pendingToggleValue as unknown as string[]
         };
       } else {
         updatedConfig = {
@@ -474,6 +487,23 @@ export default function AjustesPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleToggleTrelloMember = (memberId: string) => {
+    const currentList = integrationConfig.trello_default_members || [];
+    let newList: string[];
+    if (currentList.includes(memberId)) {
+      newList = currentList.filter(id => id !== memberId);
+    } else {
+      newList = [...currentList, memberId];
+    }
+    
+    setPendingToggleKey("trello_default_members");
+    setPendingToggleValue(newList);
+    setPinPromptValue(Array(6).fill(""));
+    setConfigError(null);
+    setConfigSuccess(null);
+    setIsPinPromptOpen(true);
   };
 
   const handlePinPromptSubmit = async (e: React.FormEvent) => {
@@ -558,6 +588,36 @@ export default function AjustesPage() {
               </button>
             </div>
           </div>
+
+          {integrationConfig.trello && (
+            <div style={{ padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#ffffff", marginTop: "1rem" }}>
+              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Miembros Asignados por Defecto en Trello</h3>
+              <p style={{ margin: "0.25rem 0 1rem 0", fontSize: "0.8rem", color: "#475569" }}>
+                Selecciona qué miembros se asignarán de manera automática al crear la tarjeta en Trello. Estas configuraciones requieren confirmación de PIN al modificarse.
+              </p>
+              {trelloMembers.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  {trelloMembers.map(member => {
+                    const isSelected = (integrationConfig.trello_default_members || []).includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        className={`${styles.chip} ${isSelected ? styles.chipActive : ""}`}
+                        disabled={actionLoading}
+                        onClick={() => handleToggleTrelloMember(member.id)}
+                      >
+                        <span>{member.fullName} (@{member.username})</span>
+                        {isSelected && <span style={{ marginLeft: "0.35rem", fontSize: "0.8rem" }}>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>Cargando miembros de Trello o credenciales incompletas...</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
