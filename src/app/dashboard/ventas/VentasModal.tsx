@@ -453,6 +453,10 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
         setFormError("Por favor, ingresa el nombre para el nuevo cliente.");
         return;
       }
+      if (formData.cliente_nuevo && !formData.cliente_email?.trim() && !formData.cliente_telefono?.trim()) {
+        setFormError("Por favor, ingresa al menos el correo electrónico (email) o el teléfono para el nuevo cliente.");
+        return;
+      }
 
       const priorSaleId = selectedProject.venta_id || "";
 
@@ -498,6 +502,10 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
       }
       if (formData.cliente_nuevo && !formData.cliente_nombre) {
         setFormError("Debes ingresar el nombre del cliente nuevo.");
+        return;
+      }
+      if (!formData.cliente_email?.trim() && !formData.cliente_telefono?.trim()) {
+        setFormError("Debes ingresar al menos el correo electrónico (email) o el teléfono del cliente para poder registrar la venta.");
         return;
       }
       if (!formData.proyecto_nombre) {
@@ -1035,28 +1043,31 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                                 onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
                               />
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Email</label>
-                                <input
-                                  type="email"
-                                  placeholder="correo@ejemplo.com"
-                                  className={styles.input}
-                                  value={formData.cliente_email}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_email: e.target.value }))}
-                                />
-                              </div>
-                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Teléfono</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ej: +34..."
-                                  className={styles.input}
-                                  value={formData.cliente_telefono}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
-                                />
-                              </div>
-                            </div>
+                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                 <label className={styles.label}>Email **</label>
+                                 <input
+                                   type="email"
+                                   placeholder="correo@ejemplo.com"
+                                   className={styles.input}
+                                   value={formData.cliente_email}
+                                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_email: e.target.value }))}
+                                 />
+                               </div>
+                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                 <label className={styles.label}>Teléfono **</label>
+                                 <input
+                                   type="text"
+                                   placeholder="Ej: +34..."
+                                   className={styles.input}
+                                   value={formData.cliente_telefono}
+                                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
+                                 />
+                               </div>
+                             </div>
+                             <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.1rem", marginBottom: "0.25rem", gridColumn: "span 2" }}>
+                               ** Se requiere al menos un correo (email) o teléfono para GoHighLevel.
+                             </span>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
                                 <label className={styles.label}>Empresa</label>
@@ -1321,29 +1332,35 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                               </div>
                             )}
 
+                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
+                               <div className={styles.formGroup}>
+                                 <label className={styles.label}>Teléfono **</label>
+                                 <input
+                                   type="text"
+                                   placeholder="Ingresa el número de teléfono"
+                                   className={styles.input}
+                                   value={formData.cliente_telefono}
+                                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
+                                   disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                 />
+                               </div>
+                               <div className={styles.formGroup}>
+                                 <label className={styles.label}>Email **</label>
+                                 <input
+                                   type="email"
+                                   placeholder="Ingresa el correo electrónico"
+                                   className={styles.input}
+                                   value={formData.cliente_email}
+                                   onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
+                                   disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                 />
+                               </div>
+                             </div>
+                             <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "-0.5rem", marginBottom: "0.5rem", gridColumn: "span 2" }}>
+                               ** Se requiere al menos un correo o teléfono.
+                             </span>
+
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Teléfono</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ingresa el número de teléfono"
-                                  className={styles.input}
-                                  value={formData.cliente_telefono}
-                                  onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
-                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
-                                />
-                              </div>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Email</label>
-                                <input
-                                  type="email"
-                                  placeholder="Ingresa el correo electrónico"
-                                  className={styles.input}
-                                  value={formData.cliente_email}
-                                  onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
-                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
-                                />
-                              </div>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>País</label>
                                 <select
@@ -1424,7 +1441,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.label}>Teléfono</label>
+                        <label className={styles.label}>Teléfono **</label>
                         <input
                           type="text"
                           placeholder="Ingresa el número de teléfono"
@@ -1435,7 +1452,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.label}>Email</label>
+                        <label className={styles.label}>Email **</label>
                         <input
                           type="email"
                           placeholder="Ingresa el correo electrónico"
@@ -1445,6 +1462,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                           disabled={disableClientFields}
                         />
                       </div>
+                      <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "-0.5rem", marginBottom: "0.5rem", gridColumn: "span 2" }}>
+                        ** Se requiere al menos un correo (email) o teléfono del cliente.
+                      </span>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>País</label>
                         <select
