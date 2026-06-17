@@ -145,3 +145,67 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("azabache_session");
+
+    if (!sessionCookie || !sessionCookie.value) {
+      return NextResponse.json(
+        { success: false, error: "No autenticado." },
+        { status: 401 }
+      );
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (e) {}
+
+    const { id, nombre, email, telefono, pais, empresa, link_usuario_plataforma } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Se requiere el ID del cliente." },
+        { status: 400 }
+      );
+    }
+
+    if (!nombre) {
+      return NextResponse.json(
+        { success: false, error: "El nombre del cliente es obligatorio." },
+        { status: 400 }
+      );
+    }
+
+    const { data: updatedClient, error } = await supabase
+      .from("clientes")
+      .update({
+        nombre,
+        email: email || null,
+        telefono: telefono || null,
+        pais: pais || null,
+        empresa: empresa || null,
+        link_usuario_plataforma: link_usuario_plataforma || null
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      client: updatedClient
+    });
+  } catch (error: any) {
+    console.error("PUT Client Error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Error al actualizar el cliente." },
+      { status: 500 }
+    );
+  }
+}

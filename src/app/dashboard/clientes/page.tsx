@@ -10,9 +10,60 @@ interface Client {
   telefono: string | null;
   pais: string | null;
   empresa: string | null;
+  link_usuario_plataforma?: string | null;
   ghl_contact_id: string | null;
   creado_en: string;
 }
+
+const COUNTRIES_AMERICA = [
+  "Antigua y Barbuda",
+  "Argentina",
+  "Bahamas",
+  "Barbados",
+  "Belice",
+  "Bolivia",
+  "Brasil",
+  "Canadá",
+  "Chile",
+  "Colombia",
+  "Costa Rica",
+  "Cuba",
+  "Dominica",
+  "Ecuador",
+  "El Salvador",
+  "Estados Unidos",
+  "Granada",
+  "Guatemala",
+  "Guyana",
+  "Haití",
+  "Honduras",
+  "Jamaica",
+  "México",
+  "Nicaragua",
+  "Panamá",
+  "Paraguay",
+  "Perú",
+  "Puerto Rico",
+  "República Dominicana",
+  "San Cristóbal y Nieves",
+  "San Vicente y las Granadinas",
+  "Santa Lucía",
+  "Surinam",
+  "Trinidad y Tobago",
+  "Uruguay",
+  "Venezuela"
+];
+
+const COUNTRIES_EUROPE = [
+  "España",
+  "Portugal",
+  "Francia",
+  "Inglaterra"
+];
+
+const isPredefinedCountry = (c: string) => {
+  return COUNTRIES_AMERICA.includes(c) || COUNTRIES_EUROPE.includes(c);
+};
 
 // Helper function to generate paginated page numbers
 function getPageNumbers(currentPage: number, totalPages: number) {
@@ -71,6 +122,84 @@ export default function ClientesPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const clientsPerPage = 8;
+
+  // Edit client states
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState({
+    nombre: "",
+    email: "",
+    telefono: "",
+    pais: "",
+    empresa: "",
+    link_usuario_plataforma: ""
+  });
+  const [showCustomCountry, setShowCustomCountry] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const handleStartEditClient = (client: Client) => {
+    setEditingClient(client);
+    setEditForm({
+      nombre: client.nombre || "",
+      email: client.email || "",
+      telefono: client.telefono || "",
+      pais: client.pais || "",
+      empresa: client.empresa || "",
+      link_usuario_plataforma: client.link_usuario_plataforma || ""
+    });
+    const isPre = isPredefinedCountry(client.pais || "");
+    setShowCustomCountry(client.pais ? !isPre : false);
+    setEditError(null);
+  };
+
+  const handleSaveClientEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+
+    if (!editForm.nombre.trim()) {
+      setEditError("El nombre del cliente es obligatorio.");
+      return;
+    }
+
+    if (!editForm.email.trim() && !editForm.telefono.trim()) {
+      setEditError("Debes ingresar al menos el correo electrónico (email) o el teléfono del cliente.");
+      return;
+    }
+
+    setIsSavingClient(true);
+    setEditError(null);
+
+    try {
+      const res = await fetch("/api/clients", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: editingClient.id,
+          nombre: editForm.nombre.trim(),
+          email: editForm.email.trim() || null,
+          telefono: editForm.telefono.trim() || null,
+          pais: editForm.pais.trim() || null,
+          empresa: editForm.empresa.trim() || null,
+          link_usuario_plataforma: editForm.link_usuario_plataforma.trim() || null
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setClients(prev => prev.map(c => c.id === editingClient.id ? { ...c, ...data.client } : c));
+        setEditingClient(null);
+      } else {
+        setEditError(data.error || "Error al actualizar el cliente.");
+      }
+    } catch (err) {
+      console.error("Error updating client:", err);
+      setEditError("Error de red al conectar con el servidor.");
+    } finally {
+      setIsSavingClient(false);
+    }
+  };
 
   // Helper to get local date format YYYY-MM-DD
   function getLocalDateString(dateStr: string) {
@@ -316,9 +445,22 @@ export default function ClientesPage() {
               return (
                 <div key={client.id} className={styles.card} style={{ display: "flex", flexDirection: "column", padding: "1.5rem", transition: "transform 0.2s, box-shadow 0.2s" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}>
-                    <h3 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }} title={client.nombre}>
-                      {client.nombre}
-                    </h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", maxWidth: "75%", minWidth: 0 }}>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={client.nombre}>
+                        {client.nombre}
+                      </h3>
+                      <button
+                        onClick={() => handleStartEditClient(client)}
+                        className={styles.actionBtn}
+                        style={{ padding: "4px", borderRadius: "4px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                        title="Editar cliente"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </button>
+                    </div>
                     {client.ghl_contact_id ? (
                       <span className={styles.badgeSmallBlue} style={{ flexShrink: 0 }}>GHL</span>
                     ) : (
@@ -351,6 +493,20 @@ export default function ClientesPage() {
                         {client.pais || "—"}
                       </span>
                     </div>
+                    {client.link_usuario_plataforma && (
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#64748b" }}>Link Usuario:</span>
+                        <a 
+                          href={client.link_usuario_plataforma}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontWeight: 500, color: "#0052cc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%", textDecoration: "underline" }}
+                          title={client.link_usuario_plataforma}
+                        >
+                          Enlace
+                        </a>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <span style={{ color: "#64748b" }}>Registro:</span>
                       <span>
@@ -521,6 +677,148 @@ export default function ClientesPage() {
         </>
       )}
 
+      {/* Edit Client Modal */}
+      {editingClient && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px" }}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Editar Cliente</h2>
+              <button onClick={() => setEditingClient(null)} className={styles.closeBtn}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {editError && (
+              <div className={styles.alertError} style={{ marginBottom: "1rem" }}>
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveClientEdit} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Nombre Completo <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  className={styles.input}
+                  value={editForm.nombre}
+                  onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Email <span style={{ fontWeight: "normal", color: "#64748b" }}>(mínimo uno entre email y teléfono)</span>
+                </label>
+                <input
+                  type="email"
+                  className={styles.input}
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Teléfono <span style={{ fontWeight: "normal", color: "#64748b" }}>(mínimo uno entre email y teléfono)</span>
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={editForm.telefono}
+                  onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Empresa</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={editForm.empresa}
+                    onChange={(e) => setEditForm({ ...editForm, empresa: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>País</label>
+                  <select
+                    className={styles.select}
+                    value={editForm.pais ? (isPredefinedCountry(editForm.pais) ? editForm.pais : "Otro") : (showCustomCountry ? "Otro" : "")}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "Otro") {
+                        setShowCustomCountry(true);
+                        setEditForm({ ...editForm, pais: "" });
+                      } else {
+                        setShowCustomCountry(false);
+                        setEditForm({ ...editForm, pais: val });
+                      }
+                    }}
+                  >
+                    <option value="">Seleccionar país...</option>
+                    <optgroup label="América">
+                      {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                    <optgroup label="Europa">
+                      {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                    <option value="Otro">Otro (Especificar)</option>
+                  </select>
+                </div>
+              </div>
+
+              {showCustomCountry && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Especificar País</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Escribe el nombre del país"
+                    value={editForm.pais}
+                    onChange={(e) => setEditForm({ ...editForm, pais: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Enlace de Usuario/Plataforma</label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  className={styles.input}
+                  value={editForm.link_usuario_plataforma}
+                  onChange={(e) => setEditForm({ ...editForm, link_usuario_plataforma: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.modalActions} style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  className={styles.btnSecondary}
+                  disabled={isSavingClient}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  disabled={isSavingClient}
+                >
+                  {isSavingClient ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

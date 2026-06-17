@@ -85,6 +85,57 @@ interface UserListItem {
   username: string;
   rol: string;
 }
+
+const COUNTRIES_AMERICA = [
+  "Antigua y Barbuda",
+  "Argentina",
+  "Bahamas",
+  "Barbados",
+  "Belice",
+  "Bolivia",
+  "Brasil",
+  "Canadá",
+  "Chile",
+  "Colombia",
+  "Costa Rica",
+  "Cuba",
+  "Dominica",
+  "Ecuador",
+  "El Salvador",
+  "Estados Unidos",
+  "Granada",
+  "Guatemala",
+  "Guyana",
+  "Haití",
+  "Honduras",
+  "Jamaica",
+  "México",
+  "Nicaragua",
+  "Panamá",
+  "Paraguay",
+  "Perú",
+  "Puerto Rico",
+  "República Dominicana",
+  "San Cristóbal y Nieves",
+  "San Vicente y las Granadinas",
+  "Santa Lucía",
+  "Surinam",
+  "Trinidad y Tobago",
+  "Uruguay",
+  "Venezuela"
+];
+
+const COUNTRIES_EUROPE = [
+  "España",
+  "Portugal",
+  "Francia",
+  "Inglaterra"
+];
+
+const isPredefinedCountry = (c: string) => {
+  return COUNTRIES_AMERICA.includes(c) || COUNTRIES_EUROPE.includes(c);
+};
+
 export default function VentasPage() {
   const getBadgeStyle = (status?: string) => {
     if (status === "ERROR") {
@@ -120,6 +171,95 @@ export default function VentasPage() {
   const [filterDate, setFilterDate] = useState<string>("");
 
   const [selectedViewSale, setSelectedViewSale] = useState<Sale | null>(null);
+
+  // Edit client states
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    nombre: "",
+    email: "",
+    telefono: "",
+    pais: "",
+    empresa: "",
+    link_usuario_plataforma: ""
+  });
+  const [showCustomCountry, setShowCustomCountry] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const handleStartEditClientFromVentas = (client: any) => {
+    if (!client) return;
+    setEditingClient(client);
+    setEditForm({
+      nombre: client.nombre || "",
+      email: client.email || "",
+      telefono: client.telefono || "",
+      pais: client.pais || "",
+      empresa: client.empresa || "",
+      link_usuario_plataforma: client.link_usuario_plataforma || ""
+    });
+    const isPre = isPredefinedCountry(client.pais || "");
+    setShowCustomCountry(client.pais ? !isPre : false);
+    setEditError(null);
+  };
+
+  const handleSaveClientEditFromVentas = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient || !selectedViewSale) return;
+
+    if (!editForm.nombre.trim()) {
+      setEditError("El nombre del cliente es obligatorio.");
+      return;
+    }
+
+    if (!editForm.email.trim() && !editForm.telefono.trim()) {
+      setEditError("Debes ingresar al menos el correo electrónico (email) o el teléfono del cliente.");
+      return;
+    }
+
+    setIsSavingClient(true);
+    setEditError(null);
+
+    try {
+      const res = await fetch("/api/clients", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: editingClient.id,
+          nombre: editForm.nombre.trim(),
+          email: editForm.email.trim() || null,
+          telefono: editForm.telefono.trim() || null,
+          pais: editForm.pais.trim() || null,
+          empresa: editForm.empresa.trim() || null,
+          link_usuario_plataforma: editForm.link_usuario_plataforma.trim() || null
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSelectedViewSale(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            clientes: {
+              ...prev.clientes,
+              ...data.client
+            }
+          };
+        });
+        setEditingClient(null);
+        fetchSales();
+      } else {
+        setEditError(data.error || "Error al actualizar el cliente.");
+      }
+    } catch (err) {
+      console.error("Error updating client:", err);
+      setEditError("Error de red al conectar con el servidor.");
+    } finally {
+      setIsSavingClient(false);
+    }
+  };
   const [selectedLogsSale, setSelectedLogsSale] = useState<Sale | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [saleLogs, setSaleLogs] = useState<any[]>([]);
@@ -1036,8 +1176,20 @@ export default function VentasPage() {
               <div className={styles.viewModalSideBySide}>
 
                 <div className={styles.viewModalBlock}>
-                  <div className={styles.viewModalBlockTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <div className={styles.viewModalBlockTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
                     <span>Datos del Cliente</span>
+                    <button
+                      onClick={() => handleStartEditClientFromVentas(selectedViewSale.clientes)}
+                      className={styles.btnSecondary}
+                      style={{ padding: "4px 8px", height: "auto", fontSize: "0.75rem", borderRadius: "4px", display: "flex", alignItems: "center", gap: "0.25rem", fontWeight: "600" }}
+                      title="Modificar cliente"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                      <span>Editar</span>
+                    </button>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                     <div className={styles.viewModalDataRow}>
@@ -1865,6 +2017,149 @@ export default function VentasPage() {
           userRole={user?.role || ""}
           onRefreshSales={fetchSales}
         />
+      )}
+
+      {/* Edit Client Modal from Ventas */}
+      {editingClient && (
+        <div className={styles.modalOverlay} style={{ zIndex: 1100 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px" }}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Editar Cliente</h2>
+              <button onClick={() => setEditingClient(null)} className={styles.closeBtn}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {editError && (
+              <div className={styles.alertError} style={{ marginBottom: "1rem" }}>
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveClientEditFromVentas} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Nombre Completo <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  className={styles.input}
+                  value={editForm.nombre}
+                  onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Email <span style={{ fontWeight: "normal", color: "#64748b" }}>(mínimo uno entre email y teléfono)</span>
+                </label>
+                <input
+                  type="email"
+                  className={styles.input}
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Teléfono <span style={{ fontWeight: "normal", color: "#64748b" }}>(mínimo uno entre email y teléfono)</span>
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={editForm.telefono}
+                  onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Empresa</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={editForm.empresa}
+                    onChange={(e) => setEditForm({ ...editForm, empresa: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>País</label>
+                  <select
+                    className={styles.select}
+                    value={editForm.pais ? (isPredefinedCountry(editForm.pais) ? editForm.pais : "Otro") : (showCustomCountry ? "Otro" : "")}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "Otro") {
+                        setShowCustomCountry(true);
+                        setEditForm({ ...editForm, pais: "" });
+                      } else {
+                        setShowCustomCountry(false);
+                        setEditForm({ ...editForm, pais: val });
+                      }
+                    }}
+                  >
+                    <option value="">Seleccionar país...</option>
+                    <optgroup label="América">
+                      {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                    <optgroup label="Europa">
+                      {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                    <option value="Otro">Otro (Especificar)</option>
+                  </select>
+                </div>
+              </div>
+
+              {showCustomCountry && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Especificar País</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Escribe el nombre del país"
+                    value={editForm.pais}
+                    onChange={(e) => setEditForm({ ...editForm, pais: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Enlace de Usuario/Plataforma</label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  className={styles.input}
+                  value={editForm.link_usuario_plataforma}
+                  onChange={(e) => setEditForm({ ...editForm, link_usuario_plataforma: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.modalActions} style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  className={styles.btnSecondary}
+                  disabled={isSavingClient}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  disabled={isSavingClient}
+                >
+                  {isSavingClient ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
