@@ -24,45 +24,33 @@ try {
   console.error("Error leyendo .env.local:", e);
 }
 
-async function testGhlMessage() {
+async function testProducts() {
   const token = process.env.GHL_ACCESS_TOKEN;
-  const contactId = "UDNmRsOsPOGKescHSOWy"; // ID creado en la prueba anterior (alvarezchristopherve@gmail.com)
+  const locationId = process.env.GHL_LOCATION_ID;
 
-  if (!token) {
-    console.error("Falta GHL_ACCESS_TOKEN en .env.local");
+  if (!token || !locationId) {
+    console.error("Faltan credenciales de GHL en .env.local");
     return;
   }
 
   try {
-    console.log(`\nIntentando enviar mensaje de prueba (Email) al contacto ${contactId}...`);
-    const payload = {
-      contactId: contactId,
-      type: "Email",
-      html: "<p>Prueba de notificaciones de email via GHL.</p>",
-      subject: "Test Notificaciones Azabache"
-    };
-
-    const response = await fetch("https://services.leadconnectorhq.com/conversations/messages", {
-      method: "POST",
+    console.log("Obteniendo productos de GHL...");
+    const response = await fetch(`https://services.leadconnectorhq.com/products/?locationId=${locationId}&limit=50`, {
+      method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
         "Version": "2021-07-28",
-        "Content-Type": "application/json",
         "Accept": "application/json"
-      },
-      body: JSON.stringify(payload)
+      }
     });
 
     const result = await response.json();
-    if (!response.ok) {
-      console.error("❌ Error al enviar mensaje via GHL:", result);
-    } else {
-      console.log("✅ Mensaje via GHL enviado con éxito!", result);
-    }
+    console.log("Status:", response.status, response.statusText);
+    console.log("Result:", JSON.stringify(result, null, 2));
 
   } catch (err) {
-    console.error("❌ Excepción en la prueba de mensajes de GHL:", err);
+    console.error("Error fetching products:", err);
   }
 }
 
-testGhlMessage();
+testProducts();

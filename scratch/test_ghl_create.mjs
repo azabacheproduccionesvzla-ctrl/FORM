@@ -42,7 +42,7 @@ async function testGhl() {
     const contactPayload = {
       locationId: locationId,
       name: "Cliente Prueba Agente",
-      email: `test_agent_${Date.now()}@test.com`,
+      email: "alvarezchristopherve@gmail.com",
       phone: "+584120000000",
       companyName: "Empresa Prueba",
       country: "VE"
@@ -74,17 +74,37 @@ async function testGhl() {
     const invoicePayload = {
       altId: locationId,
       altType: "location",
-      contactId: contactId,
-      title: `Factura Prueba - Proyecto Agente`,
-      issueDate: issueDate,
+      name: `Factura Prueba - Proyecto Agente`,
       status: "DRAFT",
-      currency: "usd",
+      issueDate: issueDate,
+      dueDate: issueDate,
+      currency: "USD",
+      contactId: contactId,
+      businessDetails: {
+        name: "Azabache Producciones",
+        phoneNo: "+584120000000",
+        website: "https://azabacheproducciones.com",
+        address: {
+          addressLine1: "Caracas",
+          city: "Caracas",
+          state: "DF",
+          countryCode: "VE",
+          postalCode: "1010"
+        }
+      },
+      contactDetails: {
+        id: contactId,
+        name: "Cliente Prueba Agente",
+        email: "alvarezchristopherve@gmail.com"
+      },
       items: [
         {
-          name: "Proyecto Prueba Agente",
-          price: 10000, // $100.00 en centavos
-          quantity: 1,
-          description: "Servicios creativos de prueba"
+          productId: "6a144f8ad7158a116689a21a",
+          priceId: "6a144f8ad7158a40b889a21f",
+          name: "Instagram Growth Specialist",
+          qty: 1,
+          amount: 15000,
+          currency: "USD"
         }
       ]
     };

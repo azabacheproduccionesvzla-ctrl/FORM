@@ -1,0 +1,29 @@
+import fs from "fs";
+import path from "path";
+import { createClient } from "@supabase/supabase-js";
+
+async function checkSheetsColumn() {
+  try {
+    const envPath = path.resolve(process.cwd(), ".env.local");
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    const getEnvVal = (key) => {
+      const match = envContent.match(new RegExp(`^${key}=(.*)$`, "m"));
+      return match ? match[1].trim() : null;
+    };
+
+    const supabaseUrl = getEnvVal("SUPABASE_URL");
+    const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    const { data, error } = await supabase.from("ventas").select("id, status_sheets").limit(5);
+    if (error) {
+      console.error("Select error for status_sheets:", error);
+    } else {
+      console.log("Success! status_sheets values for first 5 rows:", data);
+    }
+  } catch (err) {
+    console.error("Crash:", err);
+  }
+}
+
+checkSheetsColumn();
