@@ -89,11 +89,18 @@ export async function createGhlContact(data: {
   const normalizeLower = (val: any) => normalize(val).toLowerCase();
   const getDigits = (val: any) => normalize(val).replace(/\D/g, "");
 
+  // Split name to firstName and lastName to comply with GHL API schema
+  const nameTrimmed = (data.name || "").trim();
+  const parts = nameTrimmed.split(/\s+/);
+  const firstName = parts[0] || "Cliente";
+  const lastName = parts.slice(1).join(" ") || undefined;
+
   if (existingContact) {
     // Siempre actualizamos para asegurarnos de que la etiqueta 'nueva_venta' esté aplicada
     console.log(`[GHL API] Agregando etiqueta 'nueva_venta' al contacto existente ${existingContact.id} en GHL.`);
     const updatePayload = {
-      name: data.name,
+      firstName: firstName,
+      lastName: lastName,
       email: data.email || undefined,
       phone: hasValidSupPhone ? data.phone!.trim() : undefined,
       companyName: data.companyName || undefined,
@@ -126,7 +133,8 @@ export async function createGhlContact(data: {
   console.log(`[GHL API] Contacto no encontrado. Creando nuevo contacto con etiqueta 'nueva_venta'.`);
   const payload = {
     locationId: locationId,
-    name: data.name,
+    firstName: firstName,
+    lastName: lastName,
     email: data.email || undefined,
     phone: hasValidSupPhone ? data.phone!.trim() : undefined,
     companyName: data.companyName || undefined,
