@@ -275,7 +275,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
             </div>
 
             <div style={{ backgroundColor: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "1rem", fontSize: "0.85rem", color: "#1e3a8a" }}>
-              <h4 style={{ margin: "0 0 0.5rem 0", fontWeight: "700" }}>ℹ️ Requisitos del Formato</h4>
+              <h4 style={{ margin: "0 0 0.5rem 0", fontWeight: "700" }}>Requisitos del formato</h4>
               <p style={{ margin: "0 0 0.75rem 0", lineHeight: "1.4" }}>
                 El archivo debe contener columnas con encabezados como: <strong>Cliente</strong> (Nombre), <strong>Email</strong> y/o <strong>Teléfono</strong> (obligatorio uno de los dos para nuevos), y opcionalmente <strong>País</strong>, <strong>Empresa</strong>, <strong>Link Usuario Plataforma</strong>, etc.
               </p>
