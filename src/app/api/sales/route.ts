@@ -95,6 +95,8 @@ export async function POST(request: Request) {
     const registrarUsername = userData.username;
     const registrarRole = userData.role;
 
+    console.log("[POST Sales API] Session User Data:", { registrarUserId, registrarUsername, registrarRole });
+
     if (registrarRole === "auditor") {
       return NextResponse.json(
         { success: false, error: "Acceso denegado. Los auditores no pueden registrar ventas." },
@@ -104,6 +106,8 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { pin } = body;
+
+    console.log("[POST Sales API] Request body keys:", Object.keys(body));
 
     if (!pin) {
       return NextResponse.json(
@@ -119,6 +123,7 @@ export async function POST(request: Request) {
       .single();
 
     if (opError || !operator) {
+      console.error("[POST Sales API] Operator validation error:", opError, "Operator data:", operator);
       return NextResponse.json(
         { success: false, error: "Error al validar el usuario firma. Intente de nuevo." },
         { status: 401 }
@@ -318,17 +323,7 @@ export async function POST(request: Request) {
       status_sheets: "PENDIENTE"
     };
 
-    if (es_continuacion && proyecto_previo_id) {
-      const { data: prevSale } = await supabase
-        .from("ventas")
-        .select("codigo_venta")
-        .eq("id", proyecto_previo_id)
-        .single();
-      
-      if (prevSale) {
-        insertData.codigo_venta = prevSale.codigo_venta;
-      }
-    }
+
 
     const { data: salesInserted, error: salesErr } = await supabase
       .from("ventas")

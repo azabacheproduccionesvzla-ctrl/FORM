@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
+import ImportModal from "./ImportModal";
 
 interface Client {
   id: string;
@@ -136,6 +137,7 @@ export default function ClientesPage() {
   const [showCustomCountry, setShowCustomCountry] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const handleStartEditClient = (client: Client) => {
     setEditingClient(client);
@@ -312,19 +314,34 @@ export default function ClientesPage() {
     <div>
       <div className={styles.pageHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 className={styles.pageTitle} style={{ margin: 0 }}>Clientes</h1>
-        <button
-          onClick={handleExportClientes}
-          className={styles.btnSecondary}
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
-          title="Exportar clientes a CSV"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          <span>Exportar CSV</span>
-        </button>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className={styles.btnPrimary}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
+            title="Importar clientes/proyectos desde CSV/Excel"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Importar</span>
+          </button>
+          <button
+            onClick={handleExportClientes}
+            className={styles.btnSecondary}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
+            title="Exportar clientes a CSV"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Exportar CSV</span>
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem", alignItems: "center" }}>
@@ -820,6 +837,11 @@ export default function ClientesPage() {
         </div>
       )}
 
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => fetchClients(debouncedSearch)}
+      />
     </div>
   );
 }
