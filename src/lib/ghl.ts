@@ -4,6 +4,69 @@ function isValidPhone(p?: string): boolean {
   return clean.length >= 5;
 }
 
+function getCountryCode(countryName?: string): string | undefined {
+  if (!countryName) return undefined;
+  const clean = countryName.trim().toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Remove accents
+
+  // If it's already a 2-letter code, return it upper-cased
+  if (clean.length === 2) {
+    return clean.toUpperCase();
+  }
+
+  const map: { [key: string]: string } = {
+    "argentina": "AR",
+    "bolivia": "BO",
+    "brasil": "BR",
+    "canada": "CA",
+    "chile": "CL",
+    "colombia": "CO",
+    "costa rica": "CR",
+    "cuba": "CU",
+    "ecuador": "EC",
+    "el salvador": "SV",
+    "estados unidos": "US",
+    "usa": "US",
+    "guatemala": "GT",
+    "honduras": "HN",
+    "mexico": "MX",
+    "nicaragua": "NI",
+    "panama": "PA",
+    "paraguay": "PY",
+    "peru": "PE",
+    "puerto rico": "PR",
+    "republica dominicana": "DO",
+    "uruguay": "UY",
+    "venezuela": "VE",
+    "espana": "ES",
+    "spain": "ES",
+    "portugal": "PT",
+    "francia": "FR",
+    "france": "FR",
+    "inglaterra": "GB",
+    "england": "GB",
+    "reino unido": "GB",
+    "uk": "GB",
+    "antigua y barbuda": "AG",
+    "bahamas": "BS",
+    "barbados": "BB",
+    "belice": "BZ",
+    "dominica": "DM",
+    "granada": "GD",
+    "guyana": "GY",
+    "haiti": "HT",
+    "jamaica": "JM",
+    "san cristobal y nieves": "KN",
+    "san vicente y las granadinas": "VC",
+    "santa lucia": "LC",
+    "surinam": "SR",
+    "trinidad y tobago": "TT"
+  };
+
+  return map[clean] || undefined;
+}
+
 export async function createGhlContact(data: {
   name: string;
   email?: string;
@@ -104,7 +167,7 @@ export async function createGhlContact(data: {
       email: data.email || undefined,
       phone: hasValidSupPhone ? data.phone!.trim() : undefined,
       companyName: data.companyName || undefined,
-      country: data.country || undefined,
+      country: getCountryCode(data.country),
       tags: ["nueva_venta"]
     };
 
@@ -138,7 +201,7 @@ export async function createGhlContact(data: {
     email: data.email || undefined,
     phone: hasValidSupPhone ? data.phone!.trim() : undefined,
     companyName: data.companyName || undefined,
-    country: data.country || undefined,
+    country: getCountryCode(data.country),
     tags: ["nueva_venta"]
   };
 
