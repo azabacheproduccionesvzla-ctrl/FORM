@@ -1525,6 +1525,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                           disabled={disableClientFields}
                         />
                       </div>
+                    </div>
+                  )}
+
                   {isExtension && (
                     <div style={{ paddingTop: "0.5rem", marginBottom: "1rem" }}>
                       {hasSetterOriginal ? (
