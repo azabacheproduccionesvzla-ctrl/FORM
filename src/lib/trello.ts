@@ -8,6 +8,7 @@ interface TrelloCardData {
   montoStr?: string;
   tipoVenta?: string;
   trelloMembers?: string[];
+  plataforma?: string;
 }
 
 export async function processTrelloCard(
@@ -87,8 +88,23 @@ export async function processTrelloCard(
       : "6234bce84174cf4ea0ee02fb,5728ceaca2d6d5913b8cb5cd,5ff29a0bd4a465505546a8b3,58e43e1d3360cf5e81ee5e0a";
     createUrl.searchParams.append("idMembers", defaultMembers);
 
-    const labelId = data.urgent ? "68ac8a1c6b2b8bdfa33fce90" : "67c5eddd229eaba704057ca0";
-    createUrl.searchParams.append("idLabels", labelId);
+    const labelIds: string[] = [];
+    if (data.urgent) {
+      labelIds.push("68ac8a1c6b2b8bdfa33fce90"); // Proyecto con urgencia (Red)
+    }
+
+    const platformClean = (data.plataforma || "").trim().toLowerCase();
+    if (platformClean === "workana") {
+      labelIds.push("682674016777bf325dde1043"); // W (Purple)
+    } else if (platformClean.startsWith("freelancer")) {
+      labelIds.push("6826740a96130023ca343375"); // F (Blue)
+    } else if (["zelle", "binance", "efectivo", "paypal", "shopify"].includes(platformClean)) {
+      labelIds.push("67c5eddd229eaba704057ca0"); // Whatsapp (Green)
+    }
+
+    if (labelIds.length > 0) {
+      createUrl.searchParams.append("idLabels", labelIds.join(","));
+    }
 
     if (data.dueDateStr) {
       createUrl.searchParams.append("due", data.dueDateStr);
@@ -285,6 +301,45 @@ export async function getTrelloBoardMembers(): Promise<{ id: string; fullName: s
   } catch (err) {
     console.error("Error fetching Trello board members:", err);
     return staticFallback;
+  }
+}
+
+export async function addTrelloCardComment(
+  cardId: string,
+  text: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const key = process.env.TRELLO_API_KEY;
+    const token = process.env.TRELLO_TOKEN;
+
+    if (!key || !token) {
+      return {
+        success: false,
+        error: "Trello credentials not configured in environment variables.",
+      };
+    }
+
+    const commentUrl = new URL(`https://api.trello.com/1/cards/${cardId}/actions/comments`);
+    commentUrl.searchParams.append("key", key);
+    commentUrl.searchParams.append("token", token);
+    commentUrl.searchParams.append("text", text);
+
+    const res = await fetch(commentUrl.toString(), {
+      method: "POST",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(`Failed to add comment: ${JSON.stringify(data)}`);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Trello add comment error:", err);
+    return {
+      success: false,
+      error: err.message || "Unknown error adding Trello comment.",
+    };
   }
 }
 

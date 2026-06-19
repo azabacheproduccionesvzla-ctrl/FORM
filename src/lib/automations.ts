@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { createDropboxFolder } from "@/lib/dropbox";
-import { processTrelloCard, updateTrelloCardDesc } from "@/lib/trello";
+import { processTrelloCard, updateTrelloCardDesc, addTrelloCardComment } from "@/lib/trello";
 import { createGhlContact, createGhlInvoice, sendGhlMessage } from "@/lib/ghl";
 import { getIntegrationConfig } from "@/lib/config_service";
 import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
@@ -84,6 +84,33 @@ export async function runVentasAutomations(saleId: string) {
       }
     } catch (err) {
       console.error("[Automations] Error querying extra setters/closers:", err);
+    }
+
+    // Identificar si es una extensión
+    const isExtension = (sale.es_continuacion && sale.tipo_continuacion === "extension") || sale.tipo_venta === "Extensión de Proyecto";
+
+    // Buscar información del proyecto en base de datos para recuperar recursos existentes
+    let projectDb = null;
+    try {
+      if (sale.es_continuacion && sale.proyecto_previo_id) {
+        const { data: projPrev } = await supabase
+          .from("proyectos")
+          .select("id, trello_card_id, link_trello, carpeta_dropbox")
+          .eq("venta_id", sale.proyecto_previo_id)
+          .maybeSingle();
+        projectDb = projPrev;
+      }
+      
+      if (!projectDb) {
+        const { data: projCurrent } = await supabase
+          .from("proyectos")
+          .select("id, trello_card_id, link_trello, carpeta_dropbox")
+          .eq("venta_id", saleId)
+          .maybeSingle();
+        projectDb = projCurrent;
+      }
+    } catch (err) {
+      console.error("[Automations] Error fetching related project:", err);
     }
 
     const fechaActual = new Date();
@@ -188,45 +215,51 @@ export async function runVentasAutomations(saleId: string) {
     if (sale.status_dropbox !== "COMPLETADO") {
       if (config.dropbox) {
         try {
-          await addSaleLog(saleId, "Dropbox", "INFO", `Creando carpeta en Dropbox para: ${clientInfo?.nombre || "Cliente"} - ${sale.proyecto_nombre}`);
-          await supabase.from("ventas").update({ status_dropbox: "PROCESANDO" }).eq("id", saleId);
-          const dropboxRes = await createDropboxFolder(clientInfo?.nombre || "Cliente", sale.proyecto_nombre);
-
-          if (dropboxRes.success && dropboxRes.path) {
-            dropboxUrlLink = dropboxRes.url || dropboxRes.path;
-            await addSaleLog(saleId, "Dropbox", "SUCCESS", `Carpeta creada exitosamente. Enlace: ${dropboxUrlLink}`);
+          if (isExtension) {
+            dropboxUrlLink = projectDb?.carpeta_dropbox || sale.carpeta_dropbox || "";
+            await addSaleLog(saleId, "Dropbox", "INFO", "Proyecto es una extensión. Usando carpeta existente y saltando creación.");
             await supabase.from("ventas").update({ status_dropbox: "COMPLETADO", carpeta_dropbox: dropboxUrlLink }).eq("id", saleId);
-
-            if (sale.status_trello === "COMPLETADO") {
-              try {
-                let cardId = "";
-                if (sale.link_trello) {
-                  const match = sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
-                  if (match) cardId = match[1];
-                }
-
-                const { data: projDb } = await supabase
-                  .from("proyectos")
-                  .select("trello_card_id")
-                  .eq("venta_id", saleId)
-                  .maybeSingle();
-
-                const finalCardId = projDb?.trello_card_id || cardId;
-
-                if (finalCardId) {
-                  await addSaleLog(saleId, "Trello", "INFO", "Dropbox completado pos-Trello. Actualizando descripción de tarjeta...");
-                  const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
-                  await updateTrelloCardDesc(finalCardId, trelloDesc);
-                  await addSaleLog(saleId, "Trello", "SUCCESS", "Descripción de tarjeta de Trello actualizada con enlace de Dropbox.");
-                }
-              } catch (trelloUpdateErr: any) {
-                console.error("[Automations] Error al actualizar descripción de Trello pos-Dropbox:", trelloUpdateErr);
-                await addSaleLog(saleId, "Trello", "ERROR", `Fallo al actualizar descripción post-Dropbox: ${trelloUpdateErr.message}`);
-              }
-            }
           } else {
-            await addSaleLog(saleId, "Dropbox", "ERROR", `Error de Dropbox: ${dropboxRes.error}`);
-            await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
+            await addSaleLog(saleId, "Dropbox", "INFO", `Creando carpeta en Dropbox para: ${clientInfo?.nombre || "Cliente"} - ${sale.proyecto_nombre}`);
+            await supabase.from("ventas").update({ status_dropbox: "PROCESANDO" }).eq("id", saleId);
+            const dropboxRes = await createDropboxFolder(clientInfo?.nombre || "Cliente", sale.proyecto_nombre);
+
+            if (dropboxRes.success && dropboxRes.path) {
+              dropboxUrlLink = dropboxRes.url || dropboxRes.path;
+              await addSaleLog(saleId, "Dropbox", "SUCCESS", `Carpeta creada exitosamente. Enlace: ${dropboxUrlLink}`);
+              await supabase.from("ventas").update({ status_dropbox: "COMPLETADO", carpeta_dropbox: dropboxUrlLink }).eq("id", saleId);
+
+              if (sale.status_trello === "COMPLETADO") {
+                try {
+                  let cardId = "";
+                  if (sale.link_trello) {
+                    const match = sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+                    if (match) cardId = match[1];
+                  }
+
+                  const { data: projDb } = await supabase
+                    .from("proyectos")
+                    .select("trello_card_id")
+                    .eq("venta_id", saleId)
+                    .maybeSingle();
+
+                  const finalCardId = projDb?.trello_card_id || cardId;
+
+                  if (finalCardId) {
+                    await addSaleLog(saleId, "Trello", "INFO", "Dropbox completado pos-Trello. Actualizando descripción de tarjeta...");
+                    const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+                    await updateTrelloCardDesc(finalCardId, trelloDesc);
+                    await addSaleLog(saleId, "Trello", "SUCCESS", "Descripción de tarjeta de Trello actualizada con enlace de Dropbox.");
+                  }
+                } catch (trelloUpdateErr: any) {
+                  console.error("[Automations] Error al actualizar descripción de Trello pos-Dropbox:", trelloUpdateErr);
+                  await addSaleLog(saleId, "Trello", "ERROR", `Fallo al actualizar descripción post-Dropbox: ${trelloUpdateErr.message}`);
+                }
+              }
+            } else {
+              await addSaleLog(saleId, "Dropbox", "ERROR", `Error de Dropbox: ${dropboxRes.error}`);
+              await supabase.from("ventas").update({ status_dropbox: "ERROR" }).eq("id", saleId);
+            }
           }
         } catch (e: any) {
           await addSaleLog(saleId, "Dropbox", "ERROR", `Excepción al procesar Dropbox: ${e.message}`);
@@ -247,33 +280,59 @@ export async function runVentasAutomations(saleId: string) {
     if (sale.status_trello !== "COMPLETADO") {
       if (config.trello) {
         try {
-          await addSaleLog(saleId, "Trello", "INFO", "Creando tarjeta de operaciones en Trello...");
-          await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
-          const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+          if (isExtension) {
+            await addSaleLog(saleId, "Trello", "INFO", "Proyecto es una extensión. Buscando tarjeta de Trello previa para agregar comentario...");
+            await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
 
-          const trelloRes = await processTrelloCard({
-            projectName: sale.proyecto_nombre,
-            clientName: clientInfo?.nombre || "Cliente",
-            desc: trelloDesc,
-            urgent: sale.urgente,
-            dueDateStr: dueDateStr,
-            isExistingProject: sale.es_continuacion,
-            montoStr: `${sale.monto_total} ${sale.moneda}`,
-            tipoVenta: sale.tipo_venta,
-            trelloMembers: config.trello_default_members
-          });
+            const finalTrelloCardId = projectDb?.trello_card_id || 
+                                      (projectDb?.link_trello ? projectDb.link_trello.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null) ||
+                                      (sale.link_trello ? sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null);
 
-          if (trelloRes.success && trelloRes.url) {
-            trelloUrl = trelloRes.url;
-            trelloCardId = trelloRes.id || null;
-            await addSaleLog(saleId, "Trello", "SUCCESS", `Tarjeta creada exitosamente en Trello. URL: ${trelloUrl}`);
-            await supabase.from("ventas").update({ status_trello: "COMPLETADO", link_trello: trelloUrl }).eq("id", saleId);
+            if (finalTrelloCardId) {
+              const commentText = `Extensión del proyecto - ${sale.notas_internas || ""}`;
+              const commentRes = await addTrelloCardComment(finalTrelloCardId, commentText);
+
+              if (commentRes.success) {
+                trelloUrl = projectDb?.link_trello || sale.link_trello || `https://trello.com/c/${finalTrelloCardId}`;
+                trelloCardId = finalTrelloCardId;
+                await addSaleLog(saleId, "Trello", "SUCCESS", `Comentario de extensión agregado con éxito en tarjeta: ${trelloUrl}`);
+                await supabase.from("ventas").update({ status_trello: "COMPLETADO", link_trello: trelloUrl }).eq("id", saleId);
+              } else {
+                throw new Error(`Error de Trello al añadir comentario: ${commentRes.error}`);
+              }
+            } else {
+              throw new Error("No se encontró ID de tarjeta de Trello previa para agregar el comentario de la extensión.");
+            }
           } else {
-            await addSaleLog(saleId, "Trello", "ERROR", `Error de Trello: ${trelloRes.error}`);
-            await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
+            await addSaleLog(saleId, "Trello", "INFO", "Creando tarjeta de operaciones en Trello...");
+            await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
+            const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+
+            const trelloRes = await processTrelloCard({
+              projectName: sale.proyecto_nombre,
+              clientName: clientInfo?.nombre || "Cliente",
+              desc: trelloDesc,
+              urgent: sale.urgente,
+              dueDateStr: dueDateStr,
+              isExistingProject: sale.es_continuacion,
+              montoStr: `${sale.monto_total} ${sale.moneda}`,
+              tipoVenta: sale.tipo_venta,
+              trelloMembers: config.trello_default_members,
+              plataforma: sale.plataforma
+            });
+
+            if (trelloRes.success && trelloRes.url) {
+              trelloUrl = trelloRes.url;
+              trelloCardId = trelloRes.id || null;
+              await addSaleLog(saleId, "Trello", "SUCCESS", `Tarjeta creada exitosamente en Trello. URL: ${trelloUrl}`);
+              await supabase.from("ventas").update({ status_trello: "COMPLETADO", link_trello: trelloUrl }).eq("id", saleId);
+            } else {
+              await addSaleLog(saleId, "Trello", "ERROR", `Error de Trello: ${trelloRes.error}`);
+              await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
+            }
           }
         } catch (e: any) {
-          await addSaleLog(saleId, "Trello", "ERROR", `Excepción al procesar tarjeta de Trello: ${e.message}`);
+          await addSaleLog(saleId, "Trello", "ERROR", `Excepción al procesar Trello: ${e.message}`);
           await supabase.from("ventas").update({ status_trello: "ERROR" }).eq("id", saleId);
         }
       } else {

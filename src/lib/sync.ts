@@ -436,7 +436,7 @@ export async function syncGhlClients(): Promise<SyncResult> {
       startAfter = data.meta?.startAfter || null;
       startAfterId = data.meta?.startAfterId || null;
       pageCount++;
-    } while (startAfter && startAfterId && pageCount < 10);
+    } while (startAfter && startAfterId && pageCount < 100);
 
     console.log(`[Sync Helper] Obtenidos ${allContacts.length} contactos de GHL.`);
 
@@ -499,13 +499,27 @@ export async function syncGhlClients(): Promise<SyncResult> {
       if (matchedClient) {
         const updates: any = {};
         
-        // Rule of gold: Supabase is source of truth. Only write if empty in Supabase.
-        if (!matchedClient.ghl_contact_id) updates.ghl_contact_id = ghlContact.id;
-        if (!matchedClient.email && ghlEmail) updates.email = ghlEmail;
-        if (!matchedClient.telefono && ghlPhone) updates.telefono = ghlPhone;
-        if (!matchedClient.empresa && ghlCompany) updates.empresa = ghlCompany;
-        if (!matchedClient.pais && ghlCountry) updates.pais = ghlCountry;
-        if (!matchedClient.link_usuario_plataforma && ghlPlatformLink) updates.link_usuario_plataforma = ghlPlatformLink;
+        if (!matchedClient.ghl_contact_id) {
+          updates.ghl_contact_id = ghlContact.id;
+        }
+        if (ghlName && matchedClient.nombre !== ghlName) {
+          updates.nombre = ghlName;
+        }
+        if (ghlEmail && matchedClient.email !== ghlEmail) {
+          updates.email = ghlEmail;
+        }
+        if (ghlPhone && matchedClient.telefono !== ghlPhone) {
+          updates.telefono = ghlPhone;
+        }
+        if (ghlCompany && matchedClient.empresa !== ghlCompany) {
+          updates.empresa = ghlCompany;
+        }
+        if (ghlCountry && matchedClient.pais !== ghlCountry) {
+          updates.pais = ghlCountry;
+        }
+        if (ghlPlatformLink && matchedClient.link_usuario_plataforma !== ghlPlatformLink) {
+          updates.link_usuario_plataforma = ghlPlatformLink;
+        }
 
         if (Object.keys(updates).length > 0) {
           const { error: updErr } = await supabase
@@ -537,6 +551,111 @@ export async function syncGhlClients(): Promise<SyncResult> {
           insertedCount++;
           dbClientsMapByName.set(ghlName.toLowerCase(), { nombre: ghlName });
         }
+      }
+    }
+
+    // Identificar clientes eliminados en GHL
+    const ghlFetchedIds = new Set(allContacts.map(c => c.id));
+    const deletedClients = dbClients.filter(c => c.ghl_contact_id && !ghlFetchedIds.has(c.ghl_contact_id));
+
+    if (deletedClients.length > 0) {
+      console.log(`[Sync Helper] Detectados ${deletedClients.length} clientes eliminados en GHL. Iniciando reasignación y limpieza...`);
+      
+      let fallbackClientId: string | null = null;
+      const fallbackClientName = "Cliente Eliminado (Historial)";
+      const matchedFallback = dbClients.find(c => c.nombre === fallbackClientName);
+      
+      if (matchedFallback) {
+        fallbackClientId = matchedFallback.id;
+      } else {
+        const { data: newFallback, error: fallbackErr } = await supabase
+          .from("clientes")
+          .insert([{ nombre: fallbackClientName }])
+          .select()
+          .single();
+        if (fallbackErr) {
+          console.error(`[Sync Helper] Error al crear cliente de historial:`, fallbackErr);
+        } else if (newFallback) {
+          fallbackClientId = newFallback.id;
+        }
+      }
+
+      if (fallbackClientId) {
+        const deletedClientIds = deletedClients.map(c => c.id);
+
+        // Consultar ventas asociadas a estos clientes
+        const { data: salesForDeleted, error: salesErr } = await supabase
+          .from("ventas")
+          .select("id, cliente_id, notas_internas")
+          .in("cliente_id", deletedClientIds);
+
+        // Consultar proyectos asociados a estos clientes
+        const { data: projectsForDeleted, error: projErr } = await supabase
+          .from("proyectos")
+          .select("id, cliente_id")
+          .in("cliente_id", deletedClientIds);
+
+        if (salesErr) {
+          console.error(`[Sync Helper] Error al obtener ventas de clientes eliminados:`, salesErr);
+        }
+        if (projErr) {
+          console.error(`[Sync Helper] Error al obtener proyectos de clientes eliminados:`, projErr);
+        }
+
+        // Reasignar ventas
+        if (salesForDeleted && salesForDeleted.length > 0) {
+          for (const sale of salesForDeleted) {
+            const origClient = deletedClients.find(c => c.id === sale.cliente_id);
+            const clientInfoStr = origClient
+              ? `${origClient.nombre || "Sin Nombre"}${origClient.email ? ` (Email: ${origClient.email})` : ""}${origClient.telefono ? ` (Tel: ${origClient.telefono})` : ""}`
+              : "Desconocido";
+
+            const oldNotes = sale.notas_internas || "";
+            const newNotes = `[Cliente original: ${clientInfoStr}]\n${oldNotes}`.trim();
+
+            const { error: saleUpdErr } = await supabase
+              .from("ventas")
+              .update({
+                cliente_id: fallbackClientId,
+                notas_internas: newNotes
+              })
+              .eq("id", sale.id);
+
+            if (saleUpdErr) {
+              console.error(`[Sync Helper] Error reasignando venta ${sale.id}:`, saleUpdErr);
+            }
+          }
+        }
+
+        // Reasignar proyectos
+        if (projectsForDeleted && projectsForDeleted.length > 0) {
+          for (const proj of projectsForDeleted) {
+            const { error: projUpdErr } = await supabase
+              .from("proyectos")
+              .update({
+                cliente_id: fallbackClientId
+              })
+              .eq("id", proj.id);
+
+            if (projUpdErr) {
+              console.error(`[Sync Helper] Error reasignando proyecto ${proj.id}:`, projUpdErr);
+            }
+          }
+        }
+
+        // Eliminar clientes
+        const { error: delErr } = await supabase
+          .from("clientes")
+          .delete()
+          .in("id", deletedClientIds);
+
+        if (delErr) {
+          console.error(`[Sync Helper] Error al eliminar clientes de Supabase:`, delErr);
+        } else {
+          console.log(`[Sync Helper] Eliminados ${deletedClientIds.length} clientes obsoletos de Supabase.`);
+        }
+      } else {
+        console.error(`[Sync Helper] No se pudo obtener ni crear el cliente de historial. Se aborta la eliminación para preservar la integridad referencial.`);
       }
     }
 
