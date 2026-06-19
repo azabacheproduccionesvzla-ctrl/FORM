@@ -717,7 +717,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
       p.clientes?.nombre?.toLowerCase().includes(q) ||
       (p.ventas?.codigo_venta && p.ventas.codigo_venta.toLowerCase().includes(q))
     );
-  });
+  }).slice(0, 5);
 
   const handleProjectSelect = (proj: any) => {
     setSelectedProject(proj);
@@ -771,11 +771,11 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
 
   const filteredClientsGating = clients.filter(c =>
     c.nombre.toLowerCase().includes(gatingSearchQuery.toLowerCase())
-  );
+  ).slice(0, 5);
 
   const filteredClientsMain = clients.filter(c =>
     c.nombre.toLowerCase().includes(mainSearchQuery.toLowerCase())
-  );
+  ).slice(0, 5);
 
   if (!isOpen) return null;
 
