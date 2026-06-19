@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { supabase } from "./supabase";
 
-function formatExcelDate(dateStr?: string | Date | null) {
+export function formatExcelDate(dateStr?: string | Date | null) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return "";
@@ -17,6 +17,14 @@ function formatExcelDate(dateStr?: string | Date | null) {
   const seconds = String(date.getUTCSeconds()).padStart(2, '0');
   return `${dayName} ${monthName} ${day} ${hours}:${minutes}:${seconds} +0000 ${year}`;
 }
+
+export const getComision = (plataforma: string) => {
+  const plat = (plataforma || "").toLowerCase();
+  if (plat === "freelancer") return "10%";
+  if (plat === "workana") return "REVISAR";
+  if (plat.includes("contrato") || plat === "freelancer con contrato") return "15%";
+  return "0%";
+};
 
 export async function updateLocalWorkspaceSheet() {
   try {
@@ -88,13 +96,7 @@ export async function updateLocalWorkspaceSheet() {
       "% Asociaciado V"
     ];
 
-    const getComision = (plataforma: string) => {
-      const plat = (plataforma || "").toLowerCase();
-      if (plat === "freelancer") return "10%";
-      if (plat === "workana") return "REVISAR";
-      if (plat.includes("contrato") || plat === "freelancer con contrato") return "15%";
-      return "0%";
-    };
+
 
     const escapeCsv = (val: string | number | null | undefined) => {
       if (val === null || val === undefined) return '""';

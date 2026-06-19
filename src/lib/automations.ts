@@ -3,8 +3,9 @@ import { createDropboxFolder } from "@/lib/dropbox";
 import { processTrelloCard, updateTrelloCardDesc, addTrelloCardComment } from "@/lib/trello";
 import { createGhlContact, createGhlInvoice, sendGhlMessage } from "@/lib/ghl";
 import { getIntegrationConfig } from "@/lib/config_service";
-import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
+import { updateLocalWorkspaceSheet, getComision, formatExcelDate } from "@/lib/local_sheets";
 import { addSaleLog } from "@/lib/logs";
+import { appendRowToSheet } from "@/lib/sheets";
 
 export async function runVentasAutomations(saleId: string) {
   try {
@@ -461,17 +462,45 @@ export async function runVentasAutomations(saleId: string) {
       await addSaleLog(saleId, "WhatsApp", "INFO", "La notificación de WhatsApp ya estaba completada, saltando.");
     }
 
-    // 7. Cuadro Maestro (Local Sheets)
+    // 7. Cuadro Maestro (Local & Online Sheets)
     if (sale.status_sheets !== "COMPLETADO") {
       if (config.google_sheets) {
         try {
-          await addSaleLog(saleId, "Cuadro Maestro", "INFO", "Sincronizando datos en Cuadro Maestro local (archivo CSV)...");
+          await addSaleLog(saleId, "Cuadro Maestro", "INFO", "Sincronizando datos en Cuadro Maestro local (archivo CSV) y Google Sheets online...");
           await supabase.from("ventas").update({ status_sheets: "PROCESANDO" }).eq("id", saleId);
+          
+          // 1. Sincronización local
           await updateLocalWorkspaceSheet();
-          await addSaleLog(saleId, "Cuadro Maestro", "SUCCESS", "Datos agregados y sincronizados correctamente en Cuadro Maestro local.");
+
+          // 2. Sincronización online (Google Sheets Webhook)
+          const sheetsPayload = {
+            etapa: sale.status_pago || "PAGO ADELANTADO",
+            plataforma: sale.plataforma,
+            codigo_venta: sale.codigo_venta,
+            fecha_inicio: formatExcelDate(sale.creado_en),
+            cliente: clientInfo?.nombre || "Cliente",
+            codigo_cliente: clientInfo?.ghl_contact_id || "",
+            proyecto: sale.proyecto_nombre,
+            monto_cc: `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`,
+            comision: getComision(sale.plataforma),
+            setter_1: setterName,
+            setter_2: settersExtrasNames.length > 0 ? settersExtrasNames[0] : "",
+            closer_1: closerName,
+            closer_2: closersExtrasNames.length > 0 ? closersExtrasNames[0] : "",
+            closer_3: closersExtrasNames.length > 1 ? closersExtrasNames[1] : "",
+            factura: sale.comprobante_link,
+            fecha_pago: sale.fecha_pago || ""
+          };
+
+          const sheetsResult = await appendRowToSheet(sheetsPayload);
+          if (!sheetsResult.success) {
+            throw new Error(`Google Sheets Online error: ${sheetsResult.error}`);
+          }
+
+          await addSaleLog(saleId, "Cuadro Maestro", "SUCCESS", "Datos agregados y sincronizados correctamente en Cuadro Maestro local y Google Sheets online.");
           await supabase.from("ventas").update({ status_sheets: "COMPLETADO" }).eq("id", saleId);
         } catch (e: any) {
-          await addSaleLog(saleId, "Cuadro Maestro", "ERROR", `Error de guardado local: ${e.message}`);
+          await addSaleLog(saleId, "Cuadro Maestro", "ERROR", `Error de sincronización: ${e.message}`);
           await supabase.from("ventas").update({ status_sheets: "ERROR" }).eq("id", saleId);
         }
       } else {
