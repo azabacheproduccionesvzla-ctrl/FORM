@@ -1525,6 +1525,58 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                           disabled={disableClientFields}
                         />
                       </div>
+                  {isExtension && (
+                    <div style={{ paddingTop: "0.5rem", marginBottom: "1rem" }}>
+                      {hasSetterOriginal ? (
+                        <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
+                            Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
+                          </span>
+
+                          <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={agregarSetterAdicional}
+                              onChange={(e) => {
+                                setAgregarSetterAdicional(e.target.checked);
+                                if (!e.target.checked) setSetterAdicionalId("");
+                              }}
+                              disabled={disableClientFields}
+                            />
+                            <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
+                          </label>
+
+                          {agregarSetterAdicional && (
+                            <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
+                              <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
+                              <select
+                                className={styles.select}
+                                value={setterAdicionalId}
+                                onChange={(e) => setSetterAdicionalId(e.target.value)}
+                                disabled={disableClientFields}
+                                required
+                              >
+                                <option value="">Seleccionar Setter</option>
+                                {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>¿Quién oferta? (Setter) *</label>
+                          <select
+                            className={styles.select}
+                            value={formData.setter_principal_id}
+                            onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
+                            disabled={disableClientFields}
+                            required
+                          >
+                            <option value="">Seleccionar Setter</option>
+                            {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1597,58 +1649,60 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                     />
                   </div>
 
-                  <div style={{ paddingTop: "0.5rem" }}>
-                    {hasSetterOriginal ? (
-                      <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
-                        <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
-                          Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
-                        </span>
+                  {!isExtension && (
+                    <div style={{ paddingTop: "0.5rem" }}>
+                      {hasSetterOriginal ? (
+                        <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
+                            Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
+                          </span>
 
-                        <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={agregarSetterAdicional}
-                            onChange={(e) => {
-                              setAgregarSetterAdicional(e.target.checked);
-                              if (!e.target.checked) setSetterAdicionalId("");
-                            }}
-                            disabled={disableClientFields}
-                          />
-                          <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
-                        </label>
-
-                        {agregarSetterAdicional && (
-                          <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
-                            <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
-                            <select
-                              className={styles.select}
-                              value={setterAdicionalId}
-                              onChange={(e) => setSetterAdicionalId(e.target.value)}
+                          <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={agregarSetterAdicional}
+                              onChange={(e) => {
+                                setAgregarSetterAdicional(e.target.checked);
+                                if (!e.target.checked) setSetterAdicionalId("");
+                              }}
                               disabled={disableClientFields}
-                              required
-                            >
-                              <option value="">Seleccionar Setter</option>
-                              {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>¿Quién oferta? (Setter) *</label>
-                        <select
-                          className={styles.select}
-                          value={formData.setter_principal_id}
-                          onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
-                          disabled={disableClientFields}
-                          required
-                        >
-                          <option value="">Seleccionar Setter</option>
-                          {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
+                            />
+                            <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
+                          </label>
+
+                          {agregarSetterAdicional && (
+                            <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
+                              <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
+                              <select
+                                className={styles.select}
+                                value={setterAdicionalId}
+                                onChange={(e) => setSetterAdicionalId(e.target.value)}
+                                disabled={disableClientFields}
+                                required
+                              >
+                                <option value="">Seleccionar Setter</option>
+                                {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>¿Quién oferta? (Setter) *</label>
+                          <select
+                            className={styles.select}
+                            value={formData.setter_principal_id}
+                            onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
+                            disabled={disableClientFields}
+                            required
+                          >
+                            <option value="">Seleccionar Setter</option>
+                            {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {}
                   <div className={styles.sectionTitle}>Modalidad de Pago</div>

@@ -474,14 +474,14 @@ export async function runVentasAutomations(saleId: string) {
 
           // 2. Sincronización online (Google Sheets Webhook)
           const sheetsPayload = {
-            etapa: sale.status_pago || "PAGO ADELANTADO",
+            etapa: (sale.status_pago || "PAGO ADELANTADO").toUpperCase(),
             plataforma: sale.plataforma,
             codigo_venta: sale.codigo_venta,
             fecha_inicio: formatExcelDate(sale.creado_en),
             cliente: clientInfo?.nombre || "Cliente",
             codigo_cliente: clientInfo?.ghl_contact_id || "",
             proyecto: sale.proyecto_nombre,
-            monto_cc: `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`,
+            monto_cc: sale.monto_total || 0,
             comision: getComision(sale.plataforma),
             setter_1: setterName,
             setter_2: settersExtrasNames.length > 0 ? settersExtrasNames[0] : "",

@@ -15,16 +15,24 @@ async function run() {
     const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    console.log("Fetching users from usuarios_agencia...");
-    const { data: users, error } = await supabase
+    console.log("Querying username: undefined");
+    const { data: operator1, error: opError1 } = await supabase
       .from("usuarios_agencia")
-      .select("id, nombre, username, rol, activo");
+      .select("pin_hash, pin_salt")
+      .eq("username", undefined)
+      .single();
 
-    if (error) {
-      console.error("Error fetching users:", error);
-    } else {
-      console.log("Users:", users);
-    }
+    console.log("Result for undefined:", { data: operator1, error: opError1 });
+
+    console.log("\nQuerying username: null");
+    const { data: operator2, error: opError2 } = await supabase
+      .from("usuarios_agencia")
+      .select("pin_hash, pin_salt")
+      .eq("username", null)
+      .single();
+
+    console.log("Result for null:", { data: operator2, error: opError2 });
+
   } catch (err) {
     console.error("Crash:", err);
   }

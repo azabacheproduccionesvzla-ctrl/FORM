@@ -20,7 +20,10 @@ async function testGhlContactCreation() {
 
     const payload = {
       locationId: locationId,
-      firstName: "Carmen OnlyFirst",
+      firstName: "OmarA.",
+      lastName: "M. R.",
+      email: "sabiduriahamster@gmail.com",
+      country: "MX",
       tags: ["nueva_venta"]
     };
 

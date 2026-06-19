@@ -15,15 +15,16 @@ async function run() {
     const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    console.log("Fetching users from usuarios_agencia...");
-    const { data: users, error } = await supabase
-      .from("usuarios_agencia")
-      .select("id, nombre, username, rol, activo");
+    console.log("Fetching all sales where es_continuacion is true...");
+    const { data: sales, error } = await supabase
+      .from("ventas")
+      .select("id, codigo_venta, es_continuacion, proyecto_previo_id, proyecto_nombre, creado_en")
+      .eq("es_continuacion", true);
 
     if (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error:", error);
     } else {
-      console.log("Users:", users);
+      console.log("Extension sales in DB:", JSON.stringify(sales, null, 2));
     }
   } catch (err) {
     console.error("Crash:", err);

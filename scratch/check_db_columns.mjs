@@ -17,11 +17,11 @@ async function checkColumns() {
 
     // Get table structure or run raw RPC if possible, or just select columns
     // Since anon key cannot query info schema directly, we can do a select on clientes
-    const { data, error } = await supabase.from("clientes").select("*").limit(1);
+    const { data, error } = await supabase.from("proyectos").select("*").limit(1);
     if (error) {
       console.error("Select error:", error);
     } else {
-      console.log("Returned columns of clientes:", Object.keys(data[0] || {}));
+      console.log("Returned columns of proyectos:", Object.keys(data[0] || {}));
     }
   } catch (err) {
     console.error("Crash:", err);

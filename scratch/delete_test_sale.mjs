@@ -15,15 +15,16 @@ async function run() {
     const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    console.log("Fetching users from usuarios_agencia...");
-    const { data: users, error } = await supabase
-      .from("usuarios_agencia")
-      .select("id, nombre, username, rol, activo");
+    console.log("Deleting test sale: bff6a082-fb24-4bae-a6ff-d57251852019");
+    const { error } = await supabase
+      .from("ventas")
+      .delete()
+      .eq("id", "bff6a082-fb24-4bae-a6ff-d57251852019");
 
     if (error) {
-      console.error("Error fetching users:", error);
+      console.error("Delete failed:", error);
     } else {
-      console.log("Users:", users);
+      console.log("Delete succeeded.");
     }
   } catch (err) {
     console.error("Crash:", err);

@@ -15,11 +15,11 @@ async function checkSheetsColumn() {
     const supabaseAnonKey = getEnvVal("SUPABASE_ANON_KEY");
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { data, error } = await supabase.from("ventas").select("id, status_sheets").limit(5);
+    const { data, error } = await supabase.from("ventas").select("*").limit(1);
     if (error) {
-      console.error("Select error for status_sheets:", error);
+      console.error("Select error for ventas:", error);
     } else {
-      console.log("Success! status_sheets values for first 5 rows:", data);
+      console.log("Returned columns of ventas:", Object.keys(data[0] || {}));
     }
   } catch (err) {
     console.error("Crash:", err);
