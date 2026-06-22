@@ -238,7 +238,7 @@ export async function createGhlInvoice(contactId: string, data: {
   const locationId = process.env.GHL_LOCATION_ID;
 
   const issueDate = new Date().toISOString().split("T")[0];
-  const priceInCents = Math.round((data.amount || 0) * 100);
+  const invoiceAmount = Number(data.amount) || 0;
 
   const payload = {
     altId: locationId,
@@ -272,7 +272,7 @@ export async function createGhlInvoice(contactId: string, data: {
         priceId: "6a144f8ad7158a40b889a21f",
         name: data.projectName,
         qty: 1,
-        amount: priceInCents,
+        amount: invoiceAmount,
         currency: (data.currency || "USD").toUpperCase(),
         description: data.description || "Servicios creativos"
       }
