@@ -1678,30 +1678,43 @@ export default function AjustesPage() {
 
             <form onSubmit={handleSaveAddManual} className={styles.form}>
               <div className={styles.formGroup}>
-                <label className={styles.label} style={{ color: "#334155" }}>Pestaña/Hojas Destino</label>
-                <select
+                <label className={styles.label} style={{ color: "#334155" }}>Rama</label>
+                <input
+                  type="text"
+                  list="adding-rama-list"
                   value={addingManual.sheet}
                   onChange={e => setAddingManual(prev => prev ? { ...prev, sheet: e.target.value } : null)}
-                  className={styles.select}
+                  className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="Ej: Diseño Gráfico o escribe una nueva..."
                   required
-                >
+                />
+                <datalist id="adding-rama-list">
                   {Object.keys(manuals).map(sheetName => (
-                    <option key={sheetName} value={sheetName} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{sheetName}</option>
+                    <option key={sheetName} value={sheetName} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
               <div className={styles.formGroup}>
                 <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
                 <input
                   type="text"
+                  list="adding-categoria-list"
                   value={addingManual.categoria}
                   onChange={e => setAddingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
                   className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
-                  placeholder={`Ej: ${addingManual.sheet}`}
+                  placeholder="Ej: Identidad de Marca o escribe una nueva..."
+                  required
                 />
+                <datalist id="adding-categoria-list">
+                  {addingManual.sheet && manuals[addingManual.sheet] &&
+                    Array.from(new Set(manuals[addingManual.sheet].map((m: any) => m.categoria))).map((cat: any) => (
+                      <option key={cat} value={cat} />
+                    ))
+                  }
+                </datalist>
               </div>
 
               <div className={styles.formGroup}>
@@ -1758,7 +1771,7 @@ export default function AjustesPage() {
 
             <form onSubmit={handleSaveEditManual} className={styles.form}>
               <div className={styles.formGroup}>
-                <label className={styles.label} style={{ color: "#334155" }}>Pestaña/Hojas</label>
+                <label className={styles.label} style={{ color: "#334155" }}>Rama</label>
                 <input
                   type="text"
                   value={editingManual.sheet}
@@ -1772,12 +1785,20 @@ export default function AjustesPage() {
                 <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
                 <input
                   type="text"
+                  list="editing-categoria-list"
                   value={editingManual.categoria}
                   onChange={e => setEditingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
                   className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
                   required
                 />
+                <datalist id="editing-categoria-list">
+                  {editingManual.sheet && manuals[editingManual.sheet] &&
+                    Array.from(new Set(manuals[editingManual.sheet].map((m: any) => m.categoria))).map((cat: any) => (
+                      <option key={cat} value={cat} />
+                    ))
+                  }
+                </datalist>
               </div>
 
               <div className={styles.formGroup}>
