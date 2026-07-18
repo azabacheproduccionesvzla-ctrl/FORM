@@ -87,6 +87,9 @@ export default function AjustesPage() {
 
   const [editingManual, setEditingManual] = useState<{ id: number; sheet: string; categoria: string; item: string; enlace: string; activo?: boolean } | null>(null);
   const [addingManual, setAddingManual] = useState<{ sheet: string; categoria: string; item: string; enlace: string } | null>(null);
+  const [showAddingRamaSuggestions, setShowAddingRamaSuggestions] = useState(false);
+  const [showAddingCatSuggestions, setShowAddingCatSuggestions] = useState(false);
+  const [showEditingCatSuggestions, setShowEditingCatSuggestions] = useState(false);
 
   const [isManualsPinOpen, setIsManualsPinOpen] = useState<boolean>(false);
   const [manualsPin, setManualsPin] = useState<string[]>(Array(6).fill(""));
@@ -1677,44 +1680,88 @@ export default function AjustesPage() {
             </div>
 
             <form onSubmit={handleSaveAddManual} className={styles.form}>
-              <div className={styles.formGroup}>
+              <div className={styles.formGroup} style={{ position: "relative" }}>
                 <label className={styles.label} style={{ color: "#334155" }}>Rama</label>
                 <input
                   type="text"
-                  list="adding-rama-list"
                   value={addingManual.sheet}
                   onChange={e => setAddingManual(prev => prev ? { ...prev, sheet: e.target.value } : null)}
+                  onFocus={() => setShowAddingRamaSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowAddingRamaSuggestions(false), 200)}
                   className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
                   placeholder="Ej: Diseño Gráfico o escribe una nueva..."
                   required
                 />
-                <datalist id="adding-rama-list">
-                  {Object.keys(manuals).map(sheetName => (
-                    <option key={sheetName} value={sheetName} />
-                  ))}
-                </datalist>
+                {showAddingRamaSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const filteredRamas = Object.keys(manuals).filter(sheetName =>
+                        sheetName.toLowerCase().includes(addingManual.sheet.toLowerCase())
+                      );
+                      if (filteredRamas.length > 0) {
+                        return filteredRamas.map(sheetName => (
+                          <div
+                            key={sheetName}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setAddingManual(prev => prev ? { ...prev, sheet: sheetName } : null);
+                              setShowAddingRamaSuggestions(false);
+                            }}
+                          >
+                            {sheetName}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{addingManual.sheet}" como nueva rama</div>;
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
 
-              <div className={styles.formGroup}>
+              <div className={styles.formGroup} style={{ position: "relative" }}>
                 <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
                 <input
                   type="text"
-                  list="adding-categoria-list"
                   value={addingManual.categoria}
                   onChange={e => setAddingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  onFocus={() => setShowAddingCatSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowAddingCatSuggestions(false), 200)}
                   className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
                   placeholder="Ej: Identidad de Marca o escribe una nueva..."
                   required
                 />
-                <datalist id="adding-categoria-list">
-                  {addingManual.sheet && manuals[addingManual.sheet] &&
-                    Array.from(new Set(manuals[addingManual.sheet].map((m: any) => m.categoria))).map((cat: any) => (
-                      <option key={cat} value={cat} />
-                    ))
-                  }
-                </datalist>
+                {showAddingCatSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const existingCats = addingManual.sheet && manuals[addingManual.sheet]
+                        ? Array.from(new Set(manuals[addingManual.sheet].map((m: any) => m.categoria))) as string[]
+                        : [];
+                      const filteredCats = existingCats.filter((cat: string) => 
+                        cat.toLowerCase().includes(addingManual.categoria.toLowerCase())
+                      );
+
+                      if (filteredCats.length > 0) {
+                        return filteredCats.map(cat => (
+                          <div
+                            key={cat}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setAddingManual(prev => prev ? { ...prev, categoria: cat } : null);
+                              setShowAddingCatSuggestions(false);
+                            }}
+                          >
+                            {cat}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{addingManual.categoria}" como nueva categoría</div>;
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className={styles.formGroup}>
@@ -1781,24 +1828,47 @@ export default function AjustesPage() {
                 />
               </div>
 
-              <div className={styles.formGroup}>
+              <div className={styles.formGroup} style={{ position: "relative" }}>
                 <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
                 <input
                   type="text"
-                  list="editing-categoria-list"
                   value={editingManual.categoria}
                   onChange={e => setEditingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  onFocus={() => setShowEditingCatSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowEditingCatSuggestions(false), 200)}
                   className={styles.input}
                   style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
                   required
                 />
-                <datalist id="editing-categoria-list">
-                  {editingManual.sheet && manuals[editingManual.sheet] &&
-                    Array.from(new Set(manuals[editingManual.sheet].map((m: any) => m.categoria))).map((cat: any) => (
-                      <option key={cat} value={cat} />
-                    ))
-                  }
-                </datalist>
+                {showEditingCatSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const existingCats = editingManual.sheet && manuals[editingManual.sheet]
+                        ? Array.from(new Set(manuals[editingManual.sheet].map((m: any) => m.categoria))) as string[]
+                        : [];
+                      const filteredCats = existingCats.filter((cat: string) => 
+                        cat.toLowerCase().includes(editingManual.categoria.toLowerCase())
+                      );
+
+                      if (filteredCats.length > 0) {
+                        return filteredCats.map(cat => (
+                          <div
+                            key={cat}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setEditingManual(prev => prev ? { ...prev, categoria: cat } : null);
+                              setShowEditingCatSuggestions(false);
+                            }}
+                          >
+                            {cat}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{editingManual.categoria}" como nueva categoría</div>;
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className={styles.formGroup}>
