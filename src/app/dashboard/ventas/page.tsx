@@ -162,6 +162,41 @@ export default function VentasPage() {
   const [modalGatingStep, setModalGatingStep] = useState<"choose" | "none">("choose");
   const [isCuadroMaestroOpen, setIsCuadroMaestroOpen] = useState(false);
 
+  // Estado para indicar si hay un borrador de venta pendiente
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    const checkDraft = () => {
+      const draftStr = localStorage.getItem("sales_draft");
+      if (draftStr) {
+        try {
+          const parsed = JSON.parse(draftStr);
+          const fd = parsed?.formData;
+          const keyFieldsNotEmpty = fd && (
+            fd.cliente_nombre?.trim() ||
+            fd.cliente_id ||
+            fd.proyecto_nombre?.trim() ||
+            fd.monto_total?.trim() ||
+            fd.monto_pagado?.trim() ||
+            fd.proyecto_previo_id ||
+            fd.proyecto_id
+          );
+          setHasDraft(!!keyFieldsNotEmpty);
+        } catch (e) {
+          setHasDraft(false);
+        }
+      } else {
+        setHasDraft(false);
+      }
+    };
+    
+    checkDraft();
+    window.addEventListener("storage", checkDraft);
+    return () => {
+      window.removeEventListener("storage", checkDraft);
+    };
+  }, [isModalOpen]);
+
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState<UserSession | null>(null);
   const [usersList, setUsersList] = useState<UserListItem[]>([]);
@@ -648,8 +683,34 @@ export default function VentasPage() {
             Si estás aquí, es porque estás a punto de registrar una venta.
           </p>
           <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button className={styles.btnPrimary} onClick={() => { setModalGatingStep("choose"); setIsModalOpen(true); }}>
+            <button 
+              className={styles.btnPrimary} 
+              onClick={() => { setModalGatingStep("choose"); setIsModalOpen(true); }} 
+              style={{ position: "relative" }}
+            >
               <span>Nueva venta</span>
+              {hasDraft && (
+                <span 
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-6px",
+                    backgroundColor: "#ea580c",
+                    color: "#ffffff",
+                    borderRadius: "9999px",
+                    padding: "2px 6px",
+                    fontSize: "0.65rem",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 0 0 2px #ffffff"
+                  }} 
+                  title="Tienes una venta sin registrar (borrador)"
+                >
+                  Borrador
+                </span>
+              )}
             </button>
             {(user?.role === "admin" || user?.role === "auditor") && (
               <button 

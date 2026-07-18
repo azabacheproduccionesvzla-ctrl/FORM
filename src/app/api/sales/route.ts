@@ -184,7 +184,11 @@ export async function POST(request: Request) {
       closers_adicionales_ids,
 
       tipo_cierre,
-      notas_internas
+      notas_internas,
+      manual_rama,
+      manual_categoria,
+      manual_servicio,
+      manual_enlace
     } = body;
 
     if (!proyecto_nombre || !tipo_venta || !tipo_proyecto || !status_pago || !plataforma || !tipo_cierre || monto_total === undefined) {
@@ -320,7 +324,11 @@ export async function POST(request: Request) {
       status_dropbox: "PENDIENTE",
       status_whatsapp: "PENDIENTE",
       status_email: "PENDIENTE",
-      status_sheets: "PENDIENTE"
+      status_sheets: "PENDIENTE",
+      manual_rama: manual_rama || null,
+      manual_categoria: manual_categoria || null,
+      manual_servicio: manual_servicio || null,
+      manual_enlace: manual_enlace || null
     };
 
 
@@ -552,7 +560,11 @@ export async function PUT(request: Request) {
       cliente_telefono,
       cliente_pais,
       cliente_empresa,
-      cliente_link_usuario
+      cliente_link_usuario,
+      manual_rama,
+      manual_categoria,
+      manual_servicio,
+      manual_enlace
     } = body;
 
     if (cliente_id) {
@@ -605,7 +617,11 @@ export async function PUT(request: Request) {
       status_email: status_email || undefined,
       status_sheets: status_sheets || undefined,
       link_trello: link_trello !== undefined ? link_trello : undefined,
-      estado_interno: estado_interno || undefined
+      estado_interno: estado_interno || undefined,
+      manual_rama: manual_rama !== undefined ? manual_rama : undefined,
+      manual_categoria: manual_categoria !== undefined ? manual_categoria : undefined,
+      manual_servicio: manual_servicio !== undefined ? manual_servicio : undefined,
+      manual_enlace: manual_enlace !== undefined ? manual_enlace : undefined
     };
 
     Object.keys(updateSaleData).forEach(key => {

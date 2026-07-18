@@ -22,6 +22,14 @@ interface IntegrationConfig {
   trello_default_members?: string[];
 }
 
+interface ManualItem {
+  id: number;
+  categoria: string;
+  item: string;
+  enlace: string;
+  activo?: boolean;
+}
+
 export default function AjustesPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
@@ -69,6 +77,21 @@ export default function AjustesPage() {
     errorMsg: "",
     type: "trello" // "trello" | "ghl"
   });
+
+  // Manuals state
+  const [manuals, setManuals] = useState<Record<string, ManualItem[]>>({});
+  const [activeTab, setActiveTab] = useState<string>("Diseño Grafico");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [manualsLoading, setManualsLoading] = useState<boolean>(true);
+  const [originalManuals, setOriginalManuals] = useState<string>("");
+
+  const [editingManual, setEditingManual] = useState<{ id: number; sheet: string; categoria: string; item: string; enlace: string; activo?: boolean } | null>(null);
+  const [addingManual, setAddingManual] = useState<{ sheet: string; categoria: string; item: string; enlace: string } | null>(null);
+
+  const [isManualsPinOpen, setIsManualsPinOpen] = useState<boolean>(false);
+  const [manualsPin, setManualsPin] = useState<string[]>(Array(6).fill(""));
+  const [manualsError, setManualsError] = useState<string | null>(null);
+  const manualsPinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleTriggerSync = (syncType: "SYNC_TRELLO" | "SYNC_GHL") => {
     setPendingToggleKey(syncType);
@@ -163,6 +186,160 @@ export default function AjustesPage() {
     }
   };
 
+  // Manuals handlers
+  const handleToggleManualActivo = (sheetName: string, itemId: number) => {
+    setManuals(prev => {
+      const updatedSheet = (prev[sheetName] || []).map(item => {
+        if (item.id === itemId) {
+          return { ...item, activo: item.activo === false ? true : false };
+        }
+        return item;
+      });
+      return { ...prev, [sheetName]: updatedSheet };
+    });
+  };
+
+  const handleOpenEditManual = (sheetName: string, item: ManualItem) => {
+    setEditingManual({
+      id: item.id,
+      sheet: sheetName,
+      categoria: item.categoria,
+      item: item.item,
+      enlace: item.enlace,
+      activo: item.activo !== false
+    });
+  };
+
+  const handleSaveEditManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingManual) return;
+
+    setManuals(prev => {
+      const updatedSheet = (prev[editingManual.sheet] || []).map(item => {
+        if (item.id === editingManual.id) {
+          return {
+            ...item,
+            categoria: editingManual.categoria,
+            item: editingManual.item,
+            enlace: editingManual.enlace,
+            activo: editingManual.activo
+          };
+        }
+        return item;
+      });
+      return { ...prev, [editingManual.sheet]: updatedSheet };
+    });
+    setEditingManual(null);
+  };
+
+  const handleOpenAddManual = () => {
+    setAddingManual({
+      sheet: activeTab,
+      categoria: "",
+      item: "",
+      enlace: ""
+    });
+  };
+
+  const handleSaveAddManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addingManual) return;
+
+    let maxId = 0;
+    Object.values(manuals).forEach(items => {
+      items.forEach(item => {
+        if (item.id > maxId) maxId = item.id;
+      });
+    });
+    const newId = maxId + 1;
+
+    setManuals(prev => {
+      const sheetItems = prev[addingManual.sheet] || [];
+      const updatedSheet = [
+        ...sheetItems,
+        {
+          id: newId,
+          categoria: addingManual.categoria || addingManual.sheet,
+          item: addingManual.item,
+          enlace: addingManual.enlace,
+          activo: true
+        }
+      ];
+      return { ...prev, [addingManual.sheet]: updatedSheet };
+    });
+    setAddingManual(null);
+  };
+
+  const handleManualsPinChange = (index: number, val: string) => {
+    const cleanValue = val.replace(/[^0-9]/g, "").slice(-1);
+    const newPin = [...manualsPin];
+    newPin[index] = cleanValue;
+    setManualsPin(newPin);
+
+    if (cleanValue !== "" && index < 5) {
+      manualsPinRefs.current[index + 1]?.focus();
+    }
+
+    const currentFullPin = newPin.join("");
+    if (currentFullPin.length === 6) {
+      saveManualsWithPin(currentFullPin);
+    }
+  };
+
+  const handleManualsPinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (manualsPin[index] === "" && index > 0) {
+        const newPin = [...manualsPin];
+        newPin[index - 1] = "";
+        setManualsPin(newPin);
+        manualsPinRefs.current[index - 1]?.focus();
+      } else {
+        const newPin = [...manualsPin];
+        newPin[index] = "";
+        setManualsPin(newPin);
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      manualsPinRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      manualsPinRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleManualsPinPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      setManualsPin(pastedData.split(""));
+      saveManualsWithPin(pastedData);
+    }
+  };
+
+  const saveManualsWithPin = async (pinStr: string) => {
+    setActionLoading(true);
+    setManualsError(null);
+
+    try {
+      const res = await fetch("/api/config/manuals", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ manuals, pin: pinStr })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al actualizar los manuales.");
+
+      setOriginalManuals(JSON.stringify(manuals));
+      setConfigSuccess("Base de datos de manuales actualizada con éxito.");
+      setTimeout(() => setConfigSuccess(null), 3000);
+      setIsManualsPinOpen(false);
+      setManualsPin(Array(6).fill(""));
+    } catch (err: any) {
+      setManualsError(err.message || "Error al actualizar los manuales.");
+      setManualsPin(Array(6).fill(""));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const loadUsers = async () => {
     try {
       const sessionRes = await fetch("/api/auth/session");
@@ -202,8 +379,22 @@ export default function AjustesPage() {
       if (trelloData.success) {
         setTrelloMembers(trelloData.members);
       }
+
+      // Cargar manuales
+      setManualsLoading(true);
+      const manualsRes = await fetch("/api/config/manuals");
+      const manualsData = await manualsRes.json();
+      if (manualsData.success) {
+        setManuals(manualsData.manuals);
+        setOriginalManuals(JSON.stringify(manualsData.manuals));
+        const sheets = Object.keys(manualsData.manuals);
+        if (sheets.length > 0) {
+          setActiveTab(sheets[0]);
+        }
+      }
+      setManualsLoading(false);
     } catch (error) {
-      console.error("Error al cargar usuarios:", error);
+      console.error("Error al cargar usuarios o manuales:", error);
     } finally {
       setLoading(false);
     }
@@ -828,6 +1019,202 @@ export default function AjustesPage() {
         </div>
       </div>
 
+      {/* CARD 4: Gestión de Manuales de Producción */}
+      <div className={styles.card} style={{ padding: "1.5rem", marginTop: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", gap: "1rem", flexWrap: "wrap" }}>
+          <h2 className={styles.cardTitle} style={{ fontSize: "1.1rem", margin: 0 }}>
+            Gestión de Manuales de Producción
+          </h2>
+          <button 
+            type="button" 
+            className={styles.btnPrimary} 
+            onClick={handleOpenAddManual}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Agregar Servicio</span>
+          </button>
+        </div>
+        <p className={styles.cardDescription} style={{ marginBottom: "1.5rem" }}>
+          Administra las categorías, servicios y enlaces a manuales de producción.
+        </p>
+
+        {manualsLoading ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "2rem" }}>
+            <div className={styles.loadingSpinner} style={{ borderTopColor: "#0052cc" }}></div>
+          </div>
+        ) : (
+          <div>
+            {/* Sheet Tabs */}
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.75rem" }}>
+              {Object.keys(manuals).map(sheetName => {
+                const isActive = activeTab === sheetName;
+                return (
+                  <button
+                    key={sheetName}
+                    type="button"
+                    className={`${styles.chip} ${isActive ? styles.chipActive : ""}`}
+                    onClick={() => {
+                      setActiveTab(sheetName);
+                      setSearchQuery("");
+                    }}
+                    style={{
+                      borderRadius: "6px",
+                      padding: "0.4rem 0.8rem",
+                      fontSize: "0.85rem",
+                      border: isActive ? "none" : "1px solid #cbd5e1",
+                      backgroundColor: isActive ? "#0052cc" : "#ffffff",
+                      color: isActive ? "#ffffff" : "#475569",
+                      fontWeight: isActive ? 600 : 500,
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {sheetName}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filter Search Input */}
+            <div style={{ marginBottom: "1rem" }}>
+              <input
+                type="text"
+                placeholder="Buscar por nombre de servicio o categoría..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className={styles.input}
+                style={{ width: "100%", maxWidth: "400px", fontSize: "0.875rem", padding: "0.5rem 0.75rem", backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+              />
+            </div>
+
+            {/* Table representation */}
+            <div className={styles.tableContainer} style={{ maxHeight: "400px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px", backgroundColor: "#ffffff" }}>
+              <table className={styles.table}>
+                <thead>
+                  <tr style={{ position: "sticky", top: 0, backgroundColor: "#f8fafc", zIndex: 1 }}>
+                    <th style={{ width: "60px", backgroundColor: "#f8fafc" }}>ID</th>
+                    <th style={{ width: "200px", backgroundColor: "#f8fafc" }}>Categoría</th>
+                    <th style={{ backgroundColor: "#f8fafc" }}>Servicio</th>
+                    <th style={{ backgroundColor: "#f8fafc" }}>Enlace de manual</th>
+                    <th style={{ width: "100px", backgroundColor: "#f8fafc" }}>Estado</th>
+                    <th style={{ width: "120px", backgroundColor: "#f8fafc" }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const sheetItems = manuals[activeTab] || [];
+                    const filteredItems = sheetItems.filter(item => {
+                      const query = searchQuery.toLowerCase().trim();
+                      if (query === "") return true;
+                      return item.item.toLowerCase().includes(query) || item.categoria.toLowerCase().includes(query);
+                    });
+
+                    if (filteredItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
+                            No se encontraron servicios.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredItems.map(item => {
+                      const isActivo = item.activo !== false;
+                      return (
+                        <tr key={item.id} style={{ opacity: isActivo ? 1 : 0.6 }}>
+                          <td>{item.id}</td>
+                          <td style={{ fontWeight: 500, color: "#334155" }}>{item.categoria}</td>
+                          <td style={{ fontWeight: 600, color: "#0f172a" }}>{item.item}</td>
+                          <td>
+                            {item.enlace ? (
+                              <a
+                                href={item.enlace}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: "#0052cc", textDecoration: "underline", fontSize: "0.85rem", wordBreak: "break-all" }}
+                              >
+                                Ver Manual ↗
+                              </a>
+                            ) : (
+                              <span style={{ color: "#94a3b8", fontSize: "0.85rem" }}>Sin enlace</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`${styles.badge} ${isActivo ? styles.badgeActive : styles.badgeInactive}`}>
+                              {isActivo ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.actionGroup} style={{ alignItems: "center" }}>
+                              <button
+                                className={`${styles.actionBtn} ${styles.actionBtnEdit}`}
+                                onClick={() => handleOpenEditManual(activeTab, item)}
+                                title="Editar servicio"
+                                type="button"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
+                                </svg>
+                              </button>
+                              <label className={styles.switch} title={isActivo ? "Desactivar servicio" : "Activar servicio"}>
+                                <input
+                                  type="checkbox"
+                                  checked={isActivo}
+                                  onChange={() => handleToggleManualActivo(activeTab, item.id)}
+                                />
+                                <span className={styles.slider}></span>
+                              </label>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Actions */}
+            {originalManuals !== JSON.stringify(manuals) && (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem", padding: "1rem", backgroundColor: "#fffbeb", borderRadius: "6px", border: "1px solid #fef3c7" }}>
+                <span style={{ alignSelf: "center", fontSize: "0.875rem", color: "#b45309", fontWeight: 500 }}>
+                  ⚠️ Tienes cambios sin guardar en la base de datos de manuales.
+                </span>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    setManuals(JSON.parse(originalManuals));
+                  }}
+                  disabled={actionLoading}
+                >
+                  Descartar
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => {
+                    setManualsPin(Array(6).fill(""));
+                    setManualsError(null);
+                    setIsManualsPinOpen(true);
+                  }}
+                  disabled={actionLoading}
+                  style={{ backgroundColor: "#d97706", borderColor: "#d97706" }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {isAddModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -1212,6 +1599,231 @@ export default function AjustesPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Confirmar Cambio en Manuales con PIN */}
+      {isManualsPinOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "400px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Confirmar con PIN</h3>
+              <button className={styles.closeBtn} onClick={() => setIsManualsPinOpen(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {manualsError && (
+              <div className={styles.alertError} style={{ marginBottom: "1rem" }}>
+                <span>{manualsError}</span>
+              </div>
+            )}
+
+            <form onSubmit={(e) => { e.preventDefault(); }} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>PIN de Administrador (6 dígitos)</label>
+                <div className={styles.pinConfirmInputs}>
+                  {manualsPin.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        manualsPinRefs.current[index] = el;
+                      }}
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      className={`${styles.pinConfirmInput} ${digit !== "" ? styles.pinConfirmInputFilled : ""}`}
+                      value={digit}
+                      onChange={(e) => handleManualsPinChange(index, e.target.value)}
+                      onKeyDown={(e) => handleManualsPinKeyDown(index, e)}
+                      onPaste={handleManualsPinPaste}
+                      autoFocus={index === 0}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setIsManualsPinOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className={styles.btnPrimary} onClick={() => { const pinStr = manualsPin.join(""); if (pinStr.length === 6) saveManualsWithPin(pinStr); }} disabled={actionLoading}>
+                  {actionLoading ? "Confirmando..." : "Confirmar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Agregar Manual */}
+      {addingManual && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Agregar Servicio a {addingManual.sheet}</h3>
+              <button className={styles.closeBtn} onClick={() => setAddingManual(null)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddManual} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Pestaña/Hojas Destino</label>
+                <select
+                  value={addingManual.sheet}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, sheet: e.target.value } : null)}
+                  className={styles.select}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  required
+                >
+                  {Object.keys(manuals).map(sheetName => (
+                    <option key={sheetName} value={sheetName} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{sheetName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
+                <input
+                  type="text"
+                  value={addingManual.categoria}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder={`Ej: ${addingManual.sheet}`}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Nombre del Servicio</label>
+                <input
+                  type="text"
+                  value={addingManual.item}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, item: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="Ej: Logo Corporativo"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Enlace de manual (URL de Gamma/Drive)</label>
+                <input
+                  type="url"
+                  value={addingManual.enlace}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, enlace: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="https://gamma.app/docs/..."
+                />
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setAddingManual(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary}>
+                  Agregar Servicio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Editar Manual */}
+      {editingManual && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Editar Servicio #{editingManual.id}</h3>
+              <button className={styles.closeBtn} onClick={() => setEditingManual(null)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditManual} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Pestaña/Hojas</label>
+                <input
+                  type="text"
+                  value={editingManual.sheet}
+                  disabled
+                  className={styles.input}
+                  style={{ backgroundColor: "#f1f5f9", color: "#64748b", borderColor: "#cbd5e1" }}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
+                <input
+                  type="text"
+                  value={editingManual.categoria}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Nombre del Servicio</label>
+                <input
+                  type="text"
+                  value={editingManual.item}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, item: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Enlace de manual (URL de Gamma/Drive)</label>
+                <input
+                  type="url"
+                  value={editingManual.enlace}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, enlace: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                />
+              </div>
+
+              <div className={styles.switchRow} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", width: "100%" }}>
+                <span className={styles.switchLabel} style={{ fontWeight: 600, color: "#334155", fontSize: "0.8125rem" }}>Servicio activo y visible</span>
+                <label className={styles.switch}>
+                  <input
+                    type="checkbox"
+                    checked={editingManual.activo}
+                    onChange={e => setEditingManual(prev => prev ? { ...prev, activo: e.target.checked } : null)}
+                  />
+                  <span className={`${styles.slider} ${styles.round}`}></span>
+                </label>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setEditingManual(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary}>
+                  Actualizar Servicio
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

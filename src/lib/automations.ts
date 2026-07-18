@@ -248,7 +248,10 @@ export async function runVentasAutomations(saleId: string) {
 
                   if (finalCardId) {
                     await addSaleLog(saleId, "Trello", "INFO", "Dropbox completado pos-Trello. Actualizando descripción de tarjeta...");
-                    const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+                    const manualInfo = sale.manual_servicio 
+                      ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${sale.manual_rama || "N/A"}\n- **Categoría:** ${sale.manual_categoria || "N/A"}\n- **Servicio:** ${sale.manual_servicio || "N/A"}${sale.manual_enlace ? `\n- **Enlace de manual:** ${sale.manual_enlace}` : ""}`
+                      : "";
+                    const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink}${manualInfo} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
                     await updateTrelloCardDesc(finalCardId, trelloDesc);
                     await addSaleLog(saleId, "Trello", "SUCCESS", "Descripción de tarjeta de Trello actualizada con enlace de Dropbox.");
                   }
@@ -307,7 +310,10 @@ export async function runVentasAutomations(saleId: string) {
           } else {
             await addSaleLog(saleId, "Trello", "INFO", "Creando tarjeta de operaciones en Trello...");
             await supabase.from("ventas").update({ status_trello: "PROCESANDO" }).eq("id", saleId);
-            const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
+            const manualInfo = sale.manual_servicio 
+              ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${sale.manual_rama || "N/A"}\n- **Categoría:** ${sale.manual_categoria || "N/A"}\n- **Servicio:** ${sale.manual_servicio || "N/A"}${sale.manual_enlace ? `\n- **Enlace de manual:** ${sale.manual_enlace}` : ""}`
+              : "";
+            const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""} \n\n  Brief: ${sale.proyecto_brief || "N/A"} \n Material: ${dropboxUrlLink || "No creada"}${manualInfo} \n\n 🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
 
             const trelloRes = await processTrelloCard({
               projectName: sale.proyecto_nombre,

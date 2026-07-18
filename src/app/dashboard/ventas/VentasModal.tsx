@@ -105,6 +105,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
   const [gatingProjSearchQuery, setGatingProjSearchQuery] = useState("");
   const [showGatingProjSuggestions, setShowGatingProjSuggestions] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [manuals, setManuals] = useState<any>({});
 
   
   const [gatingStep, setGatingStep] = useState<"choose" | "extension" | "pago_parcial" | "none">("choose");
@@ -149,6 +150,24 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
   const [showCustomGating, setShowCustomGating] = useState(false);
   const [showCustomEdit, setShowCustomEdit] = useState(false);
   const [showCustomNew, setShowCustomNew] = useState(false);
+
+  // Estados para el sistema de borradores (localStorage)
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  const [draftToRestore, setDraftToRestore] = useState<any>(null);
+
+  const isDraftEmpty = (draft: any) => {
+    if (!draft || !draft.formData) return true;
+    const fd = draft.formData;
+    return (
+      !fd.cliente_nombre?.trim() &&
+      !fd.cliente_id &&
+      !fd.proyecto_nombre?.trim() &&
+      !fd.monto_total?.trim() &&
+      !fd.monto_pagado?.trim() &&
+      !fd.proyecto_previo_id &&
+      !fd.proyecto_id
+    );
+  };
 
   const [formData, setFormData] = useState({
     
@@ -203,7 +222,11 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
 
     
     tipo_cierre: "Cierre por closer",
-    notas_internas: ""
+    notas_internas: "",
+    manual_rama: "",
+    manual_categoria: "",
+    manual_servicio: "",
+    manual_enlace: ""
   });
 
   
@@ -219,106 +242,222 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
   }, [isOpen]);
 
   
+  const resetToDefaultStates = () => {
+    setGatingStep(initialGatingStep);
+    setSelectedClient("");
+    setSelectedPriorProject("");
+    setGatingProjSearchQuery("");
+    setShowGatingProjSuggestions(false);
+    setSelectedProject(null);
+    setMontoCCPagadoPrevio(0);
+    setMontoCCTotalPrevio(0);
+    setModifyProjectData(false);
+    setModifyClientData(false);
+    setModifyPaymentMode(false);
+    setStep(1);
+    setFormError(null);
+    setGatingSearchQuery("");
+    setShowGatingSuggestions(false);
+    setMainSearchQuery("");
+    setShowMainSuggestions(false);
+    setShowPinConfirm(false);
+    setConfirmPin(Array(6).fill(""));
+    setPinError(null);
+    setIsPagoParcial(true);
+    setMontoPorHora("");
+    setCantidadHoras("");
+    setClosingParticipants([]);
+    setSetterAdicionalId("");
+    setActualizarCliente(false);
+    setAgregarSetterAdicional(false);
+
+    setFormData({
+      es_continuacion: false,
+      tipo_continuacion: "",
+      proyecto_previo_id: "",
+      proyecto_id: "",
+      tipo_venta: "Nueva Venta",
+      tipo_proyecto: "Precio Fijo",
+      tipo_proyecto_otro: "",
+      status_pago: "Pago Parcial",
+      plataforma: "Workana",
+      cliente_nuevo: true,
+      cliente_id: "",
+      cliente_nombre: "",
+      cliente_telefono: "",
+      cliente_email: "",
+      cliente_pais: "",
+      cliente_empresa: "",
+      cliente_link_usuario: "",
+      proyecto_nombre: "",
+      proyecto_link: "",
+      proyecto_brief: "",
+      descripcion_operativa: "",
+      deadline: "",
+      urgente: false,
+      motivo_urgencia: "",
+      moneda: "USD",
+      moneda_otra: "",
+      monto_total: "",
+      monto_explicacion: "",
+      monto_pagado: "",
+      comision_total: "",
+      fecha_pago: "",
+      fecha_liberacion_pendiente: false,
+      comprobante_link: "",
+      comprobante_no_aplica: true,
+      setter_principal_id: "",
+      setters_adicionales_ids: [],
+      closer_principal_id: "",
+      closers_adicionales_ids: [],
+      tipo_cierre: "Cierre por closer",
+      notas_internas: "",
+      manual_rama: "",
+      manual_categoria: "",
+      manual_servicio: "",
+      manual_enlace: ""
+    });
+  };
+
+  // Cargar catálogos siempre al abrir el modal
   useEffect(() => {
     if (isOpen) {
-      
-      setGatingStep(initialGatingStep);
-      setSelectedClient("");
-      setSelectedPriorProject("");
-      setGatingProjSearchQuery("");
-      setShowGatingProjSuggestions(false);
-      setSelectedProject(null);
-      setMontoCCPagadoPrevio(0);
-      setMontoCCTotalPrevio(0);
-      setModifyProjectData(false);
-      setModifyClientData(false);
-      setModifyPaymentMode(false);
-      setStep(1);
-      setFormError(null);
-      setGatingSearchQuery("");
-      setShowGatingSuggestions(false);
-      setMainSearchQuery("");
-      setShowMainSuggestions(false);
-      setShowPinConfirm(false);
-      setConfirmPin(Array(6).fill(""));
-      setPinError(null);
-      setIsPagoParcial(true);
-      setMontoPorHora("");
-      setCantidadHoras("");
-      setClosingParticipants([]);
-      setSetterAdicionalId("");
-      setActualizarCliente(false);
-      setAgregarSetterAdicional(false);
-
-      setFormData({
-        es_continuacion: false,
-        tipo_continuacion: "",
-        proyecto_previo_id: "",
-        proyecto_id: "",
-        tipo_venta: "Nueva Venta",
-        tipo_proyecto: "Precio Fijo",
-        tipo_proyecto_otro: "",
-        status_pago: "Pago Parcial",
-        plataforma: "Workana",
-        cliente_nuevo: true,
-        cliente_id: "",
-        cliente_nombre: "",
-        cliente_telefono: "",
-        cliente_email: "",
-        cliente_pais: "",
-        cliente_empresa: "",
-        cliente_link_usuario: "",
-        proyecto_nombre: "",
-        proyecto_link: "",
-        proyecto_brief: "",
-        descripcion_operativa: "",
-        deadline: "",
-        urgente: false,
-        motivo_urgencia: "",
-        moneda: "USD",
-        moneda_otra: "",
-        monto_total: "",
-        monto_explicacion: "",
-        monto_pagado: "",
-        comision_total: "",
-        fecha_pago: "",
-        fecha_liberacion_pendiente: false,
-        comprobante_link: "",
-        comprobante_no_aplica: true,
-        setter_principal_id: "",
-        setters_adicionales_ids: [],
-        closer_principal_id: "",
-        closers_adicionales_ids: [],
-        tipo_cierre: "Cierre por closer",
-        notas_internas: ""
-      });
-
       async function loadAuxiliaryData() {
         setLoadingData(true);
         try {
-          const [clientsRes, usersRes, projectsRes] = await Promise.all([
+          const [clientsRes, usersRes, projectsRes, manualsRes] = await Promise.all([
             fetch("/api/clients"),
             fetch("/api/users"),
-            fetch("/api/projects")
+            fetch("/api/projects"),
+            fetch("/api/config/manuals")
           ]);
 
           const clientsData = await clientsRes.json();
           const usersData = await usersRes.json();
           const projectsData = await projectsRes.json();
+          const manualsData = await manualsRes.json();
 
           if (clientsData.success) setClients(clientsData.clients || []);
           if (usersData.success) setUsers(usersData.users || []);
           if (projectsData.success) setAllProjects(projectsData.projects || []);
+          if (manualsData.success) setManuals(manualsData.manuals || {});
         } catch (error) {
           console.error("Error al cargar datos del formulario:", error);
         } finally {
           setLoadingData(false);
         }
       }
-
       loadAuxiliaryData();
     }
+  }, [isOpen]);
+
+  // Verificar si hay borrador guardado en localStorage al abrir
+  useEffect(() => {
+    if (isOpen) {
+      const draftStr = localStorage.getItem("sales_draft");
+      let parsedDraft = null;
+      try {
+        if (draftStr) parsedDraft = JSON.parse(draftStr);
+      } catch (e) {
+        console.error("Error al parsear borrador de venta:", e);
+      }
+
+      if (parsedDraft && !isDraftEmpty(parsedDraft)) {
+        setDraftToRestore(parsedDraft);
+        setShowDraftPrompt(true);
+      } else {
+        setShowDraftPrompt(false);
+        setDraftToRestore(null);
+        resetToDefaultStates();
+      }
+    }
   }, [isOpen, initialGatingStep]);
+
+  // Guardar borrador automáticamente ante cualquier cambio de estado
+  useEffect(() => {
+    if (isOpen && !showDraftPrompt) {
+      const draftData = {
+        formData,
+        step,
+        gatingStep,
+        modifyProjectData,
+        modifyClientData,
+        modifyPaymentMode,
+        isPagoParcial,
+        montoPorHora,
+        cantidadHoras,
+        closingParticipants,
+        setterAdicionalId,
+        actualizarCliente,
+        agregarSetterAdicional,
+        selectedProject,
+        selectedClient
+      };
+
+      if (!isDraftEmpty(draftData)) {
+        localStorage.setItem("sales_draft", JSON.stringify(draftData));
+      }
+    }
+  }, [
+    isOpen,
+    showDraftPrompt,
+    formData,
+    step,
+    gatingStep,
+    modifyProjectData,
+    modifyClientData,
+    modifyPaymentMode,
+    isPagoParcial,
+    montoPorHora,
+    cantidadHoras,
+    closingParticipants,
+    setterAdicionalId,
+    actualizarCliente,
+    agregarSetterAdicional,
+    selectedProject,
+    selectedClient
+  ]);
+
+  const handleRestoreDraft = () => {
+    if (!draftToRestore) return;
+    const d = draftToRestore;
+    if (d.formData) setFormData(d.formData);
+    if (d.step !== undefined) setStep(d.step);
+    if (d.gatingStep !== undefined) setGatingStep(d.gatingStep);
+    if (d.modifyProjectData !== undefined) setModifyProjectData(d.modifyProjectData);
+    if (d.modifyClientData !== undefined) setModifyClientData(d.modifyClientData);
+    if (d.modifyPaymentMode !== undefined) setModifyPaymentMode(d.modifyPaymentMode);
+    if (d.isPagoParcial !== undefined) setIsPagoParcial(d.isPagoParcial);
+    if (d.montoPorHora !== undefined) setMontoPorHora(d.montoPorHora);
+    if (d.cantidadHoras !== undefined) setCantidadHoras(d.cantidadHoras);
+    if (d.closingParticipants !== undefined) setClosingParticipants(d.closingParticipants);
+    if (d.setterAdicionalId !== undefined) setSetterAdicionalId(d.setterAdicionalId);
+    if (d.actualizarCliente !== undefined) setActualizarCliente(d.actualizarCliente);
+    if (d.agregarSetterAdicional !== undefined) setAgregarSetterAdicional(d.agregarSetterAdicional);
+    if (d.selectedProject !== undefined) setSelectedProject(d.selectedProject);
+    if (d.selectedClient !== undefined) setSelectedClient(d.selectedClient);
+
+    if (d.selectedProject) {
+      setGatingProjSearchQuery(d.selectedProject.nombre || "");
+    }
+    if (d.selectedClient) {
+      setMainSearchQuery(d.formData?.cliente_nombre || "");
+      setGatingSearchQuery(d.formData?.cliente_nombre || "");
+    }
+
+    setShowDraftPrompt(false);
+    setDraftToRestore(null);
+  };
+
+  const handleDiscardDraft = () => {
+    const confirmDiscard = window.confirm("¿Estás seguro? Tu venta sin registrar se va a descartar de forma permanente.");
+    if (!confirmDiscard) return;
+
+    localStorage.removeItem("sales_draft");
+    setShowDraftPrompt(false);
+    setDraftToRestore(null);
+    resetToDefaultStates();
+  };
 
   
   useEffect(() => {
@@ -658,6 +797,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
         }
       }
 
+      localStorage.removeItem("sales_draft");
       onSuccess();
       setShowPinConfirm(false);
       onClose();
@@ -781,7 +921,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
 
   
   let modalWidth = "680px";
-  if (gatingStep === "choose") {
+  if (showDraftPrompt) {
+    modalWidth = "480px";
+  } else if (gatingStep === "choose") {
     modalWidth = "640px";
   } else if (gatingStep === "extension" || gatingStep === "pago_parcial") {
     modalWidth = "480px";
@@ -822,7 +964,120 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
         )}
 
         {}
-        {gatingStep !== "none" ? (
+        {showDraftPrompt ? (
+          <div style={{ flexGrow: 1, overflowY: "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box" }}>
+            <span className={styles.gatingTitle} style={{ alignSelf: "center", marginBottom: "0.5rem", fontWeight: "500", fontSize: "1.15rem", textAlign: "center" }}>
+              Borrador de venta detectado
+            </span>
+            <p style={{ fontSize: "0.85rem", color: "#64748b", textAlign: "center", marginBottom: "1.5rem", marginTop: 0 }}>
+              Tienes una venta sin registrar. ¿Deseas continuar desde donde lo dejaste o empezar una nueva venta?
+            </p>
+
+            <div style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "1.25rem",
+              marginBottom: "2rem",
+              fontSize: "0.9rem",
+              color: "#334155"
+            }}>
+              <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem", fontWeight: "600", color: "#0f172a", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
+                Resumen del Borrador
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "0.5rem 1rem", alignItems: "start" }}>
+                {draftToRestore?.formData?.cliente_nombre ? (
+                  <>
+                    <strong style={{ color: "#475569" }}>Cliente:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.cliente_nombre}</span>
+                  </>
+                ) : draftToRestore?.formData?.cliente_id ? (
+                  <>
+                    <strong style={{ color: "#475569" }}>Cliente ID:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>
+                      {clients.find(c => c.id === draftToRestore.formData.cliente_id)?.nombre || draftToRestore.formData.cliente_id}
+                    </span>
+                  </>
+                ) : null}
+
+                {draftToRestore?.formData?.proyecto_nombre && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Proyecto:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.proyecto_nombre}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.tipo_venta && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Tipo de Venta:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.tipo_venta}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.plataforma && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Plataforma:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.plataforma}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.monto_total && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Monto:</strong>
+                    <span style={{ fontWeight: "600", color: "#0f172a" }}>
+                      {draftToRestore.formData.monto_total} {draftToRestore.formData.moneda || "USD"}
+                    </span>
+                  </>
+                )}
+
+                {draftToRestore?.step && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Último paso:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>Paso {draftToRestore.step} de 3</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.75rem", width: "100%", marginTop: "1.5rem" }}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 0.5rem",
+                  minHeight: "44px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center",
+                  lineHeight: "1.2",
+                  borderColor: "#cbd5e1",
+                  color: "#64748b"
+                }}
+                onClick={handleDiscardDraft}
+              >
+                Registrar nueva venta
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 0.5rem",
+                  minHeight: "44px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center"
+                }}
+                onClick={handleRestoreDraft}
+              >
+                Continuar venta
+              </button>
+            </div>
+          </div>
+        ) : gatingStep !== "none" ? (
           <div style={{ flexGrow: 1, overflowY: isAnyAutocompleteOpen ? "visible" : "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem" }} className={styles.modalBodyScrollable}>
             {gatingStep === "choose" && (
               <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
@@ -1584,6 +1839,117 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                   )}
 
                   <div className={styles.sectionTitle}>Datos del Proyecto</div>
+
+                  {/* Manual / Servicio Selectors */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "0.75rem" }}>
+                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                      <label className={styles.label}>Rama de Servicio</label>
+                      <select
+                        className={styles.select}
+                        value={formData.manual_rama || ""}
+                        onChange={(e) => {
+                          const rama = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            manual_rama: rama,
+                            manual_categoria: "",
+                            manual_servicio: "",
+                            manual_enlace: ""
+                          }));
+                        }}
+                        style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                      >
+                        <option value="">Selecciona una rama</option>
+                        {manuals && Object.keys(manuals).map(rama => (
+                          <option key={rama} value={rama} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{rama}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                      <label className={styles.label}>Categoría de Servicio</label>
+                      <select
+                        className={styles.select}
+                        value={formData.manual_categoria || ""}
+                        onChange={(e) => {
+                          const cat = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            manual_categoria: cat,
+                            manual_servicio: "",
+                            manual_enlace: ""
+                          }));
+                        }}
+                        disabled={!formData.manual_rama}
+                        style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                      >
+                        <option value="">Selecciona una categoría</option>
+                        {formData.manual_rama && manuals && manuals[formData.manual_rama] && 
+                          Array.from(new Set(manuals[formData.manual_rama].map((m: any) => m.categoria))).map((cat: any) => (
+                            <option key={cat} value={cat} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{cat}</option>
+                          ))
+                        }
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
+                    <label className={styles.label}>Servicio</label>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                      <select
+                        className={styles.select}
+                        value={formData.manual_servicio ? (
+                          formData.manual_rama && manuals && manuals[formData.manual_rama]
+                            ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio && s.categoria === formData.manual_categoria)?.id?.toString() || ""
+                            : ""
+                        ) : ""}
+                        onChange={(e) => {
+                          const srvId = e.target.value;
+                          const ramaList = formData.manual_rama && manuals ? manuals[formData.manual_rama] || [] : [];
+                          const srv = ramaList.find((s: any) => s.id.toString() === srvId);
+                          setFormData(prev => ({
+                            ...prev,
+                            manual_servicio: srv ? srv.item : "",
+                            manual_enlace: srv ? srv.enlace || "" : "",
+                            proyecto_nombre: srv ? srv.item : prev.proyecto_nombre
+                          }));
+                        }}
+                        disabled={!formData.manual_categoria}
+                        style={{ backgroundColor: "#ffffff", color: "#0f172a", flexGrow: 1 }}
+                      >
+                        <option value="">Selecciona un servicio</option>
+                        {formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama] &&
+                          manuals[formData.manual_rama]
+                            .filter((m: any) => m.categoria === formData.manual_categoria && m.activo !== false)
+                            .map((srv: any) => (
+                              <option key={srv.id} value={srv.id.toString()} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{srv.item}</option>
+                            ))
+                        }
+                      </select>
+                      {formData.manual_enlace && (
+                        <a
+                          href={formData.manual_enlace}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.btnSecondary}
+                          style={{ 
+                            padding: "0.5rem 0.75rem", 
+                            fontSize: "0.75rem", 
+                            minHeight: "auto", 
+                            height: "40px", 
+                            display: "inline-flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            gap: "0.25rem",
+                            whiteSpace: "nowrap",
+                            margin: 0
+                          }}
+                        >
+                          Ver Manual ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className={styles.formGroup}>
