@@ -346,13 +346,13 @@ export default function VentasPage() {
       // Default fallback values
       setQuickTrelloTitle(`${cleanedProj} - ${clientName}`);
       const dropboxUrlLink = selectedViewSale.carpeta_dropbox || "No creada";
-      const modoTrabajoLink = selectedViewSale.urgente
-        ? "[Flujo de Proyecto Urgente](https://gamma.app/docs/h2z3grt8tqs0vql)"
-        : "[Flujo de Proyecto Regular](https://gamma.app/docs/Flujo-de-Proyecto-Regular-fmerjwxrcvffc03)";
+      const modoTrabajoUrl = selectedViewSale.urgente
+        ? "https://gamma.app/docs/h2z3grt8tqs0vql"
+        : "https://gamma.app/docs/Flujo-de-Proyecto-Regular-fmerjwxrcvffc03";
       const manualInfo = selectedViewSale.manual_servicio 
         ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${selectedViewSale.manual_rama || "N/A"}\n- **Categoría:** ${selectedViewSale.manual_categoria || "N/A"}\n- **Servicio:** ${selectedViewSale.manual_servicio || "N/A"}${selectedViewSale.manual_enlace ? `\n- **Enlace de manual:** ${selectedViewSale.manual_enlace}` : ""}`
         : "";
-      const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""}\nModo de Trabajo: ${modoTrabajoLink}\nBrief: ${selectedViewSale.proyecto_brief || "N/A"}\nMaterial: ${dropboxUrlLink}${manualInfo}\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${selectedViewSale.descripcion_operativa ? `\n\n---\n\n${selectedViewSale.descripcion_operativa}` : ""}`;
+      const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""}\nModo de Trabajo: ${modoTrabajoUrl}\nBrief: ${selectedViewSale.proyecto_brief || "N/A"}\nMaterial: ${dropboxUrlLink}${manualInfo}\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${selectedViewSale.descripcion_operativa ? `\n\n---\n\n${selectedViewSale.descripcion_operativa}` : ""}`;
       setQuickTrelloDesc(desc);
       setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);
       setTrelloCardMembers([]);
