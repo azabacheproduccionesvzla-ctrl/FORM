@@ -1204,6 +1204,7 @@ export default function VentasPage() {
           onClose={() => setIsModalOpen(false)}
           onSuccess={fetchSales}
           initialGatingStep={modalGatingStep}
+          initialUsers={usersList}
         />
       )}
       { }

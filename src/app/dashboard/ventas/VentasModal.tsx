@@ -19,6 +19,7 @@ interface User {
   username: string;
   nombre: string;
   rol: string;
+  activo?: boolean;
 }
 
 interface PriorSale {
@@ -91,14 +92,27 @@ interface VentasModalProps {
   onClose: () => void;
   onSuccess: () => void;
   initialGatingStep?: "choose" | "extension" | "pago_parcial" | "none";
+  initialUsers?: User[];
 }
 
-export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingStep = "choose" }: VentasModalProps) {
+export default function VentasModal({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  initialGatingStep = "choose",
+  initialUsers = []
+}: VentasModalProps) {
   
   const [clients, setClients] = useState<Client[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(initialUsers && initialUsers.length > 0 ? initialUsers : []);
   const [priorSales, setPriorSales] = useState<PriorSale[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+
+  useEffect(() => {
+    if (initialUsers && initialUsers.length > 0 && users.length === 0) {
+      setUsers(initialUsers);
+    }
+  }, [initialUsers]);
 
   // New state variables for projects selection
   const [allProjects, setAllProjects] = useState<any[]>([]);
@@ -325,22 +339,28 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
       async function loadAuxiliaryData() {
         setLoadingData(true);
         try {
-          const [clientsRes, usersRes, projectsRes, manualsRes] = await Promise.all([
-            fetch("/api/clients"),
-            fetch("/api/users"),
-            fetch("/api/projects"),
-            fetch("/api/config/manuals")
+          const results = await Promise.allSettled([
+            fetch("/api/clients").then(r => r.json()),
+            fetch("/api/users").then(r => r.json()),
+            fetch("/api/projects").then(r => r.json()),
+            fetch("/api/config/manuals").then(r => r.json())
           ]);
 
-          const clientsData = await clientsRes.json();
-          const usersData = await usersRes.json();
-          const projectsData = await projectsRes.json();
-          const manualsData = await manualsRes.json();
-
-          if (clientsData.success) setClients(clientsData.clients || []);
-          if (usersData.success) setUsers(usersData.users || []);
-          if (projectsData.success) setAllProjects(projectsData.projects || []);
-          if (manualsData.success) setManuals(manualsData.manuals || {});
+          if (results[0].status === "fulfilled" && results[0].value?.success) {
+            setClients(results[0].value.clients || []);
+          }
+          if (results[1].status === "fulfilled" && results[1].value?.success) {
+            const fetchedUsers = results[1].value.users || [];
+            if (fetchedUsers.length > 0) {
+              setUsers(fetchedUsers);
+            }
+          }
+          if (results[2].status === "fulfilled" && results[2].value?.success) {
+            setAllProjects(results[2].value.projects || []);
+          }
+          if (results[3].status === "fulfilled" && results[3].value?.success) {
+            setManuals(results[3].value.manuals || {});
+          }
         } catch (error) {
           console.error("Error al cargar datos del formulario:", error);
         } finally {
@@ -846,8 +866,25 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
   };
 
   
-  const setters = users.filter(u => u.rol === "ventas" || u.rol === "admin");
-  const closingCandidates = users.filter(u => u.rol === "ventas" || u.rol === "admin");
+  const activeUsers = users.filter(u => u.activo !== false);
+
+  let setters = activeUsers.filter(u => {
+    if (!u.rol) return true;
+    const r = String(u.rol).toLowerCase().trim();
+    return r === "ventas" || r === "admin" || r === "setter" || r === "closer" || r === "sales" || r === "director";
+  });
+  if (setters.length === 0 && activeUsers.length > 0) {
+    setters = activeUsers;
+  }
+
+  let closingCandidates = activeUsers.filter(u => {
+    if (!u.rol) return true;
+    const r = String(u.rol).toLowerCase().trim();
+    return r === "ventas" || r === "admin" || r === "setter" || r === "closer" || r === "sales" || r === "director";
+  });
+  if (closingCandidates.length === 0 && activeUsers.length > 0) {
+    closingCandidates = activeUsers;
+  }
 
   
   const filteredProjectsGating = allProjects.filter((p) => {
@@ -1814,7 +1851,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                                 disabled={disableClientFields}
                                 required
                               >
-                                <option value="">Seleccionar Setter</option>
+                                <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
                                 {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                               </select>
                             </div>
@@ -1830,7 +1867,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                             disabled={disableClientFields}
                             required
                           >
-                            <option value="">Seleccionar Setter</option>
+                            <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
                             {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                           </select>
                         </div>
@@ -2049,7 +2086,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                                 disabled={disableClientFields}
                                 required
                               >
-                                <option value="">Seleccionar Setter</option>
+                                <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
                                 {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                               </select>
                             </div>
@@ -2065,7 +2102,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess, initialGatingS
                             disabled={disableClientFields}
                             required
                           >
-                            <option value="">Seleccionar Setter</option>
+                            <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
                             {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                           </select>
                         </div>
