@@ -331,7 +331,13 @@ export async function runVentasAutomations(saleId: string) {
                                       (sale.link_trello ? sale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null);
 
             if (finalTrelloCardId) {
-              const commentText = `Extensión del proyecto - ${sale.notas_internas || ""}`;
+              const manualInfo = buildManualsInfoText(sale);
+              const notas = sale.notas_internas ? ` - ${sale.notas_internas}` : "";
+              const horasInfo = sale.tipo_proyecto === "Por Hora"
+                ? "\n- **Modalidad:** Por Hora"
+                : "";
+              const aviso = "\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos.";
+              const commentText = `Extensión del proyecto${notas}${horasInfo}${manualInfo}${aviso}`;
               const commentRes = await addTrelloCardComment(finalTrelloCardId, commentText);
 
               if (commentRes.success) {

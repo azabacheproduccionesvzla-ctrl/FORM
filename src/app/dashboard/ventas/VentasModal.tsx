@@ -759,6 +759,7 @@ export default function VentasModal({
 
   
   const handleConfirmPinSubmit = async () => {
+    if (submitting) return;
     setPinError(null);
     setSubmitting(true);
 
@@ -793,6 +794,9 @@ export default function VentasModal({
       actualizar_cliente: isExtension ? modifyClientData : actualizarCliente,
       pin: pinStr
     };
+
+    // Remove draft immediately so page reloads during network wait don't duplicate submission
+    localStorage.removeItem("sales_draft");
 
     try {
       const res = await fetch("/api/sales", {
