@@ -240,7 +240,8 @@ export default function VentasModal({
     manual_rama: "",
     manual_categoria: "",
     manual_servicio: "",
-    manual_enlace: ""
+    manual_enlace: "",
+    manuales_servicios: [] as Array<{ id?: string | number; rama: string; categoria: string; servicio: string; enlace: string; }>
   });
 
   
@@ -329,7 +330,8 @@ export default function VentasModal({
       manual_rama: "",
       manual_categoria: "",
       manual_servicio: "",
-      manual_enlace: ""
+      manual_enlace: "",
+      manuales_servicios: []
     });
   };
 
@@ -885,6 +887,62 @@ export default function VentasModal({
   if (closingCandidates.length === 0 && activeUsers.length > 0) {
     closingCandidates = activeUsers;
   }
+
+  const handleAddServiceToPackage = (srvToInsert?: any) => {
+    const r = formData.manual_rama;
+    const c = formData.manual_categoria;
+    const s = srvToInsert || (formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama]
+      ? manuals[formData.manual_rama].find((item: any) => item.item === formData.manual_servicio && item.categoria === formData.manual_categoria)
+      : null);
+
+    if (!r || !c || !s) return;
+
+    const newItem = {
+      id: s.id,
+      rama: r,
+      categoria: c,
+      servicio: s.item,
+      enlace: s.enlace || ""
+    };
+
+    setFormData(prev => {
+      const currentList = prev.manuales_servicios || [];
+      const exists = currentList.some(item => item.servicio === newItem.servicio && item.categoria === newItem.categoria && item.rama === newItem.rama);
+      if (exists) return prev;
+
+      const newList = [...currentList, newItem];
+      
+      let updatedProjName = prev.proyecto_nombre;
+      if (!updatedProjName || currentList.map(i => i.servicio).includes(updatedProjName)) {
+        updatedProjName = newList.map(i => i.servicio).join(" + ");
+      }
+
+      return {
+        ...prev,
+        manuales_servicios: newList,
+        manual_rama: newList[0]?.rama || "",
+        manual_categoria: newList[0]?.categoria || "",
+        manual_servicio: newList.map(i => i.servicio).join(", "),
+        manual_enlace: newList[0]?.enlace || "",
+        proyecto_nombre: updatedProjName
+      };
+    });
+  };
+
+  const handleRemoveServiceFromPackage = (index: number) => {
+    setFormData(prev => {
+      const currentList = prev.manuales_servicios || [];
+      const newList = currentList.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        manuales_servicios: newList,
+        manual_rama: newList[0]?.rama || "",
+        manual_categoria: newList[0]?.categoria || "",
+        manual_servicio: newList.map(i => i.servicio).join(", "),
+        manual_enlace: newList[0]?.enlace || ""
+      };
+    });
+  };
 
   
   const filteredProjectsGating = allProjects.filter((p) => {
@@ -1932,61 +1990,171 @@ export default function VentasModal({
 
                   <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
                     <label className={styles.label}>Servicio</label>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      <select
-                        className={styles.select}
-                        value={formData.manual_servicio ? (
-                          formData.manual_rama && manuals && manuals[formData.manual_rama]
-                            ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio && s.categoria === formData.manual_categoria)?.id?.toString() || ""
-                            : ""
-                        ) : ""}
-                        onChange={(e) => {
-                          const srvId = e.target.value;
-                          const ramaList = formData.manual_rama && manuals ? manuals[formData.manual_rama] || [] : [];
-                          const srv = ramaList.find((s: any) => s.id.toString() === srvId);
-                          setFormData(prev => ({
-                            ...prev,
-                            manual_servicio: srv ? srv.item : "",
-                            manual_enlace: srv ? srv.enlace || "" : "",
-                            proyecto_nombre: srv ? srv.item : prev.proyecto_nombre
-                          }));
-                        }}
-                        disabled={!formData.manual_categoria}
-                        style={{ backgroundColor: "#ffffff", color: "#0f172a", flexGrow: 1 }}
-                      >
-                        <option value="">Selecciona un servicio</option>
-                        {formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama] &&
-                          manuals[formData.manual_rama]
-                            .filter((m: any) => m.categoria === formData.manual_categoria && m.activo !== false)
-                            .map((srv: any) => (
-                              <option key={srv.id} value={srv.id.toString()} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{srv.item}</option>
-                            ))
+                    <select
+                      className={styles.select}
+                      value={formData.manual_servicio ? (
+                        formData.manual_rama && manuals && manuals[formData.manual_rama]
+                          ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio && s.categoria === formData.manual_categoria)?.id?.toString() || ""
+                          : ""
+                      ) : ""}
+                      onChange={(e) => {
+                        const srvId = e.target.value;
+                        const ramaList = formData.manual_rama && manuals ? manuals[formData.manual_rama] || [] : [];
+                        const srv = ramaList.find((s: any) => s.id.toString() === srvId);
+                        if (srv) {
+                          handleAddServiceToPackage(srv);
                         }
-                      </select>
-                      {formData.manual_enlace && (
-                        <a
-                          href={formData.manual_enlace}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.btnSecondary}
-                          style={{ 
-                            padding: "0.5rem 0.75rem", 
-                            fontSize: "0.75rem", 
-                            minHeight: "auto", 
-                            height: "40px", 
-                            display: "inline-flex", 
-                            alignItems: "center", 
-                            justifyContent: "center",
-                            gap: "0.25rem",
-                            whiteSpace: "nowrap",
-                            margin: 0
+                      }}
+                      disabled={!formData.manual_categoria}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    >
+                      <option value="">Selecciona un servicio</option>
+                      {formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama] &&
+                        manuals[formData.manual_rama]
+                          .filter((m: any) => m.categoria === formData.manual_categoria && m.activo !== false)
+                          .map((srv: any) => (
+                            <option key={srv.id} value={srv.id.toString()} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{srv.item}</option>
+                          ))
+                      }
+                    </select>
+                  </div>
+
+                  {/* Lista de Servicios de la Venta */}
+                  {formData.manuales_servicios && formData.manuales_servicios.length > 0 && (
+                    <div 
+                      style={{ 
+                        marginBottom: "1.25rem", 
+                        backgroundColor: "#f8fafc", 
+                        border: "1px solid #e2e8f0", 
+                        borderLeft: "4px solid #3b82f6",
+                        borderRadius: "10px", 
+                        padding: "1rem",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a" }}>
+                            Servicios de la Venta
+                          </span>
+                          <span style={{ backgroundColor: "#3b82f6", color: "#ffffff", borderRadius: "12px", padding: "0.1rem 0.5rem", fontSize: "0.7rem", fontWeight: 700 }}>
+                            {formData.manuales_servicios.length}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              manual_rama: "",
+                              manual_categoria: "",
+                              manual_servicio: "",
+                              manual_enlace: ""
+                            }));
+                          }}
+                          style={{
+                            backgroundColor: "#ffffff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "6px",
+                            padding: "0.35rem 0.75rem",
+                            fontSize: "0.775rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.3rem",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
                           }}
                         >
-                          Ver Manual ↗
-                        </a>
-                      )}
+                          <span>+ Añadir otro servicio</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                        {formData.manuales_servicios.map((srv, idx) => (
+                          <div 
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                              padding: "0.65rem 0.9rem",
+                              gap: "0.75rem"
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                              <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "#0f172a" }}>
+                                {srv.servicio}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+                                <span style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", padding: "0.12rem 0.45rem", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 500 }}>
+                                  {srv.rama}
+                                </span>
+                                <span style={{ color: "#94a3b8", fontSize: "0.7rem" }}>•</span>
+                                <span style={{ backgroundColor: "#f1f5f9", color: "#475569", padding: "0.12rem 0.45rem", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 500 }}>
+                                  {srv.categoria}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                              {srv.enlace && (
+                                <a
+                                  href={srv.enlace}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.3rem",
+                                    backgroundColor: "#eff6ff",
+                                    color: "#2563eb",
+                                    border: "1px solid #bfdbfe",
+                                    borderRadius: "6px",
+                                    padding: "0.35rem 0.65rem",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 600,
+                                    textDecoration: "none"
+                                  }}
+                                >
+                                  <span>Enlace de manual</span>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                  </svg>
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveServiceFromPackage(idx)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  backgroundColor: "#fef2f2",
+                                  color: "#ef4444",
+                                  border: "1px solid #fecaca",
+                                  borderRadius: "6px",
+                                  padding: "0.35rem 0.55rem",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  cursor: "pointer"
+                                }}
+                                title="Quitar servicio de la venta"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className={styles.formGroup}>

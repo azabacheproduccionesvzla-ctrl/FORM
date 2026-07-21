@@ -46,6 +46,7 @@ interface Sale {
   manual_categoria?: string;
   manual_servicio?: string;
   manual_enlace?: string;
+  manuales_servicios?: any[];
   usuario_registro_id: string;
   creado_en: string;
   estado_interno: string;
@@ -349,9 +350,18 @@ export default function VentasPage() {
       const modoTrabajoUrl = selectedViewSale.urgente
         ? "https://gamma.app/docs/h2z3grt8tqs0vql"
         : "https://gamma.app/docs/Flujo-de-Proyecto-Regular-fmerjwxrcvffc03";
-      const manualInfo = selectedViewSale.manual_servicio 
-        ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${selectedViewSale.manual_rama || "N/A"}\n- **Categoría:** ${selectedViewSale.manual_categoria || "N/A"}\n- **Servicio:** ${selectedViewSale.manual_servicio || "N/A"}${selectedViewSale.manual_enlace ? `\n- **Enlace de manual:** ${selectedViewSale.manual_enlace}` : ""}`
-        : "";
+      let manualInfo = "";
+      const srvList = Array.isArray(selectedViewSale.manuales_servicios) && selectedViewSale.manuales_servicios.length > 0
+        ? selectedViewSale.manuales_servicios
+        : (selectedViewSale.manual_servicio ? [{ rama: selectedViewSale.manual_rama || "N/A", categoria: selectedViewSale.manual_categoria || "N/A", servicio: selectedViewSale.manual_servicio, enlace: selectedViewSale.manual_enlace || "" }] : []);
+      
+      if (srvList.length === 1) {
+        const s = srvList[0];
+        manualInfo = ` \n\n**Manual de Servicio:**\n- **Rama:** ${s.rama}\n- **Categoría:** ${s.categoria}\n- **Servicio:** ${s.servicio}${s.enlace ? `\n- **Enlace de manual:** ${s.enlace}` : ""}`;
+      } else if (srvList.length > 1) {
+        const itemsText = srvList.map((s: any) => `• **${s.servicio}** (${s.rama} / ${s.categoria})${s.enlace ? `\n  - Enlace de manual: ${s.enlace}` : ""}`).join("\n");
+        manualInfo = ` \n\n**Servicios de Producción Adquiridos (${srvList.length}):**\n${itemsText}`;
+      }
       const desc = `${selectedViewSale.tipo_proyecto}${selectedViewSale.tipo_proyecto_otro ? ` (${selectedViewSale.tipo_proyecto_otro})` : ""}\nModo de Trabajo: ${modoTrabajoUrl}\nBrief: ${selectedViewSale.proyecto_brief || "N/A"}\nMaterial: ${dropboxUrlLink}${manualInfo}\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${selectedViewSale.descripcion_operativa ? `\n\n---\n\n${selectedViewSale.descripcion_operativa}` : ""}`;
       setQuickTrelloDesc(desc);
       setQuickDropboxFolder(`${clientName} - ${cleanedProj}`);

@@ -7,6 +7,41 @@ import { updateLocalWorkspaceSheet, getComision, formatExcelDate } from "@/lib/l
 import { addSaleLog } from "@/lib/logs";
 import { appendRowToSheet } from "@/lib/sheets";
 
+function buildManualsInfoText(sale: any): string {
+  let list: Array<{ rama: string; categoria: string; servicio: string; enlace: string }> = [];
+
+  if (Array.isArray(sale.manuales_servicios) && sale.manuales_servicios.length > 0) {
+    list = sale.manuales_servicios;
+  } else if (typeof sale.manuales_servicios === "string") {
+    try {
+      const parsed = JSON.parse(sale.manuales_servicios);
+      if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+    } catch (e) {}
+  }
+
+  if (list.length === 0 && sale.manual_servicio) {
+    list = [{
+      rama: sale.manual_rama || "N/A",
+      categoria: sale.manual_categoria || "N/A",
+      servicio: sale.manual_servicio || "N/A",
+      enlace: sale.manual_enlace || ""
+    }];
+  }
+
+  if (list.length === 0) return "";
+
+  if (list.length === 1) {
+    const s = list[0];
+    return ` \n\n**Manual de Servicio:**\n- **Rama:** ${s.rama}\n- **Categoría:** ${s.categoria}\n- **Servicio:** ${s.servicio}${s.enlace ? `\n- **Enlace de manual:** ${s.enlace}` : ""}`;
+  }
+
+  const itemsText = list.map(s => 
+    `• **${s.servicio}** (${s.rama} / ${s.categoria})${s.enlace ? `\n  - Enlace de manual: ${s.enlace}` : ""}`
+  ).join("\n");
+
+  return ` \n\n**Servicios de Producción Adquiridos (${list.length}):**\n${itemsText}`;
+}
+
 export async function runVentasAutomations(saleId: string) {
   try {
     console.log(`[Automations] Iniciando automatizaciones para venta ID: ${saleId}`);
@@ -246,14 +281,14 @@ export async function runVentasAutomations(saleId: string) {
 
                   const finalCardId = projDb?.trello_card_id || cardId;
 
+
+
                   if (finalCardId) {
                     await addSaleLog(saleId, "Trello", "INFO", "Dropbox completado pos-Trello. Actualizando descripción de tarjeta...");
                     const modoTrabajoUrl = sale.urgente
                       ? "https://gamma.app/docs/h2z3grt8tqs0vql"
                       : "https://gamma.app/docs/Flujo-de-Proyecto-Regular-fmerjwxrcvffc03";
-                    const manualInfo = sale.manual_servicio 
-                      ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${sale.manual_rama || "N/A"}\n- **Categoría:** ${sale.manual_categoria || "N/A"}\n- **Servicio:** ${sale.manual_servicio || "N/A"}${sale.manual_enlace ? `\n- **Enlace de manual:** ${sale.manual_enlace}` : ""}`
-                      : "";
+                    const manualInfo = buildManualsInfoText(sale);
                     const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}\nModo de Trabajo: ${modoTrabajoUrl}\nBrief: ${sale.proyecto_brief || "N/A"}\nMaterial: ${dropboxUrlLink}${manualInfo}\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
                     await updateTrelloCardDesc(finalCardId, trelloDesc);
                     await addSaleLog(saleId, "Trello", "SUCCESS", "Descripción de tarjeta de Trello actualizada con enlace de Dropbox.");
@@ -316,9 +351,7 @@ export async function runVentasAutomations(saleId: string) {
             const modoTrabajoUrl = sale.urgente
               ? "https://gamma.app/docs/h2z3grt8tqs0vql"
               : "https://gamma.app/docs/Flujo-de-Proyecto-Regular-fmerjwxrcvffc03";
-            const manualInfo = sale.manual_servicio 
-              ? ` \n\n**Manual de Servicio:**\n- **Rama:** ${sale.manual_rama || "N/A"}\n- **Categoría:** ${sale.manual_categoria || "N/A"}\n- **Servicio:** ${sale.manual_servicio || "N/A"}${sale.manual_enlace ? `\n- **Enlace de manual:** ${sale.manual_enlace}` : ""}`
-              : "";
+            const manualInfo = buildManualsInfoText(sale);
             const trelloDesc = `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}\nModo de Trabajo: ${modoTrabajoUrl}\nBrief: ${sale.proyecto_brief || "N/A"}\nMaterial: ${dropboxUrlLink || "No creada"}${manualInfo}\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos. Una evaluación rápida del proyecto nos puede asegurar un desarrollo más fluido y efectivo.${sale.descripcion_operativa ? `\n\n---\n\n${sale.descripcion_operativa}` : ""}`;
 
             const trelloRes = await processTrelloCard({

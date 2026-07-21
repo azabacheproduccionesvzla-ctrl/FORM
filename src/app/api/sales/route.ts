@@ -188,7 +188,8 @@ export async function POST(request: Request) {
       manual_rama,
       manual_categoria,
       manual_servicio,
-      manual_enlace
+      manual_enlace,
+      manuales_servicios
     } = body;
 
     if (!proyecto_nombre || !tipo_venta || !tipo_proyecto || !status_pago || !plataforma || !tipo_cierre || monto_total === undefined) {
@@ -325,10 +326,11 @@ export async function POST(request: Request) {
       status_whatsapp: "PENDIENTE",
       status_email: "PENDIENTE",
       status_sheets: "PENDIENTE",
-      manual_rama: manual_rama || null,
-      manual_categoria: manual_categoria || null,
-      manual_servicio: manual_servicio || null,
-      manual_enlace: manual_enlace || null
+      manual_rama: manual_rama || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.rama) || null,
+      manual_categoria: manual_categoria || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.categoria) || null,
+      manual_servicio: manual_servicio || (Array.isArray(manuales_servicios) ? manuales_servicios.map((s: any) => s.servicio).join(", ") : null),
+      manual_enlace: manual_enlace || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.enlace) || null,
+      manuales_servicios: manuales_servicios || null
     };
 
 
@@ -564,7 +566,8 @@ export async function PUT(request: Request) {
       manual_rama,
       manual_categoria,
       manual_servicio,
-      manual_enlace
+      manual_enlace,
+      manuales_servicios
     } = body;
 
     if (cliente_id) {
@@ -618,10 +621,11 @@ export async function PUT(request: Request) {
       status_sheets: status_sheets || undefined,
       link_trello: link_trello !== undefined ? link_trello : undefined,
       estado_interno: estado_interno || undefined,
-      manual_rama: manual_rama !== undefined ? manual_rama : undefined,
-      manual_categoria: manual_categoria !== undefined ? manual_categoria : undefined,
-      manual_servicio: manual_servicio !== undefined ? manual_servicio : undefined,
-      manual_enlace: manual_enlace !== undefined ? manual_enlace : undefined
+      manual_rama: manual_rama !== undefined ? manual_rama : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.rama) || undefined,
+      manual_categoria: manual_categoria !== undefined ? manual_categoria : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.categoria) || undefined,
+      manual_servicio: manual_servicio !== undefined ? manual_servicio : (Array.isArray(manuales_servicios) ? manuales_servicios.map((s: any) => s.servicio).join(", ") : undefined),
+      manual_enlace: manual_enlace !== undefined ? manual_enlace : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.enlace) || undefined,
+      manuales_servicios: manuales_servicios !== undefined ? manuales_servicios : undefined
     };
 
     Object.keys(updateSaleData).forEach(key => {
