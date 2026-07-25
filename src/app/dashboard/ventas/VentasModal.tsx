@@ -894,17 +894,16 @@ export default function VentasModal({
 
   const handleAddServiceToPackage = (srvToInsert?: any) => {
     const r = formData.manual_rama;
-    const c = formData.manual_categoria;
-    const s = srvToInsert || (formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama]
-      ? manuals[formData.manual_rama].find((item: any) => item.item === formData.manual_servicio && item.categoria === formData.manual_categoria)
+    const s = srvToInsert || (formData.manual_rama && manuals && manuals[formData.manual_rama]
+      ? manuals[formData.manual_rama].find((item: any) => item.item === formData.manual_servicio)
       : null);
 
-    if (!r || !c || !s) return;
+    if (!r || !s) return;
 
     const newItem = {
       id: s.id,
       rama: r,
-      categoria: c,
+      categoria: s.categoria || "",
       servicio: s.item,
       enlace: s.enlace || ""
     };
@@ -1940,56 +1939,28 @@ export default function VentasModal({
                   <div className={styles.sectionTitle}>Datos del Proyecto</div>
 
                   {/* Manual / Servicio Selectors */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "0.75rem" }}>
-                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                      <label className={styles.label}>Rama de Servicio</label>
-                      <select
-                        className={styles.select}
-                        value={formData.manual_rama || ""}
-                        onChange={(e) => {
-                          const rama = e.target.value;
-                          setFormData(prev => ({
-                            ...prev,
-                            manual_rama: rama,
-                            manual_categoria: "",
-                            manual_servicio: "",
-                            manual_enlace: ""
-                          }));
-                        }}
-                        style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
-                      >
-                        <option value="">Selecciona una rama</option>
-                        {manuals && Object.keys(manuals).map(rama => (
-                          <option key={rama} value={rama} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{rama}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                      <label className={styles.label}>Categoría de Servicio</label>
-                      <select
-                        className={styles.select}
-                        value={formData.manual_categoria || ""}
-                        onChange={(e) => {
-                          const cat = e.target.value;
-                          setFormData(prev => ({
-                            ...prev,
-                            manual_categoria: cat,
-                            manual_servicio: "",
-                            manual_enlace: ""
-                          }));
-                        }}
-                        disabled={!formData.manual_rama}
-                        style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
-                      >
-                        <option value="">Selecciona una categoría</option>
-                        {formData.manual_rama && manuals && manuals[formData.manual_rama] && 
-                          Array.from(new Set(manuals[formData.manual_rama].map((m: any) => m.categoria))).map((cat: any) => (
-                            <option key={cat} value={cat} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{cat}</option>
-                          ))
-                        }
-                      </select>
-                    </div>
+                  <div className={styles.formGroup} style={{ marginBottom: "0.75rem" }}>
+                    <label className={styles.label}>Rama de Servicio</label>
+                    <select
+                      className={styles.select}
+                      value={formData.manual_rama || ""}
+                      onChange={(e) => {
+                        const rama = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          manual_rama: rama,
+                          manual_categoria: "",
+                          manual_servicio: "",
+                          manual_enlace: ""
+                        }));
+                      }}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    >
+                      <option value="">Selecciona una rama</option>
+                      {manuals && Object.keys(manuals).map(rama => (
+                        <option key={rama} value={rama} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{rama}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
@@ -1998,7 +1969,7 @@ export default function VentasModal({
                       className={styles.select}
                       value={formData.manual_servicio ? (
                         formData.manual_rama && manuals && manuals[formData.manual_rama]
-                          ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio && s.categoria === formData.manual_categoria)?.id?.toString() || ""
+                          ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio)?.id?.toString() || ""
                           : ""
                       ) : ""}
                       onChange={(e) => {
@@ -2009,13 +1980,13 @@ export default function VentasModal({
                           handleAddServiceToPackage(srv);
                         }
                       }}
-                      disabled={!formData.manual_categoria}
+                      disabled={!formData.manual_rama}
                       style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
                     >
                       <option value="">Selecciona un servicio</option>
-                      {formData.manual_rama && formData.manual_categoria && manuals && manuals[formData.manual_rama] &&
+                      {formData.manual_rama && manuals && manuals[formData.manual_rama] &&
                         manuals[formData.manual_rama]
-                          .filter((m: any) => m.categoria === formData.manual_categoria && m.activo !== false)
+                          .filter((m: any) => m.activo !== false)
                           .map((srv: any) => (
                             <option key={srv.id} value={srv.id.toString()} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{srv.item}</option>
                           ))

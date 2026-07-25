@@ -8,7 +8,7 @@ import { addSaleLog } from "@/lib/logs";
 import { appendRowToSheet } from "@/lib/sheets";
 
 function buildManualsInfoText(sale: any): string {
-  let list: Array<{ rama: string; categoria: string; servicio: string; enlace: string }> = [];
+  let list: Array<{ rama: string; categoria?: string; servicio: string; enlace?: string }> = [];
 
   if (Array.isArray(sale.manuales_servicios) && sale.manuales_servicios.length > 0) {
     list = sale.manuales_servicios;
@@ -22,7 +22,7 @@ function buildManualsInfoText(sale: any): string {
   if (list.length === 0 && sale.manual_servicio) {
     list = [{
       rama: sale.manual_rama || "N/A",
-      categoria: sale.manual_categoria || "N/A",
+      categoria: sale.manual_categoria || "",
       servicio: sale.manual_servicio || "N/A",
       enlace: sale.manual_enlace || ""
     }];
@@ -32,12 +32,14 @@ function buildManualsInfoText(sale: any): string {
 
   if (list.length === 1) {
     const s = list[0];
-    return ` \n\n**Manual de Servicio:**\n- **Rama:** ${s.rama}\n- **Categoría:** ${s.categoria}\n- **Servicio:** ${s.servicio}${s.enlace ? `\n- **Enlace de manual:** ${s.enlace}` : ""}`;
+    const catStr = (s.categoria && s.categoria !== "N/A" && s.categoria.trim() !== "") ? `\n- **Categoría:** ${s.categoria}` : "";
+    return ` \n\n**Manual de Servicio:**\n- **Rama:** ${s.rama}${catStr}\n- **Servicio:** ${s.servicio}${s.enlace ? `\n- **Enlace de manual:** ${s.enlace}` : ""}`;
   }
 
-  const itemsText = list.map(s => 
-    `• **${s.servicio}** (${s.rama} / ${s.categoria})${s.enlace ? `\n  - Enlace de manual: ${s.enlace}` : ""}`
-  ).join("\n");
+  const itemsText = list.map(s => {
+    const catStr = (s.categoria && s.categoria !== "N/A" && s.categoria.trim() !== "") ? ` / ${s.categoria}` : "";
+    return `• **${s.servicio}** (${s.rama}${catStr})${s.enlace ? `\n  - Enlace de manual: ${s.enlace}` : ""}`;
+  }).join("\n");
 
   return ` \n\n**Servicios de Producción Adquiridos (${list.length}):**\n${itemsText}`;
 }
@@ -336,8 +338,14 @@ export async function runVentasAutomations(saleId: string) {
               const horasInfo = sale.tipo_proyecto === "Por Hora"
                 ? "\n- **Modalidad:** Por Hora"
                 : "";
+              const briefInfo = (sale.proyecto_brief && sale.proyecto_brief.trim() !== "" && sale.proyecto_brief !== "N/A")
+                ? `\n- **Brief:** ${sale.proyecto_brief}`
+                : "";
+              const descInfo = (sale.descripcion_operativa && sale.descripcion_operativa.trim() !== "")
+                ? `\n- **Descripción operativa:** ${sale.descripcion_operativa}`
+                : "";
               const aviso = "\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos.";
-              const commentText = `Extensión del proyecto${notas}${horasInfo}${manualInfo}${aviso}`;
+              const commentText = `Extensión del proyecto${notas}${horasInfo}${briefInfo}${descInfo}${manualInfo}${aviso}`;
               const commentRes = await addTrelloCardComment(finalTrelloCardId, commentText);
 
               if (commentRes.success) {
