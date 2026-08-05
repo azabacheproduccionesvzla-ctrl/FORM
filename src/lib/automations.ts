@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { createDropboxFolder } from "@/lib/dropbox";
-import { processTrelloCard, updateTrelloCardDesc, addTrelloCardComment } from "@/lib/trello";
+import { processTrelloCard, updateTrelloCardDesc, addTrelloCardComment, updateTrelloCardFields } from "@/lib/trello";
 import { createGhlContact, createGhlInvoice, sendGhlMessage } from "@/lib/ghl";
 import { getIntegrationConfig } from "@/lib/config_service";
 import { updateLocalWorkspaceSheet, getComision, formatExcelDate } from "@/lib/local_sheets";
@@ -156,7 +156,17 @@ export async function runVentasAutomations(saleId: string) {
     fechaVencimiento.setHours(fechaVencimiento.getHours() + 27);
     fechaVencimiento.setMinutes(fechaVencimiento.getMinutes() + 1);
 
-    const dueDateStr = fechaVencimiento.toISOString();
+    let dueDateStr: string;
+    if (sale.deadline) {
+      try {
+        const d = sale.deadline.includes("T") ? new Date(sale.deadline) : new Date(`${sale.deadline}T18:00:00Z`);
+        dueDateStr = !isNaN(d.getTime()) ? d.toISOString() : fechaVencimiento.toISOString();
+      } catch {
+        dueDateStr = fechaVencimiento.toISOString();
+      }
+    } else {
+      dueDateStr = fechaVencimiento.toISOString();
+    }
 
     let finalCodigoFactura = sale.codigo_factura || "";
     let contactId = clientInfo?.ghl_contact_id || "";
@@ -347,6 +357,19 @@ export async function runVentasAutomations(saleId: string) {
               const aviso = "\n\n🔔 Recuerda que, si necesitas algo o tienes dudas, puedes avisarnos.";
               const commentText = `Extensión del proyecto${notas}${horasInfo}${briefInfo}${descInfo}${manualInfo}${aviso}`;
               const commentRes = await addTrelloCardComment(finalTrelloCardId, commentText);
+
+              if (sale.deadline && dueDateStr) {
+                try {
+                  const dueRes = await updateTrelloCardFields(finalTrelloCardId, { due: dueDateStr });
+                  if (dueRes.success) {
+                    await addSaleLog(saleId, "Trello", "INFO", `Fecha límite (deadline) de tarjeta de Trello actualizada a: ${sale.deadline}`);
+                  } else {
+                    console.error("[Automations] Error al actualizar fecha límite en Trello:", dueRes.error);
+                  }
+                } catch (dueErr: any) {
+                  console.error("[Automations] Excepción actualizando fecha límite en Trello:", dueErr);
+                }
+              }
 
               if (commentRes.success) {
                 trelloUrl = projectDb?.link_trello || sale.link_trello || `https://trello.com/c/${finalTrelloCardId}`;

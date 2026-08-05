@@ -221,7 +221,7 @@ export async function updateTrelloCardDesc(
 
 export async function updateTrelloCardFields(
   cardId: string,
-  fields: { name?: string; desc?: string; idMembers?: string }
+  fields: { name?: string; desc?: string; idMembers?: string; due?: string | null }
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const key = process.env.TRELLO_API_KEY;
@@ -240,6 +240,7 @@ export async function updateTrelloCardFields(
     if (fields.name !== undefined) updateUrl.searchParams.append("name", fields.name);
     if (fields.desc !== undefined) updateUrl.searchParams.append("desc", fields.desc);
     if (fields.idMembers !== undefined) updateUrl.searchParams.append("idMembers", fields.idMembers);
+    if (fields.due !== undefined && fields.due !== null) updateUrl.searchParams.append("due", fields.due);
 
     const res = await fetch(updateUrl.toString(), {
       method: "PUT",
