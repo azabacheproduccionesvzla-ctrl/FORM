@@ -346,6 +346,22 @@ export default function VentasModal({
       setGatingStep("none");
       setShowRegenerateConfirm(false);
       setRegenerateChoice(null);
+
+      setSelectedClient(editingSale.cliente_id || "");
+      setMainSearchQuery(editingSale.clientes?.nombre || "");
+      setIsPagoParcial(editingSale.status_pago === "Pago Parcial");
+      setModifyClientData(true);
+      setModifyProjectData(true);
+      setModifyPaymentMode(true);
+
+      if (editingSale.setters_adicionales_ids && editingSale.setters_adicionales_ids.length > 0) {
+        setAgregarSetterAdicional(true);
+        setSetterAdicionalId(editingSale.setters_adicionales_ids[0]);
+      } else {
+        setAgregarSetterAdicional(false);
+        setSetterAdicionalId("");
+      }
+
       setFormData({
         es_continuacion: editingSale.es_continuacion || false,
         tipo_continuacion: editingSale.tipo_continuacion || "",
@@ -440,6 +456,11 @@ export default function VentasModal({
   // Verificar si hay borrador guardado en localStorage al abrir
   useEffect(() => {
     if (isOpen) {
+      if (editingSale) {
+        setShowDraftPrompt(false);
+        setDraftToRestore(null);
+        return;
+      }
       const draftStr = localStorage.getItem("sales_draft");
       let parsedDraft = null;
       try {
@@ -457,11 +478,11 @@ export default function VentasModal({
         resetToDefaultStates();
       }
     }
-  }, [isOpen, initialGatingStep]);
+  }, [isOpen, initialGatingStep, editingSale]);
 
-  // Guardar borrador automáticamente ante cualquier cambio de estado
+  // Guardar borrador automáticamente ante cualquier cambio de estado (solo si no es edición)
   useEffect(() => {
-    if (isOpen && !showDraftPrompt) {
+    if (isOpen && !showDraftPrompt && !editingSale) {
       const draftData = {
         formData,
         step,
@@ -487,6 +508,7 @@ export default function VentasModal({
   }, [
     isOpen,
     showDraftPrompt,
+    editingSale,
     formData,
     step,
     gatingStep,
@@ -1126,9 +1148,11 @@ export default function VentasModal({
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent} style={{ maxWidth: modalWidth, padding: 0, overflow: isAnyAutocompleteOpen ? "visible" : "hidden", display: "flex", flexDirection: "column", maxHeight: "95vh" }}>
 
-        {}
+        
         <div className={styles.modalHeader} style={{ padding: "1.25rem 1.5rem", marginBottom: 0, borderBottom: "1px solid #e2e8f0", backgroundColor: "#ffffff" }}>
-          <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "1.25rem", fontWeight: "500", color: "#0f172a" }}>Nueva venta</h3>
+          <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "1.25rem", fontWeight: "500", color: "#0f172a" }}>
+            {editingSale ? `Editar Venta (${editingSale.codigo_venta})` : "Nueva venta"}
+          </h3>
           <button className={styles.closeBtn} onClick={onClose} disabled={submitting}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
