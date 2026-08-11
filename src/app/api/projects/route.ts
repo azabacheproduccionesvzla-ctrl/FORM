@@ -17,33 +17,57 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
 
-    let query = supabase
-      .from("proyectos")
-      .select(`
-        *,
-        clientes (
-          id,
-          nombre,
-          empresa,
-          email,
-          telefono
-        ),
-        ventas (
-          id,
-          codigo_venta,
-          monto_total,
-          moneda,
-          fecha_pago,
-          creado_en,
-          urgente
-        )
-      `)
-      .order("creado_en", { ascending: false });
+    let projects: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
 
-    const { data: projects, error } = await query;
+    while (hasMore) {
+      let query = supabase
+        .from("proyectos")
+        .select(`
+          *,
+          clientes (
+            id,
+            nombre,
+            empresa,
+            email,
+            telefono,
+            pais,
+            link_usuario_plataforma
+          ),
+          ventas (
+            id,
+            codigo_venta,
+            monto_total,
+            moneda,
+            fecha_pago,
+            creado_en,
+            urgente,
+            proyecto_brief,
+            descripcion_operativa,
+            deadline,
+            tipo_proyecto
+          )
+        `)
+        .order("creado_en", { ascending: false })
+        .range(from, from + limit - 1);
 
-    if (error) {
-      throw error;
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        projects = [...projects, ...data];
+        from += limit;
+        if (data.length < limit) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
     let filteredProjects = projects || [];

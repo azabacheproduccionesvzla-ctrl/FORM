@@ -1,0 +1,1326 @@
+{
+  "Diseño Grafico": [
+    {
+      "id": 1,
+      "categoria": "Diseño Gráfico",
+      "item": "JUST LOGO",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-de-Logo-y-Branding-u0st6ibwk0g1s9d?mode=doc"
+    },
+    {
+      "id": 2,
+      "categoria": "Diseño Gráfico",
+      "item": "PROMO LOGO",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-de-Logo-y-Branding-u0st6ibwk0g1s9d?mode=doc"
+    },
+    {
+      "id": 3,
+      "categoria": "Diseño Gráfico",
+      "item": "PACK LOGO",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-de-Logo-y-Branding-u0st6ibwk0g1s9d?mode=doc"
+    },
+    {
+      "id": 4,
+      "categoria": "Diseño Gráfico",
+      "item": "PREMIUM PACK LOGO",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-de-Logo-y-Branding-u0st6ibwk0g1s9d?mode=doc"
+    },
+    {
+      "id": 5,
+      "categoria": "Diseño",
+      "item": "Papeleria Unidad",
+      "enlace": "https://gamma.app/docs/Manual-Produccion-Desarrollo-de-Papeleria-por-Unidad-4osq20rom79ulkv?mode=doc"
+    },
+    {
+      "id": 6,
+      "categoria": "Diseño",
+      "item": "Bussines Card",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Business-Card-r5t078zulb6l5pc?mode=doc"
+    },
+    {
+      "id": 7,
+      "categoria": "Diseño",
+      "item": "Diseño de pagina Web Landing",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Web-Landing-x52egho2ryr1hqf?mode=doc"
+    },
+    {
+      "id": 8,
+      "categoria": "Diseño",
+      "item": "Diseño de pagina Web 5 paginas (Home)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pagina-Web-5-Paginas-o7xkukmmiaqn4bs?mode=doc"
+    },
+    {
+      "id": 9,
+      "categoria": "Diseño",
+      "item": "Inforgrafía Diseño",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Servicio-de-Infografia-tzwkr40e3a5culi?mode=doc"
+    },
+    {
+      "id": 10,
+      "categoria": "Diseño",
+      "item": "Inforgrafía Ilustración simple",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Servicio-de-Infografia-tzwkr40e3a5culi?mode=doc"
+    },
+    {
+      "id": 11,
+      "categoria": "Diseño",
+      "item": "Infografia Ilustración compleja",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Servicio-de-Infografia-tzwkr40e3a5culi?mode=doc"
+    },
+    {
+      "id": 12,
+      "categoria": "Diseño",
+      "item": "Infografia 3D simple",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Servicio-de-Infografia-tzwkr40e3a5culi?mode=doc"
+    },
+    {
+      "id": 13,
+      "categoria": "Diseño",
+      "item": "Infografia 3D complejo",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Servicio-de-Infografia-tzwkr40e3a5culi?mode=doc"
+    },
+    {
+      "id": 14,
+      "categoria": "Diseño",
+      "item": "Diseño de Redes Sociales (x5)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Redes-Sociales-5-disenos-ioeo7y9kju50krf?mode=doc"
+    },
+    {
+      "id": 15,
+      "categoria": "Diseño",
+      "item": "Plantilla Adicional",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Redes-Sociales-5-disenos-ioeo7y9kju50krf?mode=doc"
+    },
+    {
+      "id": 16,
+      "categoria": "Diseño",
+      "item": "Edición de Fotos (x5)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionEdicion-Fotografica-x5-y-Fotomontaje-sgqfauytsr186gb?mode=doc"
+    },
+    {
+      "id": 17,
+      "categoria": "Diseño",
+      "item": "Fotomontaje",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionEdicion-Fotografica-x5-y-Fotomontaje-sgqfauytsr186gb?mode=doc"
+    },
+    {
+      "id": 18,
+      "categoria": "Diseño",
+      "item": "Banner Digital",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Banner-Digital-Profesional-iicl3c70s2oz17z?mode=doc"
+    },
+    {
+      "id": 19,
+      "categoria": "Diseño",
+      "item": "Presentación de Comercial (x12 Slides)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 20,
+      "categoria": "Diseño",
+      "item": "Presentación de Comercial (x24 Slides)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 21,
+      "categoria": "Diseño",
+      "item": "Presentación de Comercial (x36 Slides)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 22,
+      "categoria": "Diseño",
+      "item": "Presentación Comercial (1-11) Precio x unid",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 23,
+      "categoria": "Diseño",
+      "item": "Presentación Comercial (13-23) Precio x unid",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 24,
+      "categoria": "Diseño",
+      "item": "Presentación Comercial (25-35) Precio x unid",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Presentacion-Comercial-de-Azabache-Pr-orhmvgceprah5gs?mode=doc"
+    },
+    {
+      "id": 25,
+      "categoria": "Diseño",
+      "item": "Miniatura x5",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Miniaturas-para-Contenido-Audiovisual-yn86pf8zscncpnh?mode=doc"
+    },
+    {
+      "id": 26,
+      "categoria": "Diseño",
+      "item": "Mercancia por unidad (Material POP)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Mercancia-por-Unidad-Material-POP-9dxs9l4m2w5khqp?mode=doc"
+    },
+    {
+      "id": 27,
+      "categoria": "Diseño",
+      "item": "Diseño de Carteles y Vallas Publicitarias (Carteles y Marquesinas)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Carteles-y-Vallas-Publicita-xvo1lc9fmuyx1f5?mode=doc"
+    },
+    {
+      "id": 28,
+      "categoria": "Diseño",
+      "item": "Diseño de Carteles y Vallas Publicitarias (Vallas Publicitarias)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Carteles-y-Vallas-Publicita-xvo1lc9fmuyx1f5?mode=doc"
+    },
+    {
+      "id": 29,
+      "categoria": "Diseño",
+      "item": "Diseño de Carteles y Vallas Publicitarias (Vallas Monumentales)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Carteles-y-Vallas-Publicita-xvo1lc9fmuyx1f5?mode=doc"
+    },
+    {
+      "id": 30,
+      "categoria": "Diseño de Stands",
+      "item": "Paquete de Diseño de Stand Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionDiseno-de-Stands-Comerciales-unfkd4i3f6xl414?mode=doc"
+    },
+    {
+      "id": 31,
+      "categoria": "Diseño de Stands",
+      "item": "Paquete de Diseño de Stand Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionDiseno-de-Stands-Comerciales-unfkd4i3f6xl414?mode=doc"
+    },
+    {
+      "id": 32,
+      "categoria": "Diseño de Stands",
+      "item": "Paquete de Diseño de Stand Premium",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionDiseno-de-Stands-Comerciales-unfkd4i3f6xl414?mode=doc"
+    },
+    {
+      "id": 33,
+      "categoria": "Diseño Editorial",
+      "item": "Diseño de Portada / Contraportada usando IA",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Portada-Contraportada-y-Lom-dkt9shwsum43a9n?mode=doc"
+    },
+    {
+      "id": 34,
+      "categoria": "Diseño Editorial",
+      "item": "Diseño de Portada / Contraportada creando Ilustración",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Portada-Contraportada-y-Lom-dkt9shwsum43a9n?mode=doc"
+    },
+    {
+      "id": 35,
+      "categoria": "Diseño Gráfico",
+      "item": "Plantillas editables para redes sociales (archivo editable)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionPlantillas-Editables-para-Redes-Social-ww8jb3xudowig3q?mode=doc"
+    },
+    {
+      "id": 36,
+      "categoria": "Diseño Gráfico",
+      "item": "Plantillas editables para redes sociales (versión Canva)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionPlantillas-Editables-para-Redes-Social-ww8jb3xudowig3q?mode=doc"
+    },
+    {
+      "id": 37,
+      "categoria": "Diseño Gráfico",
+      "item": "Storie (Diseño simple)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-para-Redes-Sociales-Post-Stori-5lmiz4rajlvruq7?mode=doc"
+    },
+    {
+      "id": 38,
+      "categoria": "Diseño Gráfico",
+      "item": "Post individual (Diseño simple)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-para-Redes-Sociales-Post-Stori-5lmiz4rajlvruq7?mode=doc"
+    },
+    {
+      "id": 39,
+      "categoria": "Diseño Gráfico",
+      "item": "Carrusel hasta 5 diseños (Diseño simple)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-para-Redes-Sociales-Post-Stori-5lmiz4rajlvruq7?mode=doc"
+    },
+    {
+      "id": 40,
+      "categoria": "Diseño Gráfico",
+      "item": "Carrusel hasta 10 diseños (Diseño simple)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-para-Redes-Sociales-Post-Stori-5lmiz4rajlvruq7?mode=doc"
+    },
+    {
+      "id": 41,
+      "categoria": "Diseño Gráfico",
+      "item": "Carrusel hasta 30 diseños (Diseño simple)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-para-Redes-Sociales-Post-Stori-5lmiz4rajlvruq7?mode=doc"
+    },
+    {
+      "id": 42,
+      "categoria": "Diseño Gráfico",
+      "item": "Brochure Corporativo",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Brochure-Corporativo-xlvdtl1yjva5qfq?mode=doc"
+    },
+    {
+      "id": 43,
+      "categoria": "Diseño Gráfico",
+      "item": "Pack Gráfico YouTube",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pack-Grafico-de-YouTube-u0pbibz117jng9y?mode=doc"
+    },
+    {
+      "id": 44,
+      "categoria": "Empaque",
+      "item": "Paquete de Diseño de Empaque Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquete-de-Diseno-de-Empaque-mek1ba9iv2ki5i4?mode=doc"
+    },
+    {
+      "id": 45,
+      "categoria": "Empaque",
+      "item": "Paquete de Diseño de Empaque Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquete-de-Diseno-de-Empaque-mek1ba9iv2ki5i4?mode=doc"
+    },
+    {
+      "id": 46,
+      "categoria": "Empaque",
+      "item": "Paquete de Diseño de Empaque Premium",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquete-de-Diseno-de-Empaque-mek1ba9iv2ki5i4?mode=doc"
+    },
+    {
+      "id": 47,
+      "categoria": "Etiquetas",
+      "item": "Paquete de Diseño de Etiqueta Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Paquete-de-Diseno-de-Etiquetas-b4nim6vukvnnb2t?mode=doc"
+    },
+    {
+      "id": 48,
+      "categoria": "Etiquetas",
+      "item": "Paquete de Diseño de Etiqueta Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Paquete-de-Diseno-de-Etiquetas-b4nim6vukvnnb2t?mode=doc"
+    },
+    {
+      "id": 49,
+      "categoria": "Impresiones para Incrementar Ventas",
+      "item": "Catálogo de 10 Páginas",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Catalogo-Comercial-de-10-Paginas-iw9mg3fxne7hc4q?mode=doc"
+    },
+    {
+      "id": 50,
+      "categoria": "Maquetación de Libros",
+      "item": "Maquetación de Libros Básica",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Maquetacion-Profesional-de-Libros-336n3jh8rdc8egh?mode=doc"
+    },
+    {
+      "id": 51,
+      "categoria": "Maquetación de Libros",
+      "item": "Maquetación de Libros Avanzada",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Maquetacion-Profesional-de-Libros-336n3jh8rdc8egh?mode=doc"
+    },
+    {
+      "id": 52,
+      "categoria": "Maquetación de Libros",
+      "item": "Maquetación de Libros Premium",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Maquetacion-Profesional-de-Libros-336n3jh8rdc8egh?mode=doc"
+    },
+    {
+      "id": 53,
+      "categoria": "Material Promocional Directo",
+      "item": "Flyers de Descuentos y Ofertas",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Flyers-de-Descuentos-y-Ofertas-oknkaz7csjpc31b?mode=doc"
+    },
+    {
+      "id": 54,
+      "categoria": "Material Promocional Directo",
+      "item": "Diseño de Camisas",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Camisas-cku4jppcikyhhwk?mode=doc"
+    },
+    {
+      "id": 55,
+      "categoria": "Producción de Mercancía",
+      "item": "Diseño de Tazas",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Tazas-Profesional-7k3mq9z2g7srqic?mode=doc"
+    },
+    {
+      "id": 56,
+      "categoria": "Producción de Mercancía",
+      "item": "Diseño de Gorras",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Gorras-Profesional-epysapri2wfrcow?mode=doc"
+    },
+    {
+      "id": 57,
+      "categoria": "Recursos Gráficos",
+      "item": "Paquete de Diseño de Menú Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Menus-para-Restaurantes-y0pbi6m8sqt8xfg?mode=doc"
+    },
+    {
+      "id": 58,
+      "categoria": "Recursos Gráficos",
+      "item": "Paquete de Diseño de Menú Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Menus-para-Restaurantes-y0pbi6m8sqt8xfg?mode=doc"
+    },
+    {
+      "id": 59,
+      "categoria": "Recursos Gráficos",
+      "item": "Mock up",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Creacion-de-Mockups-Profesionales-ic8r34gma43vd5c?mode=doc"
+    },
+    {
+      "id": 60,
+      "categoria": "Recursos Gráficos",
+      "item": "Tipografia",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-de-Tipografia-Personalizada-28gg1g1x5umy7vx?mode=doc"
+    },
+    {
+      "id": 61,
+      "categoria": "Servicios por horas",
+      "item": "Hora de servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Diseno-v5a5d157xo6emvs?mode=doc"
+    },
+    {
+      "id": 62,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Diseno-v5a5d157xo6emvs?mode=doc"
+    }
+  ],
+  "Edición de Video": [
+    {
+      "id": 63,
+      "categoria": "Edición de video",
+      "item": "Promocional video",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Video-Promocional-603xc99dpw7uf52?mode=doc"
+    },
+    {
+      "id": 64,
+      "categoria": "Edición de video",
+      "item": "Pack Podcast Solo edición",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pack-Podcast-Solo-Edicion-5ki8blunk43zcse?mode=doc"
+    },
+    {
+      "id": 65,
+      "categoria": "Edición de video",
+      "item": "Pack Podcast Expansión",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pack-Podcast-Expansion-iry4vmobhfoxyqm?mode=doc"
+    },
+    {
+      "id": 66,
+      "categoria": "Edición de video",
+      "item": "Edición de Boda",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Video-de-Boda-zswhjvwiuba9s7m?mode=doc"
+    },
+    {
+      "id": 67,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Edición Básica (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 68,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Edición Estándar (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 69,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Edición Full (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 70,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Docena (12) – Edición Básica",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 71,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Docena (12) – Edición Estándar",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 72,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "Docena (12) – Edición Full",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 73,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "2 Docenas (24) –  Edición Básica (−60%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 74,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "2 Docenas (24) –  – Edición Estándar (−60%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 75,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "2 Docenas (24)  – Edición Full (−60%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 76,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "3 Docenas o más –  Edición Básica (−70%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 77,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "3 Docenas o más – Edición Estándar (−70%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 78,
+      "categoria": "TikTok / Reels / Shorts (≤1:30)",
+      "item": "3 Docenas o más –  Edición Full (−70%)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-Verticales-TikTok-R-zyctbegdrr4ltcf?mode=doc"
+    },
+    {
+      "id": 79,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Pack YouTube Solo Edición (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 80,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Pack YouTube Visual (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 81,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Pack YouTube Full (por video)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 82,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Docena (12) – Edición Básica 10%descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 83,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Docena (12) – Edición Visual 10%descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 84,
+      "categoria": "YouTube (8–12 min)",
+      "item": "Docena (12) – Edición Full 10%descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 85,
+      "categoria": "YouTube (8–12 min)",
+      "item": "2 Docenas (24) – Precio por docena – Edición Básica 15% Descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 86,
+      "categoria": "YouTube (8–12 min)",
+      "item": "2 Docenas (24) – Precio por docena – Edición Visual 15% Descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 87,
+      "categoria": "YouTube (8–12 min)",
+      "item": "2 Docenas (24) – Precio por docena – Edición Full 15% Descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 88,
+      "categoria": "YouTube (8–12 min)",
+      "item": "3 Docenas o más – Precio por docena – Edición Básica 20 % de descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 89,
+      "categoria": "YouTube (8–12 min)",
+      "item": "3 Docenas o más – Precio por docena – Edición Visual 20 % de descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 90,
+      "categoria": "YouTube (8–12 min)",
+      "item": "3 Docenas o más – Precio por docena – Edición Full 20 % de descuento",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Edicion-de-Videos-YouTube-2rkasrq9if9sok9?mode=doc"
+    },
+    {
+      "id": 91,
+      "categoria": "Servicios por horas",
+      "item": "Hora de servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Edicio-duu8e2pcuk4u92r?mode=doc"
+    },
+    {
+      "id": 92,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Edicio-duu8e2pcuk4u92r?mode=doc"
+    }
+  ],
+  "Animacíón": [
+    {
+      "id": 93,
+      "categoria": "Video Promocional",
+      "item": "Video Promocional Animado con Template (1–2 min)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Video-Promocional-Animado-6bkrxl53r6l5i9e?mode=doc"
+    },
+    {
+      "id": 94,
+      "categoria": "Video Promocional",
+      "item": "Video Promocional  Animado Premium (por minuto)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Video-Promocional-Animado-6bkrxl53r6l5i9e?mode=doc"
+    },
+    {
+      "id": 95,
+      "categoria": "Video Promocional",
+      "item": "Video Promocional  Animado Híbrido (por minuto)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Video-Promocional-Animado-6bkrxl53r6l5i9e?mode=doc"
+    },
+    {
+      "id": 96,
+      "categoria": "Animación 2D",
+      "item": "Motion Graphics (sin personajes) 50seg-70seg– desde",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Motion-Graphics-2D-pa96p04xmdcx2eg?mode=doc"
+    },
+    {
+      "id": 97,
+      "categoria": "Animación 2D",
+      "item": "Motion Graphics (sin personajes) 50seg- 10 seg – hasta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Motion-Graphics-2D-pa96p04xmdcx2eg?mode=doc"
+    },
+    {
+      "id": 98,
+      "categoria": "Animación 2D",
+      "item": "Extra: Personaje estilo corporate/memphis/plano – desde",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Personajes-Adicionales-para-Animacion-ci04ka5bfzqkvqq?mode=doc"
+    },
+    {
+      "id": 99,
+      "categoria": "Animación 2D",
+      "item": "Extra: Personaje estilo corporate/memphis/plano – hasta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Personajes-Adicionales-para-Animacion-ci04ka5bfzqkvqq?mode=doc"
+    },
+    {
+      "id": 100,
+      "categoria": "Animación 2D",
+      "item": "Extra: Personaje complejo – desde",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Personajes-Adicionales-para-Animacion-ci04ka5bfzqkvqq?mode=doc"
+    },
+    {
+      "id": 101,
+      "categoria": "Animación 2D",
+      "item": "Extra: Personaje complejo – hasta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Personajes-Adicionales-para-Animacion-ci04ka5bfzqkvqq?mode=doc"
+    },
+    {
+      "id": 102,
+      "categoria": "Animación 2D",
+      "item": "Formato adicional",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Formato-Adicional-u1i1t59iwgge3ai?mode=doc"
+    },
+    {
+      "id": 103,
+      "categoria": "Animación 2D",
+      "item": "Animación de Logo – Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-de-Logo-imj5e3yu14wwwnz?mode=doc"
+    },
+    {
+      "id": 104,
+      "categoria": "Animación 2D",
+      "item": "Animación de Logo – Standar",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-de-Logo-imj5e3yu14wwwnz?mode=doc"
+    },
+    {
+      "id": 105,
+      "categoria": "Animación 2D",
+      "item": "Animación de Logo – Premium",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-de-Logo-imj5e3yu14wwwnz?mode=doc"
+    },
+    {
+      "id": 106,
+      "categoria": "Animación 2D",
+      "item": "GIF Animado Simple",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-GIF-Animado-9awhiduba1g8uw4?mode=doc"
+    },
+    {
+      "id": 107,
+      "categoria": "Animación 2D",
+      "item": "Gif Animado Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-GIF-Animado-9awhiduba1g8uw4?mode=doc"
+    },
+    {
+      "id": 108,
+      "categoria": "Animación 2D",
+      "item": "Intervención de Video con assets animados (por minuto) – desde",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-Intervencion-de-Video-co-c7t3sq5dbhfsg39?mode=doc"
+    },
+    {
+      "id": 109,
+      "categoria": "Animación 2D",
+      "item": "Intervención de Video con assets animados (por minuto) – hasta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-Intervencion-de-Video-co-c7t3sq5dbhfsg39?mode=doc"
+    },
+    {
+      "id": 110,
+      "categoria": "Animación 2D",
+      "item": "Animación 2D estilo Collage (1 min)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-Estilo-Collage-k04upriachdmyh9?mode=doc"
+    },
+    {
+      "id": 111,
+      "categoria": "Animación 2D",
+      "item": "Producción Animada 2D Broadcast Premium con Personajes Estilo TV (1 min) - desde",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Produccion-Animada-2D-Broadcast-Premi-0wfc8ayd4uoup1q?mode=doc"
+    },
+    {
+      "id": 112,
+      "categoria": "Animación 2D",
+      "item": "Producción Animada 2D  Broadcast Premium con Personajes Estilo TV (1 min) - hasta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Produccion-Animada-2D-Broadcast-Premi-0wfc8ayd4uoup1q?mode=doc"
+    },
+    {
+      "id": 113,
+      "categoria": "Animación 2D",
+      "item": "Animación 2D White board (sin ilustrar, only IA) hasta 10min",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-Whiteboard-1r31sefzbs10avv?mode=doc"
+    },
+    {
+      "id": 114,
+      "categoria": "Animación 2D",
+      "item": "Animación 2D White board  1min",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Animacion-2D-Whiteboard-1r31sefzbs10avv?mode=doc"
+    },
+    {
+      "id": 115,
+      "categoria": "Servicios por horas",
+      "item": "Hora de servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Animac-le735byinh8obgr?mode=doc"
+    },
+    {
+      "id": 116,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Animac-le735byinh8obgr?mode=doc"
+    }
+  ],
+  "Marketing Digital.": [
+    {
+      "id": 117,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Plan GESTIÓN Básico (hasta 2 redes)",
+      "enlace": "https://gamma.app/docs/Untitled-wr3jreibcjvy11c?mode=doc"
+    },
+    {
+      "id": 118,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Plan GESTIÓN Intermedio (hasta 4 redes)",
+      "enlace": "https://gamma.app/docs/Untitled-wr3jreibcjvy11c?mode=doc"
+    },
+    {
+      "id": 119,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Plan GESTIÓN Premium (hasta 6 redes)",
+      "enlace": "https://gamma.app/docs/Untitled-wr3jreibcjvy11c?mode=doc"
+    },
+    {
+      "id": 120,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Instagram / Facebook",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionGestion-de-Instagram-y-Facebook-opjmq9wpuhv21wd?mode=doc"
+    },
+    {
+      "id": 121,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Linkedin / Pinterest",
+      "enlace": "https://gamma.app/docs/Produccion-Gestion-de-LinkedIn-y-Pinterest-pf0101fikgvfl0p?mode=doc"
+    },
+    {
+      "id": 122,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Tik Tok",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-TikTok-k2oluyt2xxo0pd9?mode=doc"
+    },
+    {
+      "id": 123,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Youtube",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-YouTube-1hc6egsq0lk1rik?mode=doc"
+    },
+    {
+      "id": 124,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Youtube",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-YouTube-1hc6egsq0lk1rik?mode=doc"
+    },
+    {
+      "id": 125,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Youtube",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-YouTube-1hc6egsq0lk1rik?mode=doc"
+    },
+    {
+      "id": 126,
+      "categoria": "Redes Sociales – Planes de Gestión",
+      "item": "Gestión de Amazon y Mercadolibre",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionGestion-de-Amazon-y-MercadoLibre-idko8pw1umvh7ga?mode=doc"
+    },
+    {
+      "id": 127,
+      "categoria": "Servicios de Marketing",
+      "item": "Estrategia y Auditoria Publicitaria",
+      "enlace": "https://gamma.app/docs/57-lu7epcy8m65qiun?mode=doc"
+    },
+    {
+      "id": 128,
+      "categoria": "Servicios de Marketing",
+      "item": "Configuración y Optimización de Cuentas",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Configuracion-y-Optimizacion-de-Cuent-9xz1p2ixmrgfm3t?mode=doc"
+    },
+    {
+      "id": 129,
+      "categoria": "Ads – Meta",
+      "item": "Meta  Ads (Paid Media)– 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Meta-Ads-Paid-Media-2o89b27us4oseql?mode=doc"
+    },
+    {
+      "id": 130,
+      "categoria": "Ads – Meta",
+      "item": "Meta  Ads (Paid Media)– 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Meta-Ads-Paid-Media-2o89b27us4oseql?mode=doc"
+    },
+    {
+      "id": 131,
+      "categoria": "Ads – Meta",
+      "item": "Meta  Ads (Paid Media)– 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Meta-Ads-Paid-Media-2o89b27us4oseql?mode=doc"
+    },
+    {
+      "id": 132,
+      "categoria": "Ads – Meta",
+      "item": "Meta  Ads (Paid Media)– 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Meta-Ads-Paid-Media-2o89b27us4oseql?mode=doc"
+    },
+    {
+      "id": 133,
+      "categoria": "Ads – Meta",
+      "item": "Meta  Ads (Paid Media)– 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Meta-Ads-Paid-Media-2o89b27us4oseql?mode=doc"
+    },
+    {
+      "id": 134,
+      "categoria": "Ads – Google",
+      "item": "Google  ADS y Yotube Ads (Paid Media) – 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Google-Ads-YouTube-Ads-4fm9hnk51m7211f?mode=doc"
+    },
+    {
+      "id": 135,
+      "categoria": "Ads – Google",
+      "item": "Google  ADS y Yotube Ads (Paid Media) – 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Google-Ads-YouTube-Ads-4fm9hnk51m7211f?mode=doc"
+    },
+    {
+      "id": 136,
+      "categoria": "Ads – Google",
+      "item": "Google  ADS y Yotube Ads (Paid Media) – 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Google-Ads-YouTube-Ads-4fm9hnk51m7211f?mode=doc"
+    },
+    {
+      "id": 137,
+      "categoria": "Ads – Google",
+      "item": "Google  ADS y Yotube Ads (Paid Media) – 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Google-Ads-YouTube-Ads-4fm9hnk51m7211f?mode=doc"
+    },
+    {
+      "id": 138,
+      "categoria": "Ads – Google",
+      "item": "Google  ADS y Yotube Ads (Paid Media) – 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Google-Ads-YouTube-Ads-4fm9hnk51m7211f?mode=doc"
+    },
+    {
+      "id": 139,
+      "categoria": "Ads – TikTok",
+      "item": "TikTok  Ads (Paid Media)– 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-TikTok-Ads-Paid-Media-3jvj479wmq6e0ez?mode=doc"
+    },
+    {
+      "id": 140,
+      "categoria": "Ads – TikTok",
+      "item": "TikTok Ads (Paid Media)– 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-TikTok-Ads-Paid-Media-3jvj479wmq6e0ez?mode=doc"
+    },
+    {
+      "id": 141,
+      "categoria": "Ads – TikTok",
+      "item": "TikTok Ads (Paid Media)– 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-TikTok-Ads-Paid-Media-3jvj479wmq6e0ez?mode=doc"
+    },
+    {
+      "id": 142,
+      "categoria": "Ads – TikTok",
+      "item": "TikTok Ads (Paid Media)– 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-TikTok-Ads-Paid-Media-3jvj479wmq6e0ez?mode=doc"
+    },
+    {
+      "id": 143,
+      "categoria": "Ads – TikTok",
+      "item": "TikTok Ads (Paid Media)– 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-TikTok-Ads-Paid-Media-3jvj479wmq6e0ez?mode=doc"
+    },
+    {
+      "id": 144,
+      "categoria": "Ads – LinkedIn",
+      "item": "LinkedIn – 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Procuccion-LinkedIn-Ads-Paid-Media-v0dhvk46aemtn1x?mode=doc"
+    },
+    {
+      "id": 145,
+      "categoria": "Ads – LinkedIn",
+      "item": "LinkedIn – 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Procuccion-LinkedIn-Ads-Paid-Media-v0dhvk46aemtn1x?mode=doc"
+    },
+    {
+      "id": 146,
+      "categoria": "Ads – LinkedIn",
+      "item": "LinkedIn – 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Procuccion-LinkedIn-Ads-Paid-Media-v0dhvk46aemtn1x?mode=doc"
+    },
+    {
+      "id": 147,
+      "categoria": "Ads – LinkedIn",
+      "item": "LinkedIn – 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Procuccion-LinkedIn-Ads-Paid-Media-v0dhvk46aemtn1x?mode=doc"
+    },
+    {
+      "id": 148,
+      "categoria": "Ads – LinkedIn",
+      "item": "LinkedIn – 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Procuccion-LinkedIn-Ads-Paid-Media-v0dhvk46aemtn1x?mode=doc"
+    },
+    {
+      "id": 149,
+      "categoria": "Ads – Pinterest",
+      "item": "Pinterest – 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pinterest-Ads-Paid-Media-tce3n2e91yfddqe?mode=doc"
+    },
+    {
+      "id": 150,
+      "categoria": "Ads – Pinterest",
+      "item": "Pinterest Ads (Paid Media)– 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pinterest-Ads-Paid-Media-tce3n2e91yfddqe?mode=doc"
+    },
+    {
+      "id": 151,
+      "categoria": "Ads – Pinterest",
+      "item": "Pinterest Ads (Paid Media)– 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pinterest-Ads-Paid-Media-tce3n2e91yfddqe?mode=doc"
+    },
+    {
+      "id": 152,
+      "categoria": "Ads – Pinterest",
+      "item": "Pinterest Ads (Paid Media)– 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pinterest-Ads-Paid-Media-tce3n2e91yfddqe?mode=doc"
+    },
+    {
+      "id": 153,
+      "categoria": "Ads – Pinterest",
+      "item": "Pinterest Ads (Paid Media)– 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Pinterest-Ads-Paid-Media-tce3n2e91yfddqe?mode=doc"
+    },
+    {
+      "id": 154,
+      "categoria": "Ads – Amazon",
+      "item": "Amazon Ads (Paid Media) - 1 campaña (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Amazon-Ads-Paid-Media-v1twrnmusyb74cw?mode=doc"
+    },
+    {
+      "id": 155,
+      "categoria": "Ads – Amazon",
+      "item": "Amazon Ads (Paid Media) - 2 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Amazon-Ads-Paid-Media-v1twrnmusyb74cw?mode=doc"
+    },
+    {
+      "id": 156,
+      "categoria": "Ads – Amazon",
+      "item": "Amazon Ads (Paid Media) - 3 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Amazon-Ads-Paid-Media-v1twrnmusyb74cw?mode=doc"
+    },
+    {
+      "id": 157,
+      "categoria": "Ads – Amazon",
+      "item": "Amazon Ads (Paid Media) - 4 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Amazon-Ads-Paid-Media-v1twrnmusyb74cw?mode=doc"
+    },
+    {
+      "id": 158,
+      "categoria": "Ads – Amazon",
+      "item": "Amazon Ads (Paid Media) - 5 campañas (hasta 3 anuncios c/u)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Amazon-Ads-Paid-Media-v1twrnmusyb74cw?mode=doc"
+    },
+    {
+      "id": 159,
+      "categoria": "Copy",
+      "item": "Creación de Arquetipo y Voz de Marca",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-de-Arquetipo-y-Voz-de-Marc-ddtl206bc61a15w?mode=doc"
+    },
+    {
+      "id": 160,
+      "categoria": "Copy",
+      "item": "Mail Marketing  (Starter 4 correos)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-Email-Marketing-y-Automati-soiws42ggn0hccx?mode=doc"
+    },
+    {
+      "id": 161,
+      "categoria": "Copy",
+      "item": "Mail Marketing  (Growth 8 correos)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-Email-Marketing-y-Automati-soiws42ggn0hccx?mode=doc"
+    },
+    {
+      "id": 162,
+      "categoria": "Copy",
+      "item": "Mail Marketing  (Scale 12 correos)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-Email-Marketing-y-Automati-soiws42ggn0hccx?mode=doc"
+    },
+    {
+      "id": 163,
+      "categoria": "Copy",
+      "item": "Gestión de Automatizaciones",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Gestion-de-Email-Marketing-y-Automati-soiws42ggn0hccx?mode=doc"
+    },
+    {
+      "id": 164,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Market-c1gcjgd6ggs1a1g?mode=doc"
+    },
+    {
+      "id": 165,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Market-c1gcjgd6ggs1a1g?mode=doc"
+    }
+  ],
+  "Diseño Web": [
+    {
+      "id": 166,
+      "categoria": "Desarrollo Web – INTEGRACION (Niveles)",
+      "item": "Nivel 1",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-Web-Integracion-wiyd97eij6zwgwa?mode=doc"
+    },
+    {
+      "id": 167,
+      "categoria": "Desarrollo Web – INTEGRACION (Niveles)",
+      "item": "Nivel 2",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-Web-Integracion-wiyd97eij6zwgwa?mode=doc"
+    },
+    {
+      "id": 168,
+      "categoria": "Desarrollo Web – INTEGRACION (Niveles)",
+      "item": "Nivel 3",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-Web-Integracion-wiyd97eij6zwgwa?mode=doc"
+    },
+    {
+      "id": 169,
+      "categoria": "Desarrollo Web – INTEGRACION (Niveles)",
+      "item": "Nivel 4",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-Web-Integracion-wiyd97eij6zwgwa?mode=doc"
+    },
+    {
+      "id": 170,
+      "categoria": "Desarrollo Web – INTEGRACION (Niveles)",
+      "item": "Nivel 5",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Desarrollo-Web-Integracion-wiyd97eij6zwgwa?mode=doc"
+    },
+    {
+      "id": 171,
+      "categoria": "Servicios de Desarrollo Web (CMS: Go High Level)",
+      "item": "Proyecto Landing Page de Venta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyectos-Landing-Page-whcvjydr25w2ryi?mode=doc"
+    },
+    {
+      "id": 172,
+      "categoria": "Servicios de Desarrollo Web (Otro CMS)",
+      "item": "Proyecto Landing Page de Venta",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyectos-Landing-Page-whcvjydr25w2ryi?mode=doc"
+    },
+    {
+      "id": 173,
+      "categoria": "Servicios de Desarrollo Web (Wordpress / Shopify / CMS)",
+      "item": "Proyecto Página Web Básico (Landing Page)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyectos-Landing-Page-whcvjydr25w2ryi?mode=doc"
+    },
+    {
+      "id": 174,
+      "categoria": "Servicios de Desarrollo Web (Código)",
+      "item": "Proyecto Página Web Básico (Landing Page)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyectos-Landing-Page-whcvjydr25w2ryi?mode=doc"
+    },
+    {
+      "id": 175,
+      "categoria": "Servicios de Desarrollo Web (Wordpress / Shopify / CMS)",
+      "item": "Proyecto Página Web Estándar (Multipágina)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyecto-Pagina-Web-Estandar-Multipag-3wx86gn10j72gzd?mode=doc"
+    },
+    {
+      "id": 176,
+      "categoria": "Servicios de Desarrollo Web (Código)",
+      "item": "Proyecto Página Web Estándar (Multipágina)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyecto-Pagina-Web-Estandar-Multipag-3wx86gn10j72gzd?mode=doc"
+    },
+    {
+      "id": 177,
+      "categoria": "Servicios de Desarrollo Web (Wordpress / Shopify/CMS/ Código)",
+      "item": "Sección Extra",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyecto-Pagina-Web-Estandar-Multipag-3wx86gn10j72gzd?mode=doc"
+    },
+    {
+      "id": 178,
+      "categoria": "Servicios de Desarrollo Web (Wordpress / Shopify/CMS/ Código)",
+      "item": "Costo de Páginas Extra",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Proyecto-Pagina-Web-Estandar-Multipag-3wx86gn10j72gzd?mode=doc"
+    },
+    {
+      "id": 179,
+      "categoria": "Servicios de Desarrollo Web (Wordpress / Shopify /CMS / Código)",
+      "item": "Revisión de Web",
+      "enlace": "https://gamma.app/docs/Manual-de-Procedimientos-Produccion-Auditoria-Web-Profesional-x2pf76iu865xz27?mode=doc"
+    },
+    {
+      "id": 180,
+      "categoria": "DESARROLLO",
+      "item": "Por hora  de Servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Desarr-d644a7ljq1odyig?mode=doc"
+    },
+    {
+      "id": 181,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Desarr-d644a7ljq1odyig?mode=doc"
+    }
+  ],
+  "CRM": [
+    {
+      "id": 182,
+      "categoria": "CRM",
+      "item": "Chat Bot",
+      "enlace": ""
+    },
+    {
+      "id": 183,
+      "categoria": "CRM",
+      "item": "Configuración de CRM",
+      "enlace": ""
+    },
+    {
+      "id": 184,
+      "categoria": "CRM",
+      "item": "Gestion de crm",
+      "enlace": ""
+    },
+    {
+      "id": 185,
+      "categoria": "CRM",
+      "item": "funnel de ventas",
+      "enlace": ""
+    },
+    {
+      "id": 186,
+      "categoria": "CRM",
+      "item": "Automatización de Zapier",
+      "enlace": ""
+    },
+    {
+      "id": 187,
+      "categoria": "CRM",
+      "item": "Automatización de Make",
+      "enlace": ""
+    },
+    {
+      "id": 188,
+      "categoria": "CRM",
+      "item": "Gestión de Automatizaciones",
+      "enlace": ""
+    },
+    {
+      "id": 189,
+      "categoria": "CRM",
+      "item": "Automatización de procesos",
+      "enlace": ""
+    },
+    {
+      "id": 190,
+      "categoria": "CRM",
+      "item": "Atención al Cliente",
+      "enlace": ""
+    },
+    {
+      "id": 191,
+      "categoria": "CRM",
+      "item": "Configuración de CRM (Go High Level) Starter",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Configuracion-de-CRM-Go-High-Level-rlnbs0ifrm2et1g?mode=doc"
+    },
+    {
+      "id": 192,
+      "categoria": "CRM",
+      "item": "Configuración de CRM (Go High Level) Professional",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Configuracion-de-CRM-Go-High-Level-rlnbs0ifrm2et1g?mode=doc"
+    },
+    {
+      "id": 193,
+      "categoria": "CRM",
+      "item": "Configuración de CRM (Go High Level) Enterprise",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Configuracion-de-CRM-Go-High-Level-rlnbs0ifrm2et1g?mode=doc"
+    },
+    {
+      "id": 194,
+      "categoria": "CRM",
+      "item": "Mensualidad CRM (Go Highg Level) Starter",
+      "enlace": ""
+    },
+    {
+      "id": 195,
+      "categoria": "CRM",
+      "item": "Mensualidad CRM (Go Highg Level) Professional",
+      "enlace": ""
+    },
+    {
+      "id": 196,
+      "categoria": "CRM",
+      "item": "Mensualidad CRM (Go Highg Level) Enterprise",
+      "enlace": ""
+    }
+  ],
+  "Ilustración": [
+    {
+      "id": 197,
+      "categoria": "Ilustración",
+      "item": "Personaje (ilustración)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-y-Desarrollo-de-Personajes-oj54vm4785yxuuz?mode=doc"
+    },
+    {
+      "id": 198,
+      "categoria": "Ilustración",
+      "item": "Creación de Personaje (con documentación)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Diseno-y-Desarrollo-de-Personajes-oj54vm4785yxuuz?mode=doc"
+    },
+    {
+      "id": 199,
+      "categoria": "Ilustración",
+      "item": "Fondo (ilustración)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Fondo-Ilustracion-0lfwxt9azy6x8fv?mode=doc"
+    },
+    {
+      "id": 200,
+      "categoria": "Ilustración",
+      "item": "Fondos Ilustrados (servicio completo)",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Fondos-Ilustrados-Servicio-Completo-hnucnwdkzulenym?mode=doc"
+    },
+    {
+      "id": 201,
+      "categoria": "Ilustración",
+      "item": "Cómic – Página Blanco y Negro",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Creacion-de-Pagina-de-Comic-tp8t42jo535casq?mode=doc"
+    },
+    {
+      "id": 202,
+      "categoria": "Ilustración",
+      "item": "Cómic – Página Color",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Creacion-de-Pagina-de-Comic-tp8t42jo535casq?mode=doc"
+    },
+    {
+      "id": 203,
+      "categoria": "Ilustración",
+      "item": "Manga – Página Blanco y Negro",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionPagina-de-Manga-0ptfvfn18exur1e?mode=doc"
+    },
+    {
+      "id": 204,
+      "categoria": "Ilustración",
+      "item": "Manga – Página Color",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-ProduccionPagina-de-Manga-0ptfvfn18exur1e?mode=doc"
+    },
+    {
+      "id": 205,
+      "categoria": "Ilustración",
+      "item": "Tira Cómica – Página Blanco y Negro",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Creacion-de-Tira-Comica-5nc1zx45vfaisrv?mode=doc"
+    },
+    {
+      "id": 206,
+      "categoria": "Ilustración",
+      "item": "Tira Cómica – Página Color",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Creacion-de-Tira-Comica-5nc1zx45vfaisrv?mode=doc"
+    },
+    {
+      "id": 207,
+      "categoria": "Ilustración",
+      "item": "Paquete de Ilustración de Mapas – Básico",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquetes-de-Ilustracion-de-Mapas-tdfd1j3hb40jhrt?mode=doc"
+    },
+    {
+      "id": 208,
+      "categoria": "Ilustración",
+      "item": "Paquete de Ilustración de Mapas – Avanzado",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquetes-de-Ilustracion-de-Mapas-tdfd1j3hb40jhrt?mode=doc"
+    },
+    {
+      "id": 209,
+      "categoria": "Ilustración",
+      "item": "Paquete de Ilustración de Mapas – Premium",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquetes-de-Ilustracion-de-Mapas-tdfd1j3hb40jhrt?mode=doc"
+    },
+    {
+      "id": 210,
+      "categoria": "Ilustración",
+      "item": "Elemento para Youtube x5",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Elementos-para-YouTube-X5-f048swodaxvc0iu?mode=doc"
+    },
+    {
+      "id": 211,
+      "categoria": "Ilustración",
+      "item": "Paquete de iconos x5",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Paquete-de-Iconos-X5-leae8ze55tk8u4h?mode=doc"
+    },
+    {
+      "id": 212,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Servicio",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Ilustr-836fs0eg45lb76d?mode=doc"
+    },
+    {
+      "id": 213,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Servicio-y-Asesoria-de-Ilustr-836fs0eg45lb76d?mode=doc"
+    }
+  ],
+  "Grabación": [
+    {
+      "id": 214,
+      "categoria": "Producción de Video",
+      "item": "Producción de Video para Empresas (Paquete Mensual)",
+      "enlace": "https://gamma.app/docs/Untitled-j85wzks76v9eywj?mode=doc"
+    },
+    {
+      "id": 215,
+      "categoria": "Producción de Video",
+      "item": "Producción de Video para Eventos (Servicio Único)",
+      "enlace": "https://gamma.app/docs/Untitled-j85wzks76v9eywj?mode=doc"
+    },
+    {
+      "id": 216,
+      "categoria": "Servicios por horas",
+      "item": "Hora de servicio (Paquete Mesual)",
+      "enlace": "https://gamma.app/docs/Untitled-j85wzks76v9eywj?mode=doc"
+    },
+    {
+      "id": 217,
+      "categoria": "Servicios por horas",
+      "item": "Hora de servicio (Servicio Único)",
+      "enlace": "https://gamma.app/docs/Untitled-j85wzks76v9eywj?mode=doc"
+    },
+    {
+      "id": 218,
+      "categoria": "Servicios por horas",
+      "item": "Hora de Asesoria",
+      "enlace": "https://gamma.app/docs/Manual-Comercial-Produccion-Hora-de-Asesoria-en-Grabacion-Audiovi-zbbyplqsbuc8p3x?mode=doc"
+    }
+  ]
+}

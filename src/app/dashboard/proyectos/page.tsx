@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
+import ImportModal from "./ImportModal";
 
 interface Project {
   id: string;
@@ -82,6 +83,8 @@ export default function ProyectosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const projectsPerPage = 8;
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   // Helper to get local date format YYYY-MM-DD
   function getLocalDateString(dateStr: string) {
     try {
@@ -137,6 +140,46 @@ export default function ProyectosPage() {
     return true;
   });
 
+  const handleExportProyectos = () => {
+    if (filteredProjects.length === 0) {
+      alert("No hay proyectos para exportar.");
+      return;
+    }
+
+    const headers = ["Nombre Proyecto", "Cliente", "Empresa Cliente", "Código Venta", "Monto Venta", "Urgente", "Trello ID", "Link Trello", "Carpeta Dropbox", "Estado", "Fecha Registro"];
+    
+    const escapeCsv = (val: string | number | boolean | null | undefined) => {
+      if (val === null || val === undefined) return '""';
+      const clean = String(val).replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filteredProjects.map(project => [
+      escapeCsv(project.nombre),
+      escapeCsv(project.clientes?.nombre),
+      escapeCsv(project.clientes?.empresa),
+      escapeCsv(project.ventas?.codigo_venta),
+      escapeCsv(project.ventas?.monto_total ? `${project.ventas.monto_total} ${project.ventas.moneda || ""}` : ""),
+      escapeCsv(project.ventas?.urgente ? "SÍ" : "NO"),
+      escapeCsv(project.trello_card_id),
+      escapeCsv(project.link_trello),
+      escapeCsv(project.carpeta_dropbox),
+      escapeCsv(project.activo ? "Activo" : "Archivado"),
+      escapeCsv(new Date(project.creado_en).toLocaleDateString("es-ES"))
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Proyectos_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Pagination Math
   const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
   const startIndex = (currentPage - 1) * projectsPerPage;
@@ -145,8 +188,36 @@ export default function ProyectosPage() {
 
   return (
     <div>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Proyectos</h1>
+      <div className={styles.pageHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <h1 className={styles.pageTitle} style={{ margin: 0 }}>Proyectos</h1>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className={styles.btnPrimary}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
+            title="Importar proyectos desde CSV/Excel"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Importar</span>
+          </button>
+          <button
+            onClick={handleExportProyectos}
+            className={styles.btnSecondary}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", height: "42px", padding: "0 1rem", borderRadius: "8px", fontSize: "0.85rem" }}
+            title="Exportar proyectos a CSV"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Exportar CSV</span>
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem", alignItems: "center" }}>
@@ -440,7 +511,11 @@ export default function ProyectosPage() {
           )}
         </>
       )}
-
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => fetchProjects(debouncedSearch)}
+      />
 
     </div>
   );

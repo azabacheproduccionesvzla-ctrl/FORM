@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 import { verifyPin } from "@/lib/crypto";
 import { runVentasAutomations } from "@/lib/automations";
+import { updateTrelloCardName } from "@/lib/trello";
+import { renameDropboxFolder } from "@/lib/dropbox";
+import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +35,8 @@ export async function GET(request: Request) {
         pais,
         empresa,
         link_usuario_plataforma,
-        setter_original_id
+        setter_original_id,
+        ghl_contact_id
       ),
       registrador:usuarios_agencia!usuario_registro_id (
         nombre
@@ -91,6 +95,8 @@ export async function POST(request: Request) {
     const registrarUsername = userData.username;
     const registrarRole = userData.role;
 
+    console.log("[POST Sales API] Session User Data:", { registrarUserId, registrarUsername, registrarRole });
+
     if (registrarRole === "auditor") {
       return NextResponse.json(
         { success: false, error: "Acceso denegado. Los auditores no pueden registrar ventas." },
@@ -100,6 +106,8 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { pin } = body;
+
+    console.log("[POST Sales API] Request body keys:", Object.keys(body));
 
     if (!pin) {
       return NextResponse.json(
@@ -115,6 +123,7 @@ export async function POST(request: Request) {
       .single();
 
     if (opError || !operator) {
+      console.error("[POST Sales API] Operator validation error:", opError, "Operator data:", operator);
       return NextResponse.json(
         { success: false, error: "Error al validar el usuario firma. Intente de nuevo." },
         { status: 401 }
@@ -175,7 +184,12 @@ export async function POST(request: Request) {
       closers_adicionales_ids,
 
       tipo_cierre,
-      notas_internas
+      notas_internas,
+      manual_rama,
+      manual_categoria,
+      manual_servicio,
+      manual_enlace,
+      manuales_servicios
     } = body;
 
     if (!proyecto_nombre || !tipo_venta || !tipo_proyecto || !status_pago || !plataforma || !tipo_cierre || monto_total === undefined) {
@@ -306,23 +320,20 @@ export async function POST(request: Request) {
       usuario_registro_id: registrarUserId,
       estado_interno: "Registrada",
       status_trello: "PENDIENTE",
-      status_ghl: "PENDIENTE",
+      status_ghl_contacto: "PENDIENTE",
+      status_ghl_factura: "PENDIENTE",
       status_dropbox: "PENDIENTE",
       status_whatsapp: "PENDIENTE",
-      status_email: "PENDIENTE"
+      status_email: "PENDIENTE",
+      status_sheets: "PENDIENTE",
+      manual_rama: manual_rama || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.rama) || null,
+      manual_categoria: manual_categoria || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.categoria) || null,
+      manual_servicio: manual_servicio || (Array.isArray(manuales_servicios) ? manuales_servicios.map((s: any) => s.servicio).join(", ") : null),
+      manual_enlace: manual_enlace || (Array.isArray(manuales_servicios) && manuales_servicios[0]?.enlace) || null,
+      manuales_servicios: manuales_servicios || null
     };
 
-    if (es_continuacion && proyecto_previo_id) {
-      const { data: prevSale } = await supabase
-        .from("ventas")
-        .select("codigo_venta")
-        .eq("id", proyecto_previo_id)
-        .single();
-      
-      if (prevSale) {
-        insertData.codigo_venta = prevSale.codigo_venta;
-      }
-    }
+
 
     const { data: salesInserted, error: salesErr } = await supabase
       .from("ventas")
@@ -357,18 +368,56 @@ export async function POST(request: Request) {
       }
     }
 
-    runVentasAutomations(salesInserted.id).catch((err) => {
-      console.error("[Automations] Error in runVentasAutomations promise:", err);
-    });
+    try {
+      await runVentasAutomations(salesInserted.id);
+    } catch (err) {
+      console.error("[Automations] Error en la ejecución de runVentasAutomations:", err);
+    }
+
+    // Query updated sale to send to frontend
+    const { data: finalSale } = await supabase
+      .from("ventas")
+      .select(`
+        *,
+        clientes (
+          id,
+          nombre,
+          email,
+          telefono,
+          pais,
+          empresa,
+          link_usuario_plataforma,
+          setter_original_id
+        ),
+        registrador:usuarios_agencia!usuario_registro_id (
+          nombre
+        ),
+        setter_principal:usuarios_agencia!setter_principal_id (
+          nombre
+        ),
+        closer_principal:usuarios_agencia!closer_principal_id (
+          nombre
+        )
+      `)
+      .eq("id", salesInserted.id)
+      .single();
+
+    const saleToSend = finalSale || salesInserted;
 
     await supabase.from("historial_actividades").insert({
       usuario_id: registrarUserId,
-      accion_descripcion: `Venta registrada: ${salesInserted.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
+      accion_descripcion: `Venta registrada: ${saleToSend.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
     });
+
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after POST:", localErr);
+    }
 
     return NextResponse.json({
       success: true,
-      sale: salesInserted,
+      sale: saleToSend,
       message: "Venta registrada exitosamente."
     });
   } catch (error: any) {
@@ -444,7 +493,18 @@ export async function PUT(request: Request) {
 
     const { data: saleData, error: findError } = await supabase
       .from("ventas")
-      .select("usuario_registro_id, codigo_venta")
+      .select(`
+        usuario_registro_id,
+        codigo_venta,
+        proyecto_nombre,
+        creado_en,
+        link_trello,
+        carpeta_dropbox,
+        cliente_id,
+        clientes (
+          nombre
+        )
+      `)
       .eq("id", id)
       .single();
 
@@ -488,10 +548,12 @@ export async function PUT(request: Request) {
       tipo_cierre,
       notas_internas,
       status_trello,
-      status_ghl,
+      status_ghl_contacto,
+      status_ghl_factura,
       status_dropbox,
       status_whatsapp,
       status_email,
+      status_sheets,
       link_trello,
       estado_interno,
       cliente_id,
@@ -500,7 +562,12 @@ export async function PUT(request: Request) {
       cliente_telefono,
       cliente_pais,
       cliente_empresa,
-      cliente_link_usuario
+      cliente_link_usuario,
+      manual_rama,
+      manual_categoria,
+      manual_servicio,
+      manual_enlace,
+      manuales_servicios
     } = body;
 
     if (cliente_id) {
@@ -546,12 +613,19 @@ export async function PUT(request: Request) {
       tipo_cierre: tipo_cierre || undefined,
       notas_internas: notas_internas !== undefined ? notas_internas : undefined,
       status_trello: status_trello || undefined,
-      status_ghl: status_ghl || undefined,
+      status_ghl_contacto: status_ghl_contacto || undefined,
+      status_ghl_factura: status_ghl_factura || undefined,
       status_dropbox: status_dropbox || undefined,
       status_whatsapp: status_whatsapp || undefined,
       status_email: status_email || undefined,
+      status_sheets: status_sheets || undefined,
       link_trello: link_trello !== undefined ? link_trello : undefined,
-      estado_interno: estado_interno || undefined
+      estado_interno: estado_interno || undefined,
+      manual_rama: manual_rama !== undefined ? manual_rama : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.rama) || undefined,
+      manual_categoria: manual_categoria !== undefined ? manual_categoria : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.categoria) || undefined,
+      manual_servicio: manual_servicio !== undefined ? manual_servicio : (Array.isArray(manuales_servicios) ? manuales_servicios.map((s: any) => s.servicio).join(", ") : undefined),
+      manual_enlace: manual_enlace !== undefined ? manual_enlace : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.enlace) || undefined,
+      manuales_servicios: manuales_servicios !== undefined ? manuales_servicios : undefined
     };
 
     Object.keys(updateSaleData).forEach(key => {
@@ -571,10 +645,62 @@ export async function PUT(request: Request) {
       throw updateErr;
     }
 
+    try {
+      const oldProjectName = saleData.proyecto_nombre;
+      const oldClientName = (saleData.clientes as any)?.nombre || "";
+
+      const newProjectName = proyecto_nombre !== undefined ? proyecto_nombre.trim() : oldProjectName;
+      const newClientName = cliente_nombre !== undefined ? cliente_nombre.trim() : oldClientName;
+
+      if (proyecto_nombre !== undefined && oldProjectName !== newProjectName) {
+        await supabase
+          .from("proyectos")
+          .update({ nombre: newProjectName })
+          .eq("venta_id", id);
+        console.log(`[Rename] Proyecto DB unificado renombrado de "${oldProjectName}" a "${newProjectName}"`);
+      }
+
+      if (oldProjectName !== newProjectName || oldClientName !== newClientName) {
+        console.log(`[Rename] Detectados cambios en nombres. Proyecto: "${oldProjectName}" -> "${newProjectName}", Cliente: "${oldClientName}" -> "${newClientName}"`);
+
+        let cardId = "";
+        if (saleData.link_trello) {
+          const m = saleData.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+          if (m) cardId = m[1];
+        }
+
+        const { data: projDb } = await supabase
+          .from("proyectos")
+          .select("trello_card_id")
+          .eq("venta_id", id)
+          .maybeSingle();
+
+        const finalCardId = projDb?.trello_card_id || cardId;
+
+        if (finalCardId) {
+          await updateTrelloCardName(finalCardId, newProjectName, newClientName);
+          console.log(`[Rename] Tarjeta de Trello renombrada con éxito.`);
+        }
+
+        if (oldClientName && oldProjectName) {
+          await renameDropboxFolder(oldClientName, oldProjectName, newClientName, newProjectName, saleData.creado_en);
+          console.log(`[Rename] Carpeta de Dropbox renombrada con éxito.`);
+        }
+      }
+    } catch (renameErr) {
+      console.error("[Rename Exception] Error al renombrar recursos externos en PUT:", renameErr);
+    }
+
     await supabase.from("historial_actividades").insert({
       usuario_id: userId,
       accion_descripcion: `Venta modificada: ${updatedSale.codigo_venta} para ${cliente_nombre || "Cliente"} (Monto: ${monto_total || updatedSale.monto_total} ${moneda || updatedSale.moneda})`,
     });
+
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after PUT:", localErr);
+    }
 
     return NextResponse.json({
       success: true,
@@ -641,6 +767,12 @@ export async function DELETE(request: Request) {
       usuario_id: userId,
       accion_descripcion: `Venta eliminada: ${saleData?.codigo_venta || "N/A"} (${saleData?.proyecto_nombre || "N/A"}) por administrador`,
     });
+
+    try {
+      await updateLocalWorkspaceSheet();
+    } catch (localErr) {
+      console.error("[Sales API] Error updating local sheet after DELETE:", localErr);
+    }
 
     return NextResponse.json({
       success: true,

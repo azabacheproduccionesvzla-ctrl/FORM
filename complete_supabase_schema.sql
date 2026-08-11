@@ -51,6 +51,7 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ghl_contact_id VARCHAR(100);
 CREATE TABLE IF NOT EXISTS ventas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     codigo_venta VARCHAR(100) UNIQUE,
+    codigo_factura VARCHAR(100),
     es_continuacion BOOLEAN DEFAULT FALSE NOT NULL,
     tipo_continuacion VARCHAR(50), -- 'extension', 'pago_parcial'
     proyecto_previo_id UUID REFERENCES ventas(id) ON DELETE SET NULL,
@@ -90,11 +91,24 @@ CREATE TABLE IF NOT EXISTS ventas (
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     estado_interno VARCHAR(50) DEFAULT 'Registrada' NOT NULL,
     status_trello VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
+    status_ghl_contacto VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
+    status_ghl_factura VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_ghl VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_dropbox VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_whatsapp VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     status_email VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
+    status_sheets VARCHAR(50) DEFAULT 'PENDIENTE' NOT NULL,
     link_trello VARCHAR(255)
+);
+
+-- Tabla para el historial detallado de logs
+CREATE TABLE IF NOT EXISTS ventas_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venta_id UUID REFERENCES ventas(id) ON DELETE CASCADE NOT NULL,
+    integracion VARCHAR(50) NOT NULL,
+    tipo VARCHAR(20) NOT NULL,
+    mensaje TEXT NOT NULL,
+    creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- Secuencia y trigger para generar código autoincrementable de ventas
@@ -218,6 +232,7 @@ ON CONFLICT (clave) DO NOTHING;
 ALTER TABLE usuarios_agencia DISABLE ROW LEVEL SECURITY;
 ALTER TABLE clientes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE ventas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ventas_logs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE historial_actividades DISABLE ROW LEVEL SECURITY;
 ALTER TABLE configuraciones DISABLE ROW LEVEL SECURITY;
 ALTER TABLE proyectos DISABLE ROW LEVEL SECURITY;

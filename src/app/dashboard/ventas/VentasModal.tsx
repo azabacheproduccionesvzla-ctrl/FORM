@@ -19,6 +19,7 @@ interface User {
   username: string;
   nombre: string;
   rol: string;
+  activo?: boolean;
 }
 
 interface PriorSale {
@@ -36,24 +37,89 @@ interface PriorSale {
   plataforma?: string;
 }
 
+const COUNTRIES_AMERICA = [
+  "Antigua y Barbuda",
+  "Argentina",
+  "Bahamas",
+  "Barbados",
+  "Belice",
+  "Bolivia",
+  "Brasil",
+  "Canadá",
+  "Chile",
+  "Colombia",
+  "Costa Rica",
+  "Cuba",
+  "Dominica",
+  "Ecuador",
+  "El Salvador",
+  "Estados Unidos",
+  "Granada",
+  "Guatemala",
+  "Guyana",
+  "Haití",
+  "Honduras",
+  "Jamaica",
+  "México",
+  "Nicaragua",
+  "Panamá",
+  "Paraguay",
+  "Perú",
+  "Puerto Rico",
+  "República Dominicana",
+  "San Cristóbal y Nieves",
+  "San Vicente y las Granadinas",
+  "Santa Lucía",
+  "Surinam",
+  "Trinidad y Tobago",
+  "Uruguay",
+  "Venezuela"
+];
+
+const COUNTRIES_EUROPE = [
+  "España",
+  "Portugal",
+  "Francia",
+  "Inglaterra"
+];
+
+const isPredefinedCountry = (c: string) => {
+  return COUNTRIES_AMERICA.includes(c) || COUNTRIES_EUROPE.includes(c);
+};
+
 interface VentasModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialGatingStep?: "choose" | "extension" | "pago_parcial" | "none";
+  initialUsers?: User[];
 }
 
-export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalProps) {
+export default function VentasModal({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  initialGatingStep = "choose",
+  initialUsers = []
+}: VentasModalProps) {
   
   const [clients, setClients] = useState<Client[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(initialUsers && initialUsers.length > 0 ? initialUsers : []);
   const [priorSales, setPriorSales] = useState<PriorSale[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+
+  useEffect(() => {
+    if (initialUsers && initialUsers.length > 0 && users.length === 0) {
+      setUsers(initialUsers);
+    }
+  }, [initialUsers]);
 
   // New state variables for projects selection
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [gatingProjSearchQuery, setGatingProjSearchQuery] = useState("");
   const [showGatingProjSuggestions, setShowGatingProjSuggestions] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [manuals, setManuals] = useState<any>({});
 
   
   const [gatingStep, setGatingStep] = useState<"choose" | "extension" | "pago_parcial" | "none">("choose");
@@ -95,6 +161,28 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   const [agregarSetterAdicional, setAgregarSetterAdicional] = useState(false);
 
   
+  const [showCustomGating, setShowCustomGating] = useState(false);
+  const [showCustomEdit, setShowCustomEdit] = useState(false);
+  const [showCustomNew, setShowCustomNew] = useState(false);
+
+  // Estados para el sistema de borradores (localStorage)
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  const [draftToRestore, setDraftToRestore] = useState<any>(null);
+
+  const isDraftEmpty = (draft: any) => {
+    if (!draft || !draft.formData) return true;
+    const fd = draft.formData;
+    return (
+      !fd.cliente_nombre?.trim() &&
+      !fd.cliente_id &&
+      !fd.proyecto_nombre?.trim() &&
+      !fd.monto_total?.trim() &&
+      !fd.monto_pagado?.trim() &&
+      !fd.proyecto_previo_id &&
+      !fd.proyecto_id
+    );
+  };
+
   const [formData, setFormData] = useState({
     
     es_continuacion: false,
@@ -110,7 +198,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
     plataforma: "Workana",
 
     
-    cliente_nuevo: false,
+    cliente_nuevo: true,
     cliente_id: "",
     cliente_nombre: "",
     cliente_telefono: "",
@@ -148,7 +236,12 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
     
     tipo_cierre: "Cierre por closer",
-    notas_internas: ""
+    notas_internas: "",
+    manual_rama: "",
+    manual_categoria: "",
+    manual_servicio: "",
+    manual_enlace: "",
+    manuales_servicios: [] as Array<{ id?: string | number; rama: string; categoria: string; servicio: string; enlace: string; }>
   });
 
   
@@ -164,106 +257,229 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   }, [isOpen]);
 
   
+  const resetToDefaultStates = () => {
+    setGatingStep(initialGatingStep);
+    setSelectedClient("");
+    setSelectedPriorProject("");
+    setGatingProjSearchQuery("");
+    setShowGatingProjSuggestions(false);
+    setSelectedProject(null);
+    setMontoCCPagadoPrevio(0);
+    setMontoCCTotalPrevio(0);
+    setModifyProjectData(false);
+    setModifyClientData(false);
+    setModifyPaymentMode(false);
+    setStep(1);
+    setFormError(null);
+    setGatingSearchQuery("");
+    setShowGatingSuggestions(false);
+    setMainSearchQuery("");
+    setShowMainSuggestions(false);
+    setShowPinConfirm(false);
+    setConfirmPin(Array(6).fill(""));
+    setPinError(null);
+    setIsPagoParcial(true);
+    setMontoPorHora("");
+    setCantidadHoras("");
+    setClosingParticipants([]);
+    setSetterAdicionalId("");
+    setActualizarCliente(false);
+    setAgregarSetterAdicional(false);
+
+    setFormData({
+      es_continuacion: false,
+      tipo_continuacion: "",
+      proyecto_previo_id: "",
+      proyecto_id: "",
+      tipo_venta: "Nueva Venta",
+      tipo_proyecto: "Precio Fijo",
+      tipo_proyecto_otro: "",
+      status_pago: "Pago Parcial",
+      plataforma: "Workana",
+      cliente_nuevo: true,
+      cliente_id: "",
+      cliente_nombre: "",
+      cliente_telefono: "",
+      cliente_email: "",
+      cliente_pais: "",
+      cliente_empresa: "",
+      cliente_link_usuario: "",
+      proyecto_nombre: "",
+      proyecto_link: "",
+      proyecto_brief: "",
+      descripcion_operativa: "",
+      deadline: "",
+      urgente: false,
+      motivo_urgencia: "",
+      moneda: "USD",
+      moneda_otra: "",
+      monto_total: "",
+      monto_explicacion: "",
+      monto_pagado: "",
+      comision_total: "",
+      fecha_pago: "",
+      fecha_liberacion_pendiente: false,
+      comprobante_link: "",
+      comprobante_no_aplica: true,
+      setter_principal_id: "",
+      setters_adicionales_ids: [],
+      closer_principal_id: "",
+      closers_adicionales_ids: [],
+      tipo_cierre: "Cierre por closer",
+      notas_internas: "",
+      manual_rama: "",
+      manual_categoria: "",
+      manual_servicio: "",
+      manual_enlace: "",
+      manuales_servicios: []
+    });
+  };
+
+  // Cargar catálogos siempre al abrir el modal
   useEffect(() => {
     if (isOpen) {
-      
-      setGatingStep("choose");
-      setSelectedClient("");
-      setSelectedPriorProject("");
-      setGatingProjSearchQuery("");
-      setShowGatingProjSuggestions(false);
-      setSelectedProject(null);
-      setMontoCCPagadoPrevio(0);
-      setMontoCCTotalPrevio(0);
-      setModifyProjectData(false);
-      setModifyClientData(false);
-      setModifyPaymentMode(false);
-      setStep(1);
-      setFormError(null);
-      setGatingSearchQuery("");
-      setShowGatingSuggestions(false);
-      setMainSearchQuery("");
-      setShowMainSuggestions(false);
-      setShowPinConfirm(false);
-      setConfirmPin(Array(6).fill(""));
-      setPinError(null);
-      setIsPagoParcial(true);
-      setMontoPorHora("");
-      setCantidadHoras("");
-      setClosingParticipants([]);
-      setSetterAdicionalId("");
-      setActualizarCliente(false);
-      setAgregarSetterAdicional(false);
-
-      setFormData({
-        es_continuacion: false,
-        tipo_continuacion: "",
-        proyecto_previo_id: "",
-        proyecto_id: "",
-        tipo_venta: "Nueva Venta",
-        tipo_proyecto: "Precio Fijo",
-        tipo_proyecto_otro: "",
-        status_pago: "Pago Parcial",
-        plataforma: "Workana",
-        cliente_nuevo: false,
-        cliente_id: "",
-        cliente_nombre: "",
-        cliente_telefono: "",
-        cliente_email: "",
-        cliente_pais: "",
-        cliente_empresa: "",
-        cliente_link_usuario: "",
-        proyecto_nombre: "",
-        proyecto_link: "",
-        proyecto_brief: "",
-        descripcion_operativa: "",
-        deadline: "",
-        urgente: false,
-        motivo_urgencia: "",
-        moneda: "USD",
-        moneda_otra: "",
-        monto_total: "",
-        monto_explicacion: "",
-        monto_pagado: "",
-        comision_total: "",
-        fecha_pago: "",
-        fecha_liberacion_pendiente: false,
-        comprobante_link: "",
-        comprobante_no_aplica: true,
-        setter_principal_id: "",
-        setters_adicionales_ids: [],
-        closer_principal_id: "",
-        closers_adicionales_ids: [],
-        tipo_cierre: "Cierre por closer",
-        notas_internas: ""
-      });
-
       async function loadAuxiliaryData() {
         setLoadingData(true);
         try {
-          const [clientsRes, usersRes, projectsRes] = await Promise.all([
-            fetch("/api/clients"),
-            fetch("/api/users"),
-            fetch("/api/projects")
+          const results = await Promise.allSettled([
+            fetch("/api/clients").then(r => r.json()),
+            fetch("/api/users").then(r => r.json()),
+            fetch("/api/projects").then(r => r.json()),
+            fetch("/api/config/manuals").then(r => r.json())
           ]);
 
-          const clientsData = await clientsRes.json();
-          const usersData = await usersRes.json();
-          const projectsData = await projectsRes.json();
-
-          if (clientsData.success) setClients(clientsData.clients || []);
-          if (usersData.success) setUsers(usersData.users || []);
-          if (projectsData.success) setAllProjects(projectsData.projects || []);
+          if (results[0].status === "fulfilled" && results[0].value?.success) {
+            setClients(results[0].value.clients || []);
+          }
+          if (results[1].status === "fulfilled" && results[1].value?.success) {
+            const fetchedUsers = results[1].value.users || [];
+            if (fetchedUsers.length > 0) {
+              setUsers(fetchedUsers);
+            }
+          }
+          if (results[2].status === "fulfilled" && results[2].value?.success) {
+            setAllProjects(results[2].value.projects || []);
+          }
+          if (results[3].status === "fulfilled" && results[3].value?.success) {
+            setManuals(results[3].value.manuals || {});
+          }
         } catch (error) {
           console.error("Error al cargar datos del formulario:", error);
         } finally {
           setLoadingData(false);
         }
       }
-
       loadAuxiliaryData();
     }
   }, [isOpen]);
+
+  // Verificar si hay borrador guardado en localStorage al abrir
+  useEffect(() => {
+    if (isOpen) {
+      const draftStr = localStorage.getItem("sales_draft");
+      let parsedDraft = null;
+      try {
+        if (draftStr) parsedDraft = JSON.parse(draftStr);
+      } catch (e) {
+        console.error("Error al parsear borrador de venta:", e);
+      }
+
+      if (parsedDraft && !isDraftEmpty(parsedDraft)) {
+        setDraftToRestore(parsedDraft);
+        setShowDraftPrompt(true);
+      } else {
+        setShowDraftPrompt(false);
+        setDraftToRestore(null);
+        resetToDefaultStates();
+      }
+    }
+  }, [isOpen, initialGatingStep]);
+
+  // Guardar borrador automáticamente ante cualquier cambio de estado
+  useEffect(() => {
+    if (isOpen && !showDraftPrompt) {
+      const draftData = {
+        formData,
+        step,
+        gatingStep,
+        modifyProjectData,
+        modifyClientData,
+        modifyPaymentMode,
+        isPagoParcial,
+        montoPorHora,
+        cantidadHoras,
+        closingParticipants,
+        setterAdicionalId,
+        actualizarCliente,
+        agregarSetterAdicional,
+        selectedProject,
+        selectedClient
+      };
+
+      if (!isDraftEmpty(draftData)) {
+        localStorage.setItem("sales_draft", JSON.stringify(draftData));
+      }
+    }
+  }, [
+    isOpen,
+    showDraftPrompt,
+    formData,
+    step,
+    gatingStep,
+    modifyProjectData,
+    modifyClientData,
+    modifyPaymentMode,
+    isPagoParcial,
+    montoPorHora,
+    cantidadHoras,
+    closingParticipants,
+    setterAdicionalId,
+    actualizarCliente,
+    agregarSetterAdicional,
+    selectedProject,
+    selectedClient
+  ]);
+
+  const handleRestoreDraft = () => {
+    if (!draftToRestore) return;
+    const d = draftToRestore;
+    if (d.formData) setFormData(d.formData);
+    if (d.step !== undefined) setStep(d.step);
+    if (d.gatingStep !== undefined) setGatingStep(d.gatingStep);
+    if (d.modifyProjectData !== undefined) setModifyProjectData(d.modifyProjectData);
+    if (d.modifyClientData !== undefined) setModifyClientData(d.modifyClientData);
+    if (d.modifyPaymentMode !== undefined) setModifyPaymentMode(d.modifyPaymentMode);
+    if (d.isPagoParcial !== undefined) setIsPagoParcial(d.isPagoParcial);
+    if (d.montoPorHora !== undefined) setMontoPorHora(d.montoPorHora);
+    if (d.cantidadHoras !== undefined) setCantidadHoras(d.cantidadHoras);
+    if (d.closingParticipants !== undefined) setClosingParticipants(d.closingParticipants);
+    if (d.setterAdicionalId !== undefined) setSetterAdicionalId(d.setterAdicionalId);
+    if (d.actualizarCliente !== undefined) setActualizarCliente(d.actualizarCliente);
+    if (d.agregarSetterAdicional !== undefined) setAgregarSetterAdicional(d.agregarSetterAdicional);
+    if (d.selectedProject !== undefined) setSelectedProject(d.selectedProject);
+    if (d.selectedClient !== undefined) setSelectedClient(d.selectedClient);
+
+    if (d.selectedProject) {
+      setGatingProjSearchQuery(d.selectedProject.nombre || "");
+    }
+    if (d.selectedClient) {
+      setMainSearchQuery(d.formData?.cliente_nombre || "");
+      setGatingSearchQuery(d.formData?.cliente_nombre || "");
+    }
+
+    setShowDraftPrompt(false);
+    setDraftToRestore(null);
+  };
+
+  const handleDiscardDraft = () => {
+    const confirmDiscard = window.confirm("¿Estás seguro? Tu venta sin registrar se va a descartar de forma permanente.");
+    if (!confirmDiscard) return;
+
+    localStorage.removeItem("sales_draft");
+    setShowDraftPrompt(false);
+    setDraftToRestore(null);
+    resetToDefaultStates();
+  };
 
   
   useEffect(() => {
@@ -318,6 +534,25 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
     }
   }, [selectedClient, clients]);
 
+  useEffect(() => {
+    if (formData.cliente_pais) {
+      const isPre = isPredefinedCountry(formData.cliente_pais);
+      if (!isPre) {
+        setShowCustomGating(true);
+        setShowCustomEdit(true);
+        setShowCustomNew(true);
+      } else {
+        setShowCustomGating(false);
+        setShowCustomEdit(false);
+        setShowCustomNew(false);
+      }
+    } else {
+      setShowCustomGating(false);
+      setShowCustomEdit(false);
+      setShowCustomNew(false);
+    }
+  }, [formData.cliente_pais]);
+
   
   useEffect(() => {
     if (formData.tipo_proyecto === "Por Hora") {
@@ -337,8 +572,9 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
   
   useEffect(() => {
-    if (formData.tipo_proyecto === "Por Hora" && montoPorHora && cantidadHoras) {
-      const calculated = (parseFloat(montoPorHora) * parseFloat(cantidadHoras)).toFixed(2);
+    if (formData.tipo_proyecto === "Por Hora" && montoPorHora) {
+      const hrs = cantidadHoras ? parseFloat(cantidadHoras) : 0;
+      const calculated = (parseFloat(montoPorHora) * hrs).toFixed(2);
       setFormData(prev => ({ ...prev, monto_total: calculated }));
     }
   }, [formData.tipo_proyecto, montoPorHora, cantidadHoras]);
@@ -378,6 +614,10 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         setFormError("Por favor, ingresa el nombre para el nuevo cliente.");
         return;
       }
+      if (formData.cliente_nuevo && !formData.cliente_email?.trim() && !formData.cliente_telefono?.trim()) {
+        setFormError("Por favor, ingresa al menos el correo electrónico (email) o el teléfono para el nuevo cliente.");
+        return;
+      }
 
       const priorSaleId = selectedProject.venta_id || "";
 
@@ -392,10 +632,15 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         proyecto_nombre: gatingStep === "extension" ? `Extensión - ${selectedProject.nombre}` : selectedProject.nombre,
         proyecto_link: selectedProject.link_trello || "",
         carpeta_dropbox: selectedProject.carpeta_dropbox || "",
+        proyecto_brief: selectedProject.ventas?.proyecto_brief || "",
+        descripcion_operativa: selectedProject.ventas?.descripcion_operativa || "",
+        deadline: selectedProject.ventas?.deadline || "",
+        tipo_proyecto: selectedProject.ventas?.tipo_proyecto || "Precio Fijo",
+        moneda: selectedProject.ventas?.moneda || "USD"
       }));
 
       if (selectedProject.ventas?.tipo_proyecto === "Por Hora") {
-        setMontoPorHora(selectedProject.ventas.monto_total.toString());
+        setMontoPorHora(selectedProject.ventas.monto_total?.toString() || "");
       }
 
       setGatingStep("none");
@@ -420,6 +665,10 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         setFormError("Debes ingresar el nombre del cliente nuevo.");
         return;
       }
+      if (!formData.cliente_email?.trim() && !formData.cliente_telefono?.trim()) {
+        setFormError("Debes ingresar al menos el correo electrónico (email) o el teléfono del cliente para poder registrar la venta.");
+        return;
+      }
       if (!formData.proyecto_nombre) {
         setFormError("El nombre del proyecto es obligatorio.");
         return;
@@ -430,9 +679,15 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       }
 
       
-      if (formData.tipo_proyecto === "Por Hora" && (!montoPorHora || !cantidadHoras)) {
-        setFormError("Debes ingresar el monto por hora y la cantidad de horas.");
-        return;
+      if (formData.tipo_proyecto === "Por Hora") {
+        if (!montoPorHora) {
+          setFormError("Debes ingresar el monto por hora.");
+          return;
+        }
+        if (formData.es_continuacion && !cantidadHoras) {
+          setFormError("Debes ingresar la cantidad de horas.");
+          return;
+        }
       }
 
       
@@ -504,6 +759,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
   
   const handleConfirmPinSubmit = async () => {
+    if (submitting) return;
     setPinError(null);
     setSubmitting(true);
 
@@ -529,16 +785,18 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         settersAdicionales = [];
       }
     }
-
     const finalPayload = {
       ...formData,
       setter_principal_id: setterPrincipal,
       setters_adicionales_ids: settersAdicionales,
       closer_principal_id: closerPrincipal,
       closers_adicionales_ids: closersAdicionales,
-      actualizar_cliente: actualizarCliente,
+      actualizar_cliente: isExtension ? modifyClientData : actualizarCliente,
       pin: pinStr
     };
+
+    // Remove draft immediately so page reloads during network wait don't duplicate submission
+    localStorage.removeItem("sales_draft");
 
     try {
       const res = await fetch("/api/sales", {
@@ -550,6 +808,22 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al registrar la venta.");
 
+      const sale = data.sale;
+      if (sale) {
+        const failed = [];
+        if (sale.status_ghl === "ERROR" || sale.status_ghl_contacto === "ERROR" || sale.status_ghl_factura === "ERROR") failed.push("GoHighLevel");
+        if (sale.status_trello === "ERROR") failed.push("Trello");
+        if (sale.status_dropbox === "ERROR") failed.push("Dropbox");
+        if (sale.status_email === "ERROR") failed.push("Email");
+        if (sale.status_whatsapp === "ERROR") failed.push("WhatsApp");
+        if (sale.status_sheets === "ERROR") failed.push("Google Sheets");
+
+        if (failed.length > 0) {
+          alert(`La venta fue registrada en la base de datos, pero las siguientes integraciones fallaron: ${failed.join(", ")}. Puedes reintentarlas desde el panel de control.`);
+        }
+      }
+
+      localStorage.removeItem("sales_draft");
       onSuccess();
       setShowPinConfirm(false);
       onClose();
@@ -598,8 +872,80 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
   };
 
   
-  const setters = users.filter(u => u.rol === "ventas" || u.rol === "admin");
-  const closingCandidates = users.filter(u => u.rol === "ventas" || u.rol === "admin");
+  const activeUsers = users.filter(u => u.activo !== false);
+
+  let setters = activeUsers.filter(u => {
+    if (!u.rol) return true;
+    const r = String(u.rol).toLowerCase().trim();
+    return r === "ventas" || r === "admin" || r === "setter" || r === "closer" || r === "sales" || r === "director";
+  });
+  if (setters.length === 0 && activeUsers.length > 0) {
+    setters = activeUsers;
+  }
+
+  let closingCandidates = activeUsers.filter(u => {
+    if (!u.rol) return true;
+    const r = String(u.rol).toLowerCase().trim();
+    return r === "ventas" || r === "admin" || r === "setter" || r === "closer" || r === "sales" || r === "director";
+  });
+  if (closingCandidates.length === 0 && activeUsers.length > 0) {
+    closingCandidates = activeUsers;
+  }
+
+  const handleAddServiceToPackage = (srvToInsert?: any) => {
+    const r = formData.manual_rama;
+    const s = srvToInsert || (formData.manual_rama && manuals && manuals[formData.manual_rama]
+      ? manuals[formData.manual_rama].find((item: any) => item.item === formData.manual_servicio)
+      : null);
+
+    if (!r || !s) return;
+
+    const newItem = {
+      id: s.id,
+      rama: r,
+      categoria: s.categoria || "",
+      servicio: s.item,
+      enlace: s.enlace || ""
+    };
+
+    setFormData(prev => {
+      const currentList = prev.manuales_servicios || [];
+      const exists = currentList.some(item => item.servicio === newItem.servicio && item.categoria === newItem.categoria && item.rama === newItem.rama);
+      if (exists) return prev;
+
+      const newList = [...currentList, newItem];
+      
+      let updatedProjName = prev.proyecto_nombre;
+      if (!updatedProjName || currentList.map(i => i.servicio).includes(updatedProjName)) {
+        updatedProjName = newList.map(i => i.servicio).join(" + ");
+      }
+
+      return {
+        ...prev,
+        manuales_servicios: newList,
+        manual_rama: newList[0]?.rama || "",
+        manual_categoria: newList[0]?.categoria || "",
+        manual_servicio: newList.map(i => i.servicio).join(", "),
+        manual_enlace: newList[0]?.enlace || "",
+        proyecto_nombre: updatedProjName
+      };
+    });
+  };
+
+  const handleRemoveServiceFromPackage = (index: number) => {
+    setFormData(prev => {
+      const currentList = prev.manuales_servicios || [];
+      const newList = currentList.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        manuales_servicios: newList,
+        manual_rama: newList[0]?.rama || "",
+        manual_categoria: newList[0]?.categoria || "",
+        manual_servicio: newList.map(i => i.servicio).join(", "),
+        manual_enlace: newList[0]?.enlace || ""
+      };
+    });
+  };
 
   
   const filteredProjectsGating = allProjects.filter((p) => {
@@ -609,7 +955,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
       p.clientes?.nombre?.toLowerCase().includes(q) ||
       (p.ventas?.codigo_venta && p.ventas.codigo_venta.toLowerCase().includes(q))
     );
-  });
+  }).slice(0, 5);
 
   const handleProjectSelect = (proj: any) => {
     setSelectedProject(proj);
@@ -663,24 +1009,26 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
   const filteredClientsGating = clients.filter(c =>
     c.nombre.toLowerCase().includes(gatingSearchQuery.toLowerCase())
-  );
+  ).slice(0, 5);
 
   const filteredClientsMain = clients.filter(c =>
     c.nombre.toLowerCase().includes(mainSearchQuery.toLowerCase())
-  );
+  ).slice(0, 5);
 
   if (!isOpen) return null;
 
   
   let modalWidth = "680px";
-  if (gatingStep === "choose") {
+  if (showDraftPrompt) {
+    modalWidth = "480px";
+  } else if (gatingStep === "choose") {
     modalWidth = "640px";
   } else if (gatingStep === "extension" || gatingStep === "pago_parcial") {
     modalWidth = "480px";
   }
 
   
-  const isExtension = formData.es_continuacion && formData.tipo_continuacion === "extension";
+  const isExtension = formData.es_continuacion;
   const disableClientFields = isExtension && !modifyClientData;
   const disableProjectFields = isExtension && !modifyProjectData;
   const disablePaymentFields = isExtension && !modifyPaymentMode;
@@ -714,7 +1062,120 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
         )}
 
         {}
-        {gatingStep !== "none" ? (
+        {showDraftPrompt ? (
+          <div style={{ flexGrow: 1, overflowY: "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box" }}>
+            <span className={styles.gatingTitle} style={{ alignSelf: "center", marginBottom: "0.5rem", fontWeight: "500", fontSize: "1.15rem", textAlign: "center" }}>
+              Borrador de venta detectado
+            </span>
+            <p style={{ fontSize: "0.85rem", color: "#64748b", textAlign: "center", marginBottom: "1.5rem", marginTop: 0 }}>
+              Tienes una venta sin registrar. ¿Deseas continuar desde donde lo dejaste o empezar una nueva venta?
+            </p>
+
+            <div style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "1.25rem",
+              marginBottom: "2rem",
+              fontSize: "0.9rem",
+              color: "#334155"
+            }}>
+              <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem", fontWeight: "600", color: "#0f172a", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem" }}>
+                Resumen del Borrador
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "0.5rem 1rem", alignItems: "start" }}>
+                {draftToRestore?.formData?.cliente_nombre ? (
+                  <>
+                    <strong style={{ color: "#475569" }}>Cliente:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.cliente_nombre}</span>
+                  </>
+                ) : draftToRestore?.formData?.cliente_id ? (
+                  <>
+                    <strong style={{ color: "#475569" }}>Cliente ID:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>
+                      {clients.find(c => c.id === draftToRestore.formData.cliente_id)?.nombre || draftToRestore.formData.cliente_id}
+                    </span>
+                  </>
+                ) : null}
+
+                {draftToRestore?.formData?.proyecto_nombre && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Proyecto:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.proyecto_nombre}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.tipo_venta && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Tipo de Venta:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.tipo_venta}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.plataforma && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Plataforma:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>{draftToRestore.formData.plataforma}</span>
+                  </>
+                )}
+
+                {draftToRestore?.formData?.monto_total && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Monto:</strong>
+                    <span style={{ fontWeight: "600", color: "#0f172a" }}>
+                      {draftToRestore.formData.monto_total} {draftToRestore.formData.moneda || "USD"}
+                    </span>
+                  </>
+                )}
+
+                {draftToRestore?.step && (
+                  <>
+                    <strong style={{ color: "#475569" }}>Último paso:</strong>
+                    <span style={{ fontWeight: "500", color: "#0f172a" }}>Paso {draftToRestore.step} de 3</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.75rem", width: "100%", marginTop: "1.5rem" }}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 0.5rem",
+                  minHeight: "44px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center",
+                  lineHeight: "1.2",
+                  borderColor: "#cbd5e1",
+                  color: "#64748b"
+                }}
+                onClick={handleDiscardDraft}
+              >
+                Registrar nueva venta
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 0.5rem",
+                  minHeight: "44px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center"
+                }}
+                onClick={handleRestoreDraft}
+              >
+                Continuar venta
+              </button>
+            </div>
+          </div>
+        ) : gatingStep !== "none" ? (
           <div style={{ flexGrow: 1, overflowY: isAnyAutocompleteOpen ? "visible" : "auto", padding: "1.5rem 1.5rem 2.5rem 1.5rem" }} className={styles.modalBodyScrollable}>
             {gatingStep === "choose" && (
               <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
@@ -935,28 +1396,31 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                 onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
                               />
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Email</label>
-                                <input
-                                  type="email"
-                                  placeholder="correo@ejemplo.com"
-                                  className={styles.input}
-                                  value={formData.cliente_email}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_email: e.target.value }))}
-                                />
-                              </div>
-                              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Teléfono</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ej: +34..."
-                                  className={styles.input}
-                                  value={formData.cliente_telefono}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
-                                />
-                              </div>
-                            </div>
+                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                 <label className={styles.label}>Email **</label>
+                                 <input
+                                   type="email"
+                                   placeholder="correo@ejemplo.com"
+                                   className={styles.input}
+                                   value={formData.cliente_email}
+                                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_email: e.target.value }))}
+                                 />
+                               </div>
+                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                 <label className={styles.label}>Teléfono **</label>
+                                 <input
+                                   type="text"
+                                   placeholder="Ej: +34..."
+                                   className={styles.input}
+                                   value={formData.cliente_telefono}
+                                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
+                                 />
+                               </div>
+                             </div>
+                             <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.1rem", marginBottom: "0.25rem", gridColumn: "span 2" }}>
+                               ** Se requiere al menos un correo (email) o teléfono para GoHighLevel.
+                             </span>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
                                 <label className={styles.label}>Empresa</label>
@@ -970,13 +1434,39 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                               </div>
                               <div className={styles.formGroup} style={{ marginBottom: 0 }}>
                                 <label className={styles.label}>País</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ej: España"
-                                  className={styles.input}
-                                  value={formData.cliente_pais}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_pais: e.target.value }))}
-                                />
+                                <select
+                                  className={styles.select}
+                                  value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomGating ? "Otro" : "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "Otro") {
+                                      setShowCustomGating(true);
+                                      setFormData(prev => ({ ...prev, cliente_pais: "" }));
+                                    } else {
+                                      setShowCustomGating(false);
+                                      setFormData(prev => ({ ...prev, cliente_pais: val }));
+                                    }
+                                  }}
+                                >
+                                  <option value="">Seleccionar país...</option>
+                                  <optgroup label="América">
+                                    {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <optgroup label="Europa">
+                                    {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <option value="Otro">Otro (Especificar)</option>
+                                </select>
+                                {(showCustomGating || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                                  <input
+                                    type="text"
+                                    placeholder="Especifica el país"
+                                    className={styles.input}
+                                    style={{ marginTop: "0.5rem" }}
+                                    value={formData.cliente_pais}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, cliente_pais: e.target.value }))}
+                                  />
+                                ) : null}
                               </div>
                             </div>
                           </div>
@@ -1064,7 +1554,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                   {isExtension && (
                     <div className={styles.switchesContainer}>
                       <span className={styles.label} style={{ color: "#1e3a8a", fontSize: "0.8rem", marginBottom: "0.25rem" }}>
-                        ESTA ES UNA EXTENSIÓN: Los campos se han cargado bloqueados. Usa estos interruptores para habilitar edición:
+                        PROYECTO EXISTENTE / CONTINUACIÓN: Los campos se han cargado bloqueados. Usa estos interruptores para habilitar edición:
                       </span>
                       <div className={styles.switchRow}>
                         <span className={styles.switchLabel}>¿Modificar datos del cliente?</span>
@@ -1104,33 +1594,35 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
 
                   <div className={styles.sectionTitle}>Datos del Cliente</div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>¿El cliente es nuevo o existente?</label>
-                    <div className={styles.toggleTabs}>
-                      <button
-                        type="button"
-                        className={`${styles.toggleTab} ${!formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
-                        onClick={() => {
-                          setFormData({ ...formData, cliente_nuevo: false });
-                          setActualizarCliente(false);
-                        }}
-                        disabled={formData.es_continuacion || disableClientFields}
-                      >
-                        Existente
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.toggleTab} ${formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
-                        onClick={() => {
-                          setFormData({ ...formData, cliente_nuevo: true, cliente_id: "" });
-                          setActualizarCliente(false);
-                        }}
-                        disabled={formData.es_continuacion || disableClientFields}
-                      >
-                        Nuevo
-                      </button>
+                  {!isExtension && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>¿El cliente es nuevo o existente?</label>
+                      <div className={styles.toggleTabs}>
+                        <button
+                          type="button"
+                          className={`${styles.toggleTab} ${!formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
+                          onClick={() => {
+                            setFormData({ ...formData, cliente_nuevo: false });
+                            setActualizarCliente(false);
+                          }}
+                          disabled={formData.es_continuacion || disableClientFields}
+                        >
+                          Existente
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.toggleTab} ${formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
+                          onClick={() => {
+                            setFormData({ ...formData, cliente_nuevo: true, cliente_id: "" });
+                            setActualizarCliente(false);
+                          }}
+                          disabled={formData.es_continuacion || disableClientFields}
+                        >
+                          Nuevo
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {!formData.cliente_nuevo ? (
                     <>
@@ -1174,56 +1666,91 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                             </div>
                           )}
                         </div>
-                      </div>
+                        {formData.cliente_id && (
+                          <div style={{ padding: "0.25rem 0", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                            {!isExtension && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem", padding: "0.25rem 0" }}>
+                                <span style={{ fontSize: "0.85rem", fontWeight: "500", color: "#334155" }}>
+                                  ¿Desea actualizar los datos de este cliente?
+                                </span>
+                                <label className={styles.switch}>
+                                  <input
+                                    type="checkbox"
+                                    checked={actualizarCliente}
+                                    onChange={(e) => setActualizarCliente(e.target.checked)}
+                                    disabled={submitting}
+                                  />
+                                  <span className={styles.slider}></span>
+                                </label>
+                              </div>
+                            )}
 
-                      {formData.cliente_id && (
-                        <div style={{ padding: "0.25rem 0", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                          {}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem", padding: "0.25rem 0" }}>
-                            <span style={{ fontSize: "0.85rem", fontWeight: "500", color: "#334155" }}>
-                              ¿Desea actualizar los datos de este cliente?
-                            </span>
-                            <label className={styles.switch}>
-                              <input
-                                type="checkbox"
-                                checked={actualizarCliente}
-                                onChange={(e) => setActualizarCliente(e.target.checked)}
-                              />
-                              <span className={styles.slider}></span>
-                            </label>
-                          </div>
+                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
+                               <div className={styles.formGroup}>
+                                 <label className={styles.label}>Teléfono **</label>
+                                 <input
+                                   type="text"
+                                   placeholder="Ingresa el número de teléfono"
+                                   className={styles.input}
+                                   value={formData.cliente_telefono}
+                                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
+                                   disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                 />
+                               </div>
+                               <div className={styles.formGroup}>
+                                 <label className={styles.label}>Email **</label>
+                                 <input
+                                   type="email"
+                                   placeholder="Ingresa el correo electrónico"
+                                   className={styles.input}
+                                   value={formData.cliente_email}
+                                   onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
+                                   disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                 />
+                               </div>
+                             </div>
+                             <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "-0.5rem", marginBottom: "0.5rem", gridColumn: "span 2" }}>
+                               ** Se requiere al menos un correo o teléfono.
+                             </span>
 
-                          {actualizarCliente && (
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
                               <div className={styles.formGroup}>
-                                <label className={styles.label}>Teléfono</label>
-                                <input
-                                  type="text"
-                                  placeholder="Ingresa el número de teléfono"
-                                  className={styles.input}
-                                  value={formData.cliente_telefono}
-                                  onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
-                                />
-                              </div>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Email</label>
-                                <input
-                                  type="email"
-                                  placeholder="Ingresa el correo electrónico"
-                                  className={styles.input}
-                                  value={formData.cliente_email}
-                                  onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
-                                />
-                              </div>
-                              <div className={styles.formGroup}>
                                 <label className={styles.label}>País</label>
-                                <input
-                                  type="text"
-                                  placeholder="Coloca el país del cliente"
-                                  className={styles.input}
-                                  value={formData.cliente_pais}
-                                  onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
-                                />
+                                <select
+                                  className={styles.select}
+                                  value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomEdit ? "Otro" : "")}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "Otro") {
+                                      setShowCustomEdit(true);
+                                      setFormData({ ...formData, cliente_pais: "" });
+                                    } else {
+                                      setShowCustomEdit(false);
+                                      setFormData({ ...formData, cliente_pais: val });
+                                    }
+                                  }}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                >
+                                  <option value="">Seleccionar país...</option>
+                                  <optgroup label="América">
+                                    {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <optgroup label="Europa">
+                                    {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </optgroup>
+                                  <option value="Otro">Otro (Especificar)</option>
+                                </select>
+                                {(showCustomEdit || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                                  <input
+                                    type="text"
+                                    placeholder="Especifica el país"
+                                    className={styles.input}
+                                    style={{ marginTop: "0.5rem" }}
+                                    value={formData.cliente_pais}
+                                    onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                                    disabled={isExtension ? !modifyClientData : !actualizarCliente}
+                                  />
+                                ) : null}
                               </div>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>Empresa</label>
@@ -1233,6 +1760,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_empresa}
                                   onChange={(e) => setFormData({ ...formData, cliente_empresa: e.target.value })}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                               <div className={styles.formGroup} style={{ gridColumn: "span 2" }}>
@@ -1243,12 +1771,13 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                                   className={styles.input}
                                   value={formData.cliente_link_usuario}
                                   onChange={(e) => setFormData({ ...formData, cliente_link_usuario: e.target.value })}
+                                  disabled={isExtension ? !modifyClientData : !actualizarCliente}
                                 />
                               </div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -1265,7 +1794,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.label}>Teléfono</label>
+                        <label className={styles.label}>Teléfono **</label>
                         <input
                           type="text"
                           placeholder="Ingresa el número de teléfono"
@@ -1276,7 +1805,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.label}>Email</label>
+                        <label className={styles.label}>Email **</label>
                         <input
                           type="email"
                           placeholder="Ingresa el correo electrónico"
@@ -1286,16 +1815,46 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                           disabled={disableClientFields}
                         />
                       </div>
+                      <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "-0.5rem", marginBottom: "0.5rem", gridColumn: "span 2" }}>
+                        ** Se requiere al menos un correo (email) o teléfono del cliente.
+                      </span>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>País</label>
-                        <input
-                          type="text"
-                          placeholder="Coloca el país del cliente"
-                          className={styles.input}
-                          value={formData.cliente_pais}
-                          onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                        <select
+                          className={styles.select}
+                          value={formData.cliente_pais ? (isPredefinedCountry(formData.cliente_pais) ? formData.cliente_pais : "Otro") : (showCustomNew ? "Otro" : "")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "Otro") {
+                              setShowCustomNew(true);
+                              setFormData({ ...formData, cliente_pais: "" });
+                            } else {
+                              setShowCustomNew(false);
+                              setFormData({ ...formData, cliente_pais: val });
+                            }
+                          }}
                           disabled={disableClientFields}
-                        />
+                        >
+                          <option value="">Seleccionar país...</option>
+                          <optgroup label="América">
+                            {COUNTRIES_AMERICA.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <optgroup label="Europa">
+                            {COUNTRIES_EUROPE.map(c => <option key={c} value={c}>{c}</option>)}
+                          </optgroup>
+                          <option value="Otro">Otro (Especificar)</option>
+                        </select>
+                        {(showCustomNew || (formData.cliente_pais && !isPredefinedCountry(formData.cliente_pais))) ? (
+                          <input
+                            type="text"
+                            placeholder="Especifica el país"
+                            className={styles.input}
+                            style={{ marginTop: "0.5rem" }}
+                            value={formData.cliente_pais}
+                            onChange={(e) => setFormData({ ...formData, cliente_pais: e.target.value })}
+                            disabled={disableClientFields}
+                          />
+                        ) : null}
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.label}>Empresa</label>
@@ -1322,7 +1881,255 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                     </div>
                   )}
 
+                  {isExtension && (
+                    <div style={{ paddingTop: "0.5rem", marginBottom: "1rem" }}>
+                      {hasSetterOriginal ? (
+                        <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
+                            Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
+                          </span>
+
+                          <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={agregarSetterAdicional}
+                              onChange={(e) => {
+                                setAgregarSetterAdicional(e.target.checked);
+                                if (!e.target.checked) setSetterAdicionalId("");
+                              }}
+                              disabled={disableClientFields}
+                            />
+                            <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
+                          </label>
+
+                          {agregarSetterAdicional && (
+                            <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
+                              <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
+                              <select
+                                className={styles.select}
+                                value={setterAdicionalId}
+                                onChange={(e) => setSetterAdicionalId(e.target.value)}
+                                disabled={disableClientFields}
+                                required
+                              >
+                                <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
+                                {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>¿Quién oferta? (Setter) *</label>
+                          <select
+                            className={styles.select}
+                            value={formData.setter_principal_id}
+                            onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
+                            disabled={disableClientFields}
+                            required
+                          >
+                            <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
+                            {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className={styles.sectionTitle}>Datos del Proyecto</div>
+
+                  {/* Manual / Servicio Selectors */}
+                  <div className={styles.formGroup} style={{ marginBottom: "0.75rem" }}>
+                    <label className={styles.label}>Rama de Servicio</label>
+                    <select
+                      className={styles.select}
+                      value={formData.manual_rama || ""}
+                      onChange={(e) => {
+                        const rama = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          manual_rama: rama,
+                          manual_categoria: "",
+                          manual_servicio: "",
+                          manual_enlace: ""
+                        }));
+                      }}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    >
+                      <option value="">Selecciona una rama</option>
+                      {manuals && Object.keys(manuals).map(rama => (
+                        <option key={rama} value={rama} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{rama}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
+                    <label className={styles.label}>Servicio</label>
+                    <select
+                      className={styles.select}
+                      value={formData.manual_servicio ? (
+                        formData.manual_rama && manuals && manuals[formData.manual_rama]
+                          ? manuals[formData.manual_rama].find((s: any) => s.item === formData.manual_servicio)?.id?.toString() || ""
+                          : ""
+                      ) : ""}
+                      onChange={(e) => {
+                        const srvId = e.target.value;
+                        const ramaList = formData.manual_rama && manuals ? manuals[formData.manual_rama] || [] : [];
+                        const srv = ramaList.find((s: any) => s.id.toString() === srvId);
+                        if (srv) {
+                          handleAddServiceToPackage(srv);
+                        }
+                      }}
+                      disabled={!formData.manual_rama}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    >
+                      <option value="">Selecciona un servicio</option>
+                      {formData.manual_rama && manuals && manuals[formData.manual_rama] &&
+                        manuals[formData.manual_rama]
+                          .filter((m: any) => m.activo !== false)
+                          .map((srv: any) => (
+                            <option key={srv.id} value={srv.id.toString()} style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>{srv.item}</option>
+                          ))
+                      }
+                    </select>
+                  </div>
+
+                  {/* Lista de Servicios de la Venta */}
+                  {formData.manuales_servicios && formData.manuales_servicios.length > 0 && (
+                    <div 
+                      style={{ 
+                        marginBottom: "1.25rem", 
+                        backgroundColor: "#f8fafc", 
+                        border: "1px solid #e2e8f0", 
+                        borderLeft: "4px solid #3b82f6",
+                        borderRadius: "10px", 
+                        padding: "1rem",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a" }}>
+                            Servicios de la Venta
+                          </span>
+                          <span style={{ backgroundColor: "#3b82f6", color: "#ffffff", borderRadius: "12px", padding: "0.1rem 0.5rem", fontSize: "0.7rem", fontWeight: 700 }}>
+                            {formData.manuales_servicios.length}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              manual_rama: "",
+                              manual_categoria: "",
+                              manual_servicio: "",
+                              manual_enlace: ""
+                            }));
+                          }}
+                          style={{
+                            backgroundColor: "#ffffff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "6px",
+                            padding: "0.35rem 0.75rem",
+                            fontSize: "0.775rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.3rem",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+                          }}
+                        >
+                          <span>+ Añadir otro servicio</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                        {formData.manuales_servicios.map((srv, idx) => (
+                          <div 
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                              padding: "0.65rem 0.9rem",
+                              gap: "0.75rem"
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                              <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "#0f172a" }}>
+                                {srv.servicio}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+                                <span style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", padding: "0.12rem 0.45rem", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 500 }}>
+                                  {srv.rama}
+                                </span>
+                                <span style={{ color: "#94a3b8", fontSize: "0.7rem" }}>•</span>
+                                <span style={{ backgroundColor: "#f1f5f9", color: "#475569", padding: "0.12rem 0.45rem", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 500 }}>
+                                  {srv.categoria}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                              {srv.enlace && (
+                                <a
+                                  href={srv.enlace}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.3rem",
+                                    backgroundColor: "#eff6ff",
+                                    color: "#2563eb",
+                                    border: "1px solid #bfdbfe",
+                                    borderRadius: "6px",
+                                    padding: "0.35rem 0.65rem",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 600,
+                                    textDecoration: "none"
+                                  }}
+                                >
+                                  <span>Enlace de manual</span>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                  </svg>
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveServiceFromPackage(idx)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  backgroundColor: "#fef2f2",
+                                  color: "#ef4444",
+                                  border: "1px solid #fecaca",
+                                  borderRadius: "6px",
+                                  padding: "0.35rem 0.55rem",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  cursor: "pointer"
+                                }}
+                                title="Quitar servicio de la venta"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className={styles.formGroup}>
@@ -1391,55 +2198,60 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                     />
                   </div>
 
-                  <div style={{ paddingTop: "0.5rem" }}>
-                    {hasSetterOriginal ? (
-                      <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
-                        <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
-                          Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
-                        </span>
+                  {!isExtension && (
+                    <div style={{ paddingTop: "0.5rem" }}>
+                      {hasSetterOriginal ? (
+                        <div className={styles.formGroup} style={{ gap: "0.5rem" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
+                            Este cliente tiene un setter asignado: <span style={{ color: "#0052cc", fontWeight: 600 }}>{origSetterObj?.nombre || "Cargando..."}</span>
+                          </span>
 
-                        <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={agregarSetterAdicional}
-                            onChange={(e) => {
-                              setAgregarSetterAdicional(e.target.checked);
-                              if (!e.target.checked) setSetterAdicionalId("");
-                            }}
-                          />
-                          <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
-                        </label>
+                          <label className={styles.checkboxLabel} style={{ fontSize: "0.85rem", cursor: "pointer", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={agregarSetterAdicional}
+                              onChange={(e) => {
+                                setAgregarSetterAdicional(e.target.checked);
+                                if (!e.target.checked) setSetterAdicionalId("");
+                              }}
+                              disabled={disableClientFields}
+                            />
+                            <span>Este cliente tiene un setter, ¿quieres agregar un nuevo setter adicional?</span>
+                          </label>
 
-                        {agregarSetterAdicional && (
-                          <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
-                            <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
-                            <select
-                              className={styles.select}
-                              value={setterAdicionalId}
-                              onChange={(e) => setSetterAdicionalId(e.target.value)}
-                              required
-                            >
-                              <option value="">Seleccionar Setter</option>
-                              {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>¿Quién oferta? (Setter) *</label>
-                        <select
-                          className={styles.select}
-                          value={formData.setter_principal_id}
-                          onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
-                          required
-                        >
-                          <option value="">Seleccionar Setter</option>
-                          {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
+                          {agregarSetterAdicional && (
+                            <div className={styles.formGroup} style={{ marginTop: "0.5rem" }}>
+                              <label className={styles.label}>Selecciona el nuevo setter adicional *</label>
+                              <select
+                                className={styles.select}
+                                value={setterAdicionalId}
+                                onChange={(e) => setSetterAdicionalId(e.target.value)}
+                                disabled={disableClientFields}
+                                required
+                              >
+                                <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
+                                {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>¿Quién oferta? (Setter) *</label>
+                          <select
+                            className={styles.select}
+                            value={formData.setter_principal_id}
+                            onChange={(e) => setFormData({ ...formData, setter_principal_id: e.target.value })}
+                            disabled={disableClientFields}
+                            required
+                          >
+                            <option value="">{loadingData && setters.length === 0 ? "Cargando lista de setters..." : "Seleccionar Setter"}</option>
+                            {setters.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {}
                   <div className={styles.sectionTitle}>Modalidad de Pago</div>
@@ -1476,6 +2288,52 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                       </select>
                     </div>
                   </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Moneda</label>
+                      <select
+                        className={styles.select}
+                        value={formData.moneda}
+                        onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
+                        disabled={disablePaymentFields}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="VES">VES</option>
+                        <option value="COP">COP</option>
+                        <option value="Otra">Otra</option>
+                      </select>
+                    </div>
+                    {formData.moneda === "Otra" && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Especificar moneda *</label>
+                        <input
+                          type="text"
+                          placeholder="Ingresa las siglas de la divisa"
+                          className={styles.input}
+                          value={formData.moneda_otra}
+                          onChange={(e) => setFormData({ ...formData, moneda_otra: e.target.value })}
+                          disabled={disablePaymentFields}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.moneda !== "USD" && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Aclaración o conversión manual a USD</label>
+                      <input
+                        type="text"
+                        placeholder="Aclara la equivalencia o conversión de la divisa"
+                        className={styles.input}
+                        value={formData.monto_explicacion}
+                        onChange={(e) => setFormData({ ...formData, monto_explicacion: e.target.value })}
+                        disabled={disablePaymentFields}
+                      />
+                    </div>
+                  )}
 
                   {formData.tipo_proyecto === "Precio Fijo" && (
                     <>
@@ -1563,7 +2421,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                           />
                         </div>
                         <div className={styles.formGroup}>
-                          <label className={styles.label}>Cantidad de horas *</label>
+                          <label className={styles.label}>Cantidad de horas{formData.es_continuacion ? " *" : ""}</label>
                           <input
                             type="number"
                             placeholder="Ingresa la cantidad de horas"
@@ -1571,7 +2429,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                             value={cantidadHoras}
                             onChange={(e) => setCantidadHoras(e.target.value)}
                             disabled={disablePaymentFields}
-                            required
+                            required={formData.es_continuacion}
                           />
                         </div>
                       </div>
@@ -1598,6 +2456,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         type="button"
                         className={`${styles.toggleTab} ${formData.urgente ? styles.toggleTabActive : ""}`}
                         onClick={() => setFormData({ ...formData, urgente: true })}
+                        disabled={disableProjectFields}
                       >
                         Sí
                       </button>
@@ -1605,6 +2464,7 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         type="button"
                         className={`${styles.toggleTab} ${!formData.urgente ? styles.toggleTabActive : ""}`}
                         onClick={() => setFormData({ ...formData, urgente: false, motivo_urgencia: "" })}
+                        disabled={disableProjectFields}
                       >
                         No
                       </button>
@@ -1620,53 +2480,13 @@ export default function VentasModal({ isOpen, onClose, onSuccess }: VentasModalP
                         className={styles.input}
                         value={formData.motivo_urgencia}
                         onChange={(e) => setFormData({ ...formData, motivo_urgencia: e.target.value })}
+                        disabled={disableProjectFields}
                         required
                       />
                     </div>
                   )}
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Moneda</label>
-                      <select
-                        className={styles.select}
-                        value={formData.moneda}
-                        onChange={(e) => setFormData({ ...formData, moneda: e.target.value })}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="VES">VES</option>
-                        <option value="COP">COP</option>
-                        <option value="Otra">Otra</option>
-                      </select>
-                    </div>
-                    {formData.moneda === "Otra" && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>Especificar moneda *</label>
-                        <input
-                          type="text"
-                          placeholder="Ingresa las siglas de la divisa"
-                          className={styles.input}
-                          value={formData.moneda_otra}
-                          onChange={(e) => setFormData({ ...formData, moneda_otra: e.target.value })}
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
 
-                  {formData.moneda !== "USD" && (
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Aclaración o conversión manual a USD</label>
-                      <input
-                        type="text"
-                        placeholder="Aclara la equivalencia o conversión de la divisa"
-                        className={styles.input}
-                        value={formData.monto_explicacion}
-                        onChange={(e) => setFormData({ ...formData, monto_explicacion: e.target.value })}
-                      />
-                    </div>
-                  )}
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Notas internas</label>

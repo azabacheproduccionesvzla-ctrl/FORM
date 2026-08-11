@@ -18,6 +18,16 @@ interface IntegrationConfig {
   ghl_email: boolean;
   ghl_factura: boolean;
   zapier_whatsapp: boolean;
+  email_destinatarios?: string;
+  trello_default_members?: string[];
+}
+
+interface ManualItem {
+  id: number;
+  categoria: string;
+  item: string;
+  enlace: string;
+  activo?: boolean;
 }
 
 export default function AjustesPage() {
@@ -46,16 +56,17 @@ export default function AjustesPage() {
     trello: true,
     ghl_email: true,
     ghl_factura: true,
-    zapier_whatsapp: true
+    zapier_whatsapp: true,
+    email_destinatarios: ""
   });
   const [isPinPromptOpen, setIsPinPromptOpen] = useState(false);
   const [pinPromptValue, setPinPromptValue] = useState<string[]>(Array(6).fill(""));
   const pinPromptRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [pendingToggleKey, setPendingToggleKey] = useState<string | null>(null);
-  const [pendingToggleValue, setPendingToggleValue] = useState<boolean>(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | string | string[]>(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState<string | null>(null);
-
+  const [trelloMembers, setTrelloMembers] = useState<{ id: string; fullName: string; username: string }[]>([]);
   const [syncModal, setSyncModal] = useState({
     isOpen: false,
     progress: 0,
@@ -66,6 +77,24 @@ export default function AjustesPage() {
     errorMsg: "",
     type: "trello" // "trello" | "ghl"
   });
+
+  // Manuals state
+  const [manuals, setManuals] = useState<Record<string, ManualItem[]>>({});
+  const [activeTab, setActiveTab] = useState<string>("Diseño Grafico");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [manualsLoading, setManualsLoading] = useState<boolean>(true);
+  const [originalManuals, setOriginalManuals] = useState<string>("");
+
+  const [editingManual, setEditingManual] = useState<{ id: number; sheet: string; categoria: string; item: string; enlace: string; activo?: boolean } | null>(null);
+  const [addingManual, setAddingManual] = useState<{ sheet: string; categoria: string; item: string; enlace: string } | null>(null);
+  const [showAddingRamaSuggestions, setShowAddingRamaSuggestions] = useState(false);
+  const [showAddingCatSuggestions, setShowAddingCatSuggestions] = useState(false);
+  const [showEditingCatSuggestions, setShowEditingCatSuggestions] = useState(false);
+
+  const [isManualsPinOpen, setIsManualsPinOpen] = useState<boolean>(false);
+  const [manualsPin, setManualsPin] = useState<string[]>(Array(6).fill(""));
+  const [manualsError, setManualsError] = useState<string | null>(null);
+  const manualsPinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleTriggerSync = (syncType: "SYNC_TRELLO" | "SYNC_GHL") => {
     setPendingToggleKey(syncType);
@@ -160,6 +189,160 @@ export default function AjustesPage() {
     }
   };
 
+  // Manuals handlers
+  const handleToggleManualActivo = (sheetName: string, itemId: number) => {
+    setManuals(prev => {
+      const updatedSheet = (prev[sheetName] || []).map(item => {
+        if (item.id === itemId) {
+          return { ...item, activo: item.activo === false ? true : false };
+        }
+        return item;
+      });
+      return { ...prev, [sheetName]: updatedSheet };
+    });
+  };
+
+  const handleOpenEditManual = (sheetName: string, item: ManualItem) => {
+    setEditingManual({
+      id: item.id,
+      sheet: sheetName,
+      categoria: item.categoria,
+      item: item.item,
+      enlace: item.enlace,
+      activo: item.activo !== false
+    });
+  };
+
+  const handleSaveEditManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingManual) return;
+
+    setManuals(prev => {
+      const updatedSheet = (prev[editingManual.sheet] || []).map(item => {
+        if (item.id === editingManual.id) {
+          return {
+            ...item,
+            categoria: editingManual.categoria,
+            item: editingManual.item,
+            enlace: editingManual.enlace,
+            activo: editingManual.activo
+          };
+        }
+        return item;
+      });
+      return { ...prev, [editingManual.sheet]: updatedSheet };
+    });
+    setEditingManual(null);
+  };
+
+  const handleOpenAddManual = () => {
+    setAddingManual({
+      sheet: activeTab,
+      categoria: "",
+      item: "",
+      enlace: ""
+    });
+  };
+
+  const handleSaveAddManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addingManual) return;
+
+    let maxId = 0;
+    Object.values(manuals).forEach(items => {
+      items.forEach(item => {
+        if (item.id > maxId) maxId = item.id;
+      });
+    });
+    const newId = maxId + 1;
+
+    setManuals(prev => {
+      const sheetItems = prev[addingManual.sheet] || [];
+      const updatedSheet = [
+        ...sheetItems,
+        {
+          id: newId,
+          categoria: addingManual.categoria || addingManual.sheet,
+          item: addingManual.item,
+          enlace: addingManual.enlace,
+          activo: true
+        }
+      ];
+      return { ...prev, [addingManual.sheet]: updatedSheet };
+    });
+    setAddingManual(null);
+  };
+
+  const handleManualsPinChange = (index: number, val: string) => {
+    const cleanValue = val.replace(/[^0-9]/g, "").slice(-1);
+    const newPin = [...manualsPin];
+    newPin[index] = cleanValue;
+    setManualsPin(newPin);
+
+    if (cleanValue !== "" && index < 5) {
+      manualsPinRefs.current[index + 1]?.focus();
+    }
+
+    const currentFullPin = newPin.join("");
+    if (currentFullPin.length === 6) {
+      saveManualsWithPin(currentFullPin);
+    }
+  };
+
+  const handleManualsPinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (manualsPin[index] === "" && index > 0) {
+        const newPin = [...manualsPin];
+        newPin[index - 1] = "";
+        setManualsPin(newPin);
+        manualsPinRefs.current[index - 1]?.focus();
+      } else {
+        const newPin = [...manualsPin];
+        newPin[index] = "";
+        setManualsPin(newPin);
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      manualsPinRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      manualsPinRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleManualsPinPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      setManualsPin(pastedData.split(""));
+      saveManualsWithPin(pastedData);
+    }
+  };
+
+  const saveManualsWithPin = async (pinStr: string) => {
+    setActionLoading(true);
+    setManualsError(null);
+
+    try {
+      const res = await fetch("/api/config/manuals", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ manuals, pin: pinStr })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al actualizar los manuales.");
+
+      setOriginalManuals(JSON.stringify(manuals));
+      setConfigSuccess("Base de datos de manuales actualizada con éxito.");
+      setTimeout(() => setConfigSuccess(null), 3000);
+      setIsManualsPinOpen(false);
+      setManualsPin(Array(6).fill(""));
+    } catch (err: any) {
+      setManualsError(err.message || "Error al actualizar los manuales.");
+      setManualsPin(Array(6).fill(""));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const loadUsers = async () => {
     try {
       const sessionRes = await fetch("/api/auth/session");
@@ -193,8 +376,28 @@ export default function AjustesPage() {
       if (configData.success) {
         setIntegrationConfig(configData.config);
       }
+
+      const trelloRes = await fetch("/api/trello/members");
+      const trelloData = await trelloRes.json();
+      if (trelloData.success) {
+        setTrelloMembers(trelloData.members);
+      }
+
+      // Cargar manuales
+      setManualsLoading(true);
+      const manualsRes = await fetch("/api/config/manuals");
+      const manualsData = await manualsRes.json();
+      if (manualsData.success) {
+        setManuals(manualsData.manuals);
+        setOriginalManuals(JSON.stringify(manualsData.manuals));
+        const sheets = Object.keys(manualsData.manuals);
+        if (sheets.length > 0) {
+          setActiveTab(sheets[0]);
+        }
+      }
+      setManualsLoading(false);
     } catch (error) {
-      console.error("Error al cargar usuarios:", error);
+      console.error("Error al cargar usuarios o manuales:", error);
     } finally {
       setLoading(false);
     }
@@ -431,18 +634,34 @@ export default function AjustesPage() {
     }
 
     try {
-      const updatedConfig = pendingToggleKey === "ALL"
-        ? {
-          dropbox: pendingToggleValue,
-          trello: pendingToggleValue,
-          ghl_factura: pendingToggleValue,
-          ghl_email: pendingToggleValue,
-          zapier_whatsapp: pendingToggleValue
-        }
-        : {
-          ...integrationConfig,
-          [pendingToggleKey!]: pendingToggleValue
+      let updatedConfig: IntegrationConfig;
+      if (pendingToggleKey === "ALL") {
+        const val = pendingToggleValue as boolean;
+        updatedConfig = {
+          dropbox: val,
+          trello: val,
+          ghl_factura: val,
+          ghl_email: val,
+          zapier_whatsapp: val,
+          email_destinatarios: integrationConfig.email_destinatarios,
+          trello_default_members: integrationConfig.trello_default_members
         };
+      } else if (pendingToggleKey === "email_destinatarios") {
+        updatedConfig = {
+          ...integrationConfig,
+          email_destinatarios: pendingToggleValue as string
+        };
+      } else if (pendingToggleKey === "trello_default_members") {
+        updatedConfig = {
+          ...integrationConfig,
+          trello_default_members: pendingToggleValue as unknown as string[]
+        };
+      } else {
+        updatedConfig = {
+          ...integrationConfig,
+          [pendingToggleKey!]: pendingToggleValue as boolean
+        };
+      }
       const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -462,6 +681,23 @@ export default function AjustesPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleToggleTrelloMember = (memberId: string) => {
+    const currentList = integrationConfig.trello_default_members || [];
+    let newList: string[];
+    if (currentList.includes(memberId)) {
+      newList = currentList.filter(id => id !== memberId);
+    } else {
+      newList = [...currentList, memberId];
+    }
+    
+    setPendingToggleKey("trello_default_members");
+    setPendingToggleValue(newList);
+    setPinPromptValue(Array(6).fill(""));
+    setConfigError(null);
+    setConfigSuccess(null);
+    setIsPinPromptOpen(true);
   };
 
   const handlePinPromptSubmit = async (e: React.FormEvent) => {
@@ -498,10 +734,10 @@ export default function AjustesPage() {
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#f1f5f9", marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#f1f5f9", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
             <div>
-              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Integraciones automatizadas</h3>
-              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#475569" }}>Activar o desactivar todas las integraciones de automatización simultáneamente</p>
+              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Habilitar integraciones automáticas</h3>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#475569" }}>Activar o desactivar la ejecución de todo el flujo de automatizaciones (Trello, Dropbox, GHL, WhatsApp y Email) al registrar ventas.</p>
             </div>
             <label className={styles.switch}>
               <input
@@ -514,87 +750,68 @@ export default function AjustesPage() {
             </label>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Dropbox</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de carpeta de entrega</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.dropbox}
-                  onChange={() => handleToggleIntegration("dropbox", integrationConfig.dropbox)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Trello</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de tarjeta de proyecto</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.trello}
-                  onChange={() => handleToggleIntegration("trello", integrationConfig.trello)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Facturación (GHL)</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Creación de contacto y factura</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.ghl_factura}
-                  onChange={() => handleToggleIntegration("ghl_factura", integrationConfig.ghl_factura)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Notificaciones por Correo</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Email interno por GHL</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.ghl_email}
-                  onChange={() => handleToggleIntegration("ghl_email", integrationConfig.ghl_email)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" }}>
-              <div>
-                <h4 style={{ fontWeight: 600, color: "#1e293b", margin: 0, fontSize: "0.95rem" }}>Notificaciones WhatsApp</h4>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", color: "#64748b" }}>Mensajes grupales vía Zapier</p>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={integrationConfig.zapier_whatsapp}
-                  onChange={() => handleToggleIntegration("zapier_whatsapp", integrationConfig.zapier_whatsapp)}
-                  disabled={actionLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
+          <div style={{ padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#ffffff", marginTop: "1rem" }}>
+            <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Destinatarios de Notificación por Correo</h3>
+            <p style={{ margin: "0.25rem 0 1rem 0", fontSize: "0.8rem", color: "#475569" }}>
+              Direcciones de correo electrónico (separadas por comas) que recibirán la notificación cuando se registre una venta.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <input
+                type="text"
+                className={styles.input}
+                style={{ flexGrow: 1, padding: "0.5rem 0.75rem", fontSize: "0.875rem", margin: 0 }}
+                placeholder="correo1@test.com, correo2@test.com"
+                value={integrationConfig.email_destinatarios || ""}
+                onChange={(e) => setIntegrationConfig({ ...integrationConfig, email_destinatarios: e.target.value })}
+              />
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                style={{ padding: "0.55rem 1.25rem", fontSize: "0.85rem", height: "42px", margin: 0, whiteSpace: "nowrap" }}
+                disabled={actionLoading}
+                onClick={() => {
+                  setPendingToggleKey("email_destinatarios");
+                  setPendingToggleValue(integrationConfig.email_destinatarios || "");
+                  setPinPromptValue(Array(6).fill(""));
+                  setConfigError(null);
+                  setConfigSuccess(null);
+                  setIsPinPromptOpen(true);
+                }}
+              >
+                Guardar
+              </button>
             </div>
           </div>
+
+          {integrationConfig.trello && (
+            <div style={{ padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "10px", backgroundColor: "#ffffff", marginTop: "1rem" }}>
+              <h3 style={{ fontWeight: 700, color: "#0f172a", margin: 0, fontSize: "0.95rem" }}>Miembros Asignados por Defecto en Trello</h3>
+              <p style={{ margin: "0.25rem 0 1rem 0", fontSize: "0.8rem", color: "#475569" }}>
+                Selecciona qué miembros se asignarán de manera automática al crear la tarjeta en Trello. Estas configuraciones requieren confirmación de PIN al modificarse.
+              </p>
+              {trelloMembers.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  {trelloMembers.map(member => {
+                    const isSelected = (integrationConfig.trello_default_members || []).includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        className={`${styles.chip} ${isSelected ? styles.chipActive : ""}`}
+                        disabled={actionLoading}
+                        onClick={() => handleToggleTrelloMember(member.id)}
+                      >
+                        <span>{member.fullName} (@{member.username})</span>
+                        {isSelected && <span style={{ marginLeft: "0.35rem", fontSize: "0.8rem" }}>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>Cargando miembros de Trello o credenciales incompletas...</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -803,6 +1020,202 @@ export default function AjustesPage() {
             <span>Sincronizar Clientes (GHL)</span>
           </button>
         </div>
+      </div>
+
+      {/* CARD 4: Gestión de Manuales de Producción */}
+      <div className={styles.card} style={{ padding: "1.5rem", marginTop: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", gap: "1rem", flexWrap: "wrap" }}>
+          <h2 className={styles.cardTitle} style={{ fontSize: "1.1rem", margin: 0 }}>
+            Gestión de Manuales de Producción
+          </h2>
+          <button 
+            type="button" 
+            className={styles.btnPrimary} 
+            onClick={handleOpenAddManual}
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Agregar Servicio</span>
+          </button>
+        </div>
+        <p className={styles.cardDescription} style={{ marginBottom: "1.5rem" }}>
+          Administra las categorías, servicios y enlaces a manuales de producción.
+        </p>
+
+        {manualsLoading ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "2rem" }}>
+            <div className={styles.loadingSpinner} style={{ borderTopColor: "#0052cc" }}></div>
+          </div>
+        ) : (
+          <div>
+            {/* Sheet Tabs */}
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.75rem" }}>
+              {Object.keys(manuals).map(sheetName => {
+                const isActive = activeTab === sheetName;
+                return (
+                  <button
+                    key={sheetName}
+                    type="button"
+                    className={`${styles.chip} ${isActive ? styles.chipActive : ""}`}
+                    onClick={() => {
+                      setActiveTab(sheetName);
+                      setSearchQuery("");
+                    }}
+                    style={{
+                      borderRadius: "6px",
+                      padding: "0.4rem 0.8rem",
+                      fontSize: "0.85rem",
+                      border: isActive ? "none" : "1px solid #cbd5e1",
+                      backgroundColor: isActive ? "#0052cc" : "#ffffff",
+                      color: isActive ? "#ffffff" : "#475569",
+                      fontWeight: isActive ? 600 : 500,
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {sheetName}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filter Search Input */}
+            <div style={{ marginBottom: "1rem" }}>
+              <input
+                type="text"
+                placeholder="Buscar por nombre de servicio o categoría..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className={styles.input}
+                style={{ width: "100%", maxWidth: "400px", fontSize: "0.875rem", padding: "0.5rem 0.75rem", backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+              />
+            </div>
+
+            {/* Table representation */}
+            <div className={styles.tableContainer} style={{ maxHeight: "400px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px", backgroundColor: "#ffffff" }}>
+              <table className={styles.table}>
+                <thead>
+                  <tr style={{ position: "sticky", top: 0, backgroundColor: "#f8fafc", zIndex: 1 }}>
+                    <th style={{ width: "60px", backgroundColor: "#f8fafc" }}>ID</th>
+                    <th style={{ width: "200px", backgroundColor: "#f8fafc" }}>Categoría</th>
+                    <th style={{ backgroundColor: "#f8fafc" }}>Servicio</th>
+                    <th style={{ backgroundColor: "#f8fafc" }}>Enlace de manual</th>
+                    <th style={{ width: "100px", backgroundColor: "#f8fafc" }}>Estado</th>
+                    <th style={{ width: "120px", backgroundColor: "#f8fafc" }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const sheetItems = manuals[activeTab] || [];
+                    const filteredItems = sheetItems.filter(item => {
+                      const query = searchQuery.toLowerCase().trim();
+                      if (query === "") return true;
+                      return item.item.toLowerCase().includes(query) || item.categoria.toLowerCase().includes(query);
+                    });
+
+                    if (filteredItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
+                            No se encontraron servicios.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredItems.map(item => {
+                      const isActivo = item.activo !== false;
+                      return (
+                        <tr key={item.id} style={{ opacity: isActivo ? 1 : 0.6 }}>
+                          <td>{item.id}</td>
+                          <td style={{ fontWeight: 500, color: "#334155" }}>{item.categoria}</td>
+                          <td style={{ fontWeight: 600, color: "#0f172a" }}>{item.item}</td>
+                          <td>
+                            {item.enlace ? (
+                              <a
+                                href={item.enlace}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: "#0052cc", textDecoration: "underline", fontSize: "0.85rem", wordBreak: "break-all" }}
+                              >
+                                Ver Manual ↗
+                              </a>
+                            ) : (
+                              <span style={{ color: "#94a3b8", fontSize: "0.85rem" }}>Sin enlace</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`${styles.badge} ${isActivo ? styles.badgeActive : styles.badgeInactive}`}>
+                              {isActivo ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.actionGroup} style={{ alignItems: "center" }}>
+                              <button
+                                className={`${styles.actionBtn} ${styles.actionBtnEdit}`}
+                                onClick={() => handleOpenEditManual(activeTab, item)}
+                                title="Editar servicio"
+                                type="button"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
+                                </svg>
+                              </button>
+                              <label className={styles.switch} title={isActivo ? "Desactivar servicio" : "Activar servicio"}>
+                                <input
+                                  type="checkbox"
+                                  checked={isActivo}
+                                  onChange={() => handleToggleManualActivo(activeTab, item.id)}
+                                />
+                                <span className={styles.slider}></span>
+                              </label>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Actions */}
+            {originalManuals !== JSON.stringify(manuals) && (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem", padding: "1rem", backgroundColor: "#fffbeb", borderRadius: "6px", border: "1px solid #fef3c7" }}>
+                <span style={{ alignSelf: "center", fontSize: "0.875rem", color: "#b45309", fontWeight: 500 }}>
+                  ⚠️ Tienes cambios sin guardar en la base de datos de manuales.
+                </span>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    setManuals(JSON.parse(originalManuals));
+                  }}
+                  disabled={actionLoading}
+                >
+                  Descartar
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => {
+                    setManualsPin(Array(6).fill(""));
+                    setManualsError(null);
+                    setIsManualsPinOpen(true);
+                  }}
+                  disabled={actionLoading}
+                  style={{ backgroundColor: "#d97706", borderColor: "#d97706" }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {isAddModalOpen && (
@@ -1189,6 +1602,319 @@ export default function AjustesPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Confirmar Cambio en Manuales con PIN */}
+      {isManualsPinOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "400px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Confirmar con PIN</h3>
+              <button className={styles.closeBtn} onClick={() => setIsManualsPinOpen(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {manualsError && (
+              <div className={styles.alertError} style={{ marginBottom: "1rem" }}>
+                <span>{manualsError}</span>
+              </div>
+            )}
+
+            <form onSubmit={(e) => { e.preventDefault(); }} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>PIN de Administrador (6 dígitos)</label>
+                <div className={styles.pinConfirmInputs}>
+                  {manualsPin.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => {
+                        manualsPinRefs.current[index] = el;
+                      }}
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      className={`${styles.pinConfirmInput} ${digit !== "" ? styles.pinConfirmInputFilled : ""}`}
+                      value={digit}
+                      onChange={(e) => handleManualsPinChange(index, e.target.value)}
+                      onKeyDown={(e) => handleManualsPinKeyDown(index, e)}
+                      onPaste={handleManualsPinPaste}
+                      autoFocus={index === 0}
+                      style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setIsManualsPinOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className={styles.btnPrimary} onClick={() => { const pinStr = manualsPin.join(""); if (pinStr.length === 6) saveManualsWithPin(pinStr); }} disabled={actionLoading}>
+                  {actionLoading ? "Confirmando..." : "Confirmar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Agregar Manual */}
+      {addingManual && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Agregar Servicio a {addingManual.sheet}</h3>
+              <button className={styles.closeBtn} onClick={() => setAddingManual(null)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddManual} className={styles.form}>
+              <div className={styles.formGroup} style={{ position: "relative" }}>
+                <label className={styles.label} style={{ color: "#334155" }}>Rama</label>
+                <input
+                  type="text"
+                  value={addingManual.sheet}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, sheet: e.target.value } : null)}
+                  onFocus={() => setShowAddingRamaSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowAddingRamaSuggestions(false), 200)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="Ej: Diseño Gráfico o escribe una nueva..."
+                  required
+                />
+                {showAddingRamaSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const filteredRamas = Object.keys(manuals).filter(sheetName =>
+                        sheetName.toLowerCase().includes(addingManual.sheet.toLowerCase())
+                      );
+                      if (filteredRamas.length > 0) {
+                        return filteredRamas.map(sheetName => (
+                          <div
+                            key={sheetName}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setAddingManual(prev => prev ? { ...prev, sheet: sheetName } : null);
+                              setShowAddingRamaSuggestions(false);
+                            }}
+                          >
+                            {sheetName}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{addingManual.sheet}" como nueva rama</div>;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.formGroup} style={{ position: "relative" }}>
+                <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
+                <input
+                  type="text"
+                  value={addingManual.categoria}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  onFocus={() => setShowAddingCatSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowAddingCatSuggestions(false), 200)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="Ej: Identidad de Marca o escribe una nueva..."
+                  required
+                />
+                {showAddingCatSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const existingCats = addingManual.sheet && manuals[addingManual.sheet]
+                        ? Array.from(new Set(manuals[addingManual.sheet].map((m: any) => m.categoria))) as string[]
+                        : [];
+                      const filteredCats = existingCats.filter((cat: string) => 
+                        cat.toLowerCase().includes(addingManual.categoria.toLowerCase())
+                      );
+
+                      if (filteredCats.length > 0) {
+                        return filteredCats.map(cat => (
+                          <div
+                            key={cat}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setAddingManual(prev => prev ? { ...prev, categoria: cat } : null);
+                              setShowAddingCatSuggestions(false);
+                            }}
+                          >
+                            {cat}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{addingManual.categoria}" como nueva categoría</div>;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Nombre del Servicio</label>
+                <input
+                  type="text"
+                  value={addingManual.item}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, item: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="Ej: Logo Corporativo"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Enlace de manual (URL de Gamma/Drive)</label>
+                <input
+                  type="url"
+                  value={addingManual.enlace}
+                  onChange={e => setAddingManual(prev => prev ? { ...prev, enlace: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  placeholder="https://gamma.app/docs/..."
+                />
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setAddingManual(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary}>
+                  Agregar Servicio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Editar Manual */}
+      {editingManual && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "500px", backgroundColor: "#ffffff", color: "#0f172a" }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle} style={{ color: "#0f172a" }}>Editar Servicio #{editingManual.id}</h3>
+              <button className={styles.closeBtn} onClick={() => setEditingManual(null)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditManual} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Rama</label>
+                <input
+                  type="text"
+                  value={editingManual.sheet}
+                  disabled
+                  className={styles.input}
+                  style={{ backgroundColor: "#f1f5f9", color: "#64748b", borderColor: "#cbd5e1" }}
+                />
+              </div>
+
+              <div className={styles.formGroup} style={{ position: "relative" }}>
+                <label className={styles.label} style={{ color: "#334155" }}>Categoría</label>
+                <input
+                  type="text"
+                  value={editingManual.categoria}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, categoria: e.target.value } : null)}
+                  onFocus={() => setShowEditingCatSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowEditingCatSuggestions(false), 200)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  required
+                />
+                {showEditingCatSuggestions && (
+                  <div className={styles.autocompleteResults} style={{ backgroundColor: "#ffffff" }}>
+                    {(() => {
+                      const existingCats = editingManual.sheet && manuals[editingManual.sheet]
+                        ? Array.from(new Set(manuals[editingManual.sheet].map((m: any) => m.categoria))) as string[]
+                        : [];
+                      const filteredCats = existingCats.filter((cat: string) => 
+                        cat.toLowerCase().includes(editingManual.categoria.toLowerCase())
+                      );
+
+                      if (filteredCats.length > 0) {
+                        return filteredCats.map(cat => (
+                          <div
+                            key={cat}
+                            className={styles.autocompleteItem}
+                            onClick={() => {
+                              setEditingManual(prev => prev ? { ...prev, categoria: cat } : null);
+                              setShowEditingCatSuggestions(false);
+                            }}
+                          >
+                            {cat}
+                          </div>
+                        ));
+                      } else {
+                        return <div className={styles.autocompleteNoResults}>Usar "{editingManual.categoria}" como nueva categoría</div>;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Nombre del Servicio</label>
+                <input
+                  type="text"
+                  value={editingManual.item}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, item: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} style={{ color: "#334155" }}>Enlace de manual (URL de Gamma/Drive)</label>
+                <input
+                  type="url"
+                  value={editingManual.enlace}
+                  onChange={e => setEditingManual(prev => prev ? { ...prev, enlace: e.target.value } : null)}
+                  className={styles.input}
+                  style={{ backgroundColor: "#ffffff", color: "#0f172a", borderColor: "#cbd5e1" }}
+                />
+              </div>
+
+              <div className={styles.switchRow} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", width: "100%" }}>
+                <span className={styles.switchLabel} style={{ fontWeight: 600, color: "#334155", fontSize: "0.8125rem" }}>Servicio activo y visible</span>
+                <label className={styles.switch}>
+                  <input
+                    type="checkbox"
+                    checked={editingManual.activo}
+                    onChange={e => setEditingManual(prev => prev ? { ...prev, activo: e.target.checked } : null)}
+                  />
+                  <span className={`${styles.slider} ${styles.round}`}></span>
+                </label>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setEditingManual(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary}>
+                  Actualizar Servicio
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

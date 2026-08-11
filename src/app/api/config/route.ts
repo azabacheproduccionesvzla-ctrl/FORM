@@ -71,7 +71,7 @@ export async function PUT(request: Request) {
 
     await supabase.from("historial_actividades").insert({
       usuario_id: auth.user.id,
-      accion_descripcion: `Configuración de integraciones actualizada: Dropbox(${config.dropbox ? "SI" : "NO"}), Trello(${config.trello ? "SI" : "NO"}), GHL Email(${config.ghl_email ? "SI" : "NO"}), GHL Factura(${config.ghl_factura ? "SI" : "NO"}), WhatsApp(${config.zapier_whatsapp ? "SI" : "NO"})`,
+      accion_descripcion: `Configuración de integraciones actualizada: Dropbox(${config.dropbox ? "SI" : "NO"}), Trello(${config.trello ? "SI" : "NO"}), GHL Email(${config.ghl_email ? "SI" : "NO"}), GHL Factura(${config.ghl_factura ? "SI" : "NO"}), WhatsApp(${config.zapier_whatsapp ? "SI" : "NO"}), Sheets(${config.google_sheets ? "SI" : "NO"})`,
     });
 
     return NextResponse.json({ success: true, message: "Configuración actualizada con éxito." });
