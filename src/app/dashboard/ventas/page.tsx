@@ -166,6 +166,14 @@ export default function VentasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalGatingStep, setModalGatingStep] = useState<"choose" | "none">("choose");
   const [isCuadroMaestroOpen, setIsCuadroMaestroOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+
+  // Estado para eliminación de ventas
+  const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePin, setDeletePin] = useState<string[]>(Array(6).fill(""));
+  const [deletePinError, setDeletePinError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Estado para indicar si hay un borrador de venta pendiente
   const [hasDraft, setHasDraft] = useState(false);
@@ -298,6 +306,64 @@ export default function VentasPage() {
       setEditError("Error de red al conectar con el servidor.");
     } finally {
       setIsSavingClient(false);
+    }
+  };
+
+  const handleConfirmDeleteSale = async () => {
+    if (!deletingSale || isDeleting) return;
+    const pinStr = deletePin.join("");
+    if (pinStr.length < 6) {
+      setDeletePinError("Por favor ingresa tu PIN completo de 6 dígitos.");
+      return;
+    }
+    setIsDeleting(true);
+    setDeletePinError(null);
+
+    try {
+      const res = await fetch("/api/sales", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deletingSale.id, pin: pinStr })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Error al eliminar la venta.");
+      }
+      setShowDeleteModal(false);
+      setDeletingSale(null);
+      setDeletePin(Array(6).fill(""));
+      fetchSales();
+    } catch (err: any) {
+      setDeletePinError(err.message || "Error de red al intentar eliminar.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeletePinChange = (index: number, value: string) => {
+    if (value !== "" && !/^[0-9]$/.test(value)) return;
+    const newPin = [...deletePin];
+    newPin[index] = value;
+    setDeletePin(newPin);
+    if (value !== "" && index < 5) {
+      const nextInput = document.getElementById(`delete-pin-input-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleDeletePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (deletePin[index] === "" && index > 0) {
+        const newPin = [...deletePin];
+        newPin[index - 1] = "";
+        setDeletePin(newPin);
+        const prevInput = document.getElementById(`delete-pin-input-${index - 1}`);
+        if (prevInput) prevInput.focus();
+      } else {
+        const newPin = [...deletePin];
+        newPin[index] = "";
+        setDeletePin(newPin);
+      }
     }
   };
   const [selectedLogsSale, setSelectedLogsSale] = useState<Sale | null>(null);
@@ -1020,7 +1086,35 @@ export default function VentasPage() {
                           </div>
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          <div className={styles.salesTableActions} style={{ justifyContent: "flex-end" }}>
+                          <div className={styles.salesTableActions} style={{ justifyContent: "flex-end", gap: "0.35rem" }}>
+                            {(user?.role === "admin" || user?.role === "auditor") && (
+                              <>
+                                <button
+                                  className={`${styles.btnActionCircle} ${styles.btnActionCircleVer}`}
+                                  onClick={() => { setEditingSale(sale); setModalGatingStep("none"); setIsModalOpen(true); }}
+                                  title="Editar venta"
+                                  style={{ backgroundColor: "#eff6ff", color: "#2563eb", borderColor: "#bfdbfe" }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 20h9" />
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  className={`${styles.btnActionCircle} ${styles.btnActionCircleVer}`}
+                                  onClick={() => { setDeletingSale(sale); setDeletePin(Array(6).fill("")); setDeletePinError(null); setShowDeleteModal(true); }}
+                                  title="Eliminar venta"
+                                  style={{ backgroundColor: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
                             <button
                               className={`${styles.btnActionCircle} ${styles.btnActionCircleVer}`}
                               onClick={() => setSelectedLogsSale(sale)}
@@ -1189,10 +1283,36 @@ export default function VentasPage() {
                       </div>
                     </div>
                   </div>
-                  <div className={styles.saleMobileCardFooter} style={{ display: "flex", gap: "0.5rem" }}>
+                  <div className={styles.saleMobileCardFooter} style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                    {(user?.role === "admin" || user?.role === "auditor") && (
+                      <>
+                        <button
+                          className={styles.btnSecondary}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", fontSize: "0.8rem", padding: "0.4rem 0.6rem", backgroundColor: "#eff6ff", color: "#2563eb", borderColor: "#bfdbfe" }}
+                          onClick={() => { setEditingSale(sale); setModalGatingStep("none"); setIsModalOpen(true); }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          className={styles.btnSecondary}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", fontSize: "0.8rem", padding: "0.4rem 0.6rem", backgroundColor: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }}
+                          onClick={() => { setDeletingSale(sale); setDeletePin(Array(6).fill("")); setDeletePinError(null); setShowDeleteModal(true); }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          <span>Eliminar</span>
+                        </button>
+                      </>
+                    )}
                     <button
                       className={styles.btnSecondary}
-                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontSize: "0.8rem", padding: "0.4rem 0.6rem" }}
                       onClick={() => setSelectedLogsSale(sale)}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1202,7 +1322,7 @@ export default function VentasPage() {
                     </button>
                     <button
                       className={styles.btnSecondary}
-                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontSize: "0.85rem", padding: "0.5rem 1rem" }}
+                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontSize: "0.8rem", padding: "0.4rem 0.6rem" }}
                       onClick={() => setSelectedViewSale(sale)}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1218,14 +1338,88 @@ export default function VentasPage() {
           </>
         )}
       </div>
-      {user?.role !== "auditor" && (
-        <VentasModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSuccess={fetchSales}
-          initialGatingStep={modalGatingStep}
-          initialUsers={usersList}
-        />
+
+      <VentasModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingSale(null); }}
+        onSuccess={fetchSales}
+        initialGatingStep={modalGatingStep}
+        initialUsers={usersList}
+        editingSale={editingSale}
+      />
+
+      {showDeleteModal && deletingSale && (
+        <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "420px", overflowY: "hidden", padding: "1.5rem" }}>
+            <div className={styles.pinConfirmPrompt} style={{ padding: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#dc2626", marginBottom: "0.5rem" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "600" }}>Eliminar Venta</h3>
+              </div>
+              <p className={styles.pinConfirmDesc} style={{ textAlign: "left", marginBottom: "1rem" }}>
+                ¿Estás seguro de que deseas eliminar la venta <strong>{deletingSale.codigo_venta}</strong> ({deletingSale.proyecto_nombre})?
+                <br />
+                <span style={{ fontSize: "0.75rem", color: "#64748b", display: "block", marginTop: "0.35rem" }}>
+                  Por seguridad, ingresa tu PIN de 6 dígitos para autorizar la eliminación.
+                </span>
+              </p>
+
+              <div className={styles.pinConfirmInputs}>
+                {deletePin.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    id={`delete-pin-input-${idx}`}
+                    type="password"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDeletePinChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleDeletePinKeyDown(idx, e)}
+                    className={`${styles.pinConfirmInput} ${digit ? styles.pinConfirmInputFilled : ""} ${deletePinError ? styles.inputError : ""}`}
+                    disabled={isDeleting}
+                  />
+                ))}
+              </div>
+
+              {deletePinError && (
+                <div className={styles.alertError} style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.75rem", marginTop: "0.75rem" }}>
+                  <span>{deletePinError}</span>
+                </div>
+              )}
+
+              <div className={styles.modalActions} style={{ width: "100%", justifyContent: "space-between", marginTop: "1.25rem", padding: 0, border: "none" }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingSale(null);
+                    setDeletePin(Array(6).fill(""));
+                    setDeletePinError(null);
+                  }}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={handleConfirmDeleteSale}
+                  disabled={isDeleting || deletePin.some(d => !d)}
+                  style={{ backgroundColor: "#dc2626", borderColor: "#dc2626" }}
+                >
+                  {isDeleting ? "Eliminando..." : "Confirmar y Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       { }
       {selectedViewSale && (

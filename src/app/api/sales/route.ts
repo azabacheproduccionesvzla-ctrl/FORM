@@ -53,6 +53,9 @@ export async function GET(request: Request) {
       query = query.eq("cliente_id", clienteId);
     }
 
+    // Excluir ventas marcadas como ELIMINADA (soft delete)
+    query = query.neq("estado_interno", "ELIMINADA");
+
     if (role === "ventas") {
       query = query.eq("usuario_registro_id", userId);
     } else if (userFilterId) {
@@ -446,15 +449,8 @@ export async function PUT(request: Request) {
     const username = userData.username;
     const userRole = userData.role;
 
-    if (userRole === "auditor") {
-      return NextResponse.json(
-        { success: false, error: "Acceso denegado. Los auditores no pueden modificar ventas." },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
-    const { id, pin } = body;
+    const { id, pin, regenerateIntegrations } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -696,6 +692,15 @@ export async function PUT(request: Request) {
       accion_descripcion: `Venta modificada: ${updatedSale.codigo_venta} para ${cliente_nombre || "Cliente"} (Monto: ${monto_total || updatedSale.monto_total} ${moneda || updatedSale.moneda})`,
     });
 
+    if (regenerateIntegrations) {
+      console.log(`[PUT Sale] Regeneración explícita de integraciones solicitada para venta ID: ${id}`);
+      try {
+        await runVentasAutomations(id);
+      } catch (autoErr) {
+        console.error("[PUT Sale] Error al regenerar integraciones:", autoErr);
+      }
+    }
+
     try {
       await updateLocalWorkspaceSheet();
     } catch (localErr) {
@@ -729,22 +734,56 @@ export async function DELETE(request: Request) {
     }
 
     const userData = JSON.parse(sessionCookie.value);
-    const { role, id: userId } = userData;
+    const { role, id: userId, username } = userData;
 
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "auditor") {
       return NextResponse.json(
-        { success: false, error: "Acceso denegado. Solo administradores pueden eliminar ventas." },
+        { success: false, error: "Acceso denegado. Solo administradores y gestores pueden eliminar ventas." },
         { status: 403 }
       );
     }
 
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (e) {}
+
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const id = body.id || searchParams.get("id");
+    const pin = body.pin || searchParams.get("pin");
 
     if (!id) {
       return NextResponse.json(
         { success: false, error: "ID de la venta es requerido." },
         { status: 400 }
+      );
+    }
+
+    if (!pin) {
+      return NextResponse.json(
+        { success: false, error: "Firma de PIN de seguridad es requerida para eliminar la venta." },
+        { status: 400 }
+      );
+    }
+
+    const { data: operator, error: opError } = await supabase
+      .from("usuarios_agencia")
+      .select("pin_hash, pin_salt")
+      .eq("username", username)
+      .single();
+
+    if (opError || !operator) {
+      return NextResponse.json(
+        { success: false, error: "Error al validar el usuario firma. Intente de nuevo." },
+        { status: 401 }
+      );
+    }
+
+    const isPinValid = verifyPin(pin, operator.pin_hash, operator.pin_salt);
+    if (!isPinValid) {
+      return NextResponse.json(
+        { success: false, error: "PIN de confirmación incorrecto. Venta no eliminada." },
+        { status: 401 }
       );
     }
 
@@ -754,18 +793,34 @@ export async function DELETE(request: Request) {
       .eq("id", id)
       .single();
 
+    // Soft delete: actualizar estado interno y estado de integraciones a ELIMINADA/ELIMINADO
     const { error } = await supabase
       .from("ventas")
-      .delete()
+      .update({
+        estado_interno: "ELIMINADA",
+        status_trello: "ELIMINADO",
+        status_dropbox: "ELIMINADO",
+        status_ghl_contacto: "ELIMINADO",
+        status_ghl_factura: "ELIMINADO",
+        status_whatsapp: "ELIMINADO",
+        status_email: "ELIMINADO",
+        status_sheets: "ELIMINADO"
+      })
       .eq("id", id);
 
     if (error) {
       throw error;
     }
 
+    // Desactivar proyecto asociado en DB si existe
+    await supabase
+      .from("proyectos")
+      .update({ activo: false })
+      .eq("venta_id", id);
+
     await supabase.from("historial_actividades").insert({
       usuario_id: userId,
-      accion_descripcion: `Venta eliminada: ${saleData?.codigo_venta || "N/A"} (${saleData?.proyecto_nombre || "N/A"}) por administrador`,
+      accion_descripcion: `Venta eliminada/archivada: ${saleData?.codigo_venta || "N/A"} (${saleData?.proyecto_nombre || "N/A"}) por ${role}`,
     });
 
     try {

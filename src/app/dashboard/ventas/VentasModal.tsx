@@ -93,6 +93,7 @@ interface VentasModalProps {
   onSuccess: () => void;
   initialGatingStep?: "choose" | "extension" | "pago_parcial" | "none";
   initialUsers?: User[];
+  editingSale?: any | null;
 }
 
 export default function VentasModal({ 
@@ -100,7 +101,8 @@ export default function VentasModal({
   onClose, 
   onSuccess, 
   initialGatingStep = "choose",
-  initialUsers = []
+  initialUsers = [],
+  editingSale = null
 }: VentasModalProps) {
   
   const [clients, setClients] = useState<Client[]>([]);
@@ -164,6 +166,10 @@ export default function VentasModal({
   const [showCustomGating, setShowCustomGating] = useState(false);
   const [showCustomEdit, setShowCustomEdit] = useState(false);
   const [showCustomNew, setShowCustomNew] = useState(false);
+
+  // Estados para el modal de confirmación de regeneración de integraciones al editar
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [regenerateChoice, setRegenerateChoice] = useState<boolean | null>(null);
 
   // Estados para el sistema de borradores (localStorage)
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
@@ -334,6 +340,64 @@ export default function VentasModal({
       manuales_servicios: []
     });
   };
+
+  useEffect(() => {
+    if (isOpen && editingSale) {
+      setGatingStep("none");
+      setShowRegenerateConfirm(false);
+      setRegenerateChoice(null);
+      setFormData({
+        es_continuacion: editingSale.es_continuacion || false,
+        tipo_continuacion: editingSale.tipo_continuacion || "",
+        proyecto_previo_id: editingSale.proyecto_previo_id || "",
+        proyecto_id: "",
+        tipo_venta: editingSale.tipo_venta || "Nueva Venta",
+        tipo_proyecto: editingSale.tipo_proyecto || "Precio Fijo",
+        tipo_proyecto_otro: editingSale.tipo_proyecto_otro || "",
+        status_pago: editingSale.status_pago || "Pago Parcial",
+        plataforma: editingSale.plataforma || "Workana",
+        cliente_nuevo: !editingSale.cliente_id,
+        cliente_id: editingSale.cliente_id || "",
+        cliente_nombre: editingSale.clientes?.nombre || "",
+        cliente_telefono: editingSale.clientes?.telefono || "",
+        cliente_email: editingSale.clientes?.email || "",
+        cliente_pais: editingSale.clientes?.pais || "",
+        cliente_empresa: editingSale.clientes?.empresa || "",
+        cliente_link_usuario: editingSale.clientes?.link_usuario_plataforma || "",
+        proyecto_nombre: editingSale.proyecto_nombre || "",
+        proyecto_link: editingSale.proyecto_link || "",
+        proyecto_brief: editingSale.proyecto_brief || "",
+        descripcion_operativa: editingSale.descripcion_operativa || "",
+        deadline: editingSale.deadline ? editingSale.deadline.split("T")[0] : "",
+        urgente: editingSale.urgente || false,
+        motivo_urgencia: editingSale.motivo_urgencia || "",
+        moneda: editingSale.moneda || "USD",
+        moneda_otra: editingSale.moneda_otra || "",
+        monto_total: editingSale.monto_total ? String(editingSale.monto_total) : "",
+        monto_explicacion: editingSale.monto_explicacion || "",
+        monto_pagado: editingSale.monto_pagado ? String(editingSale.monto_pagado) : "",
+        comision_total: editingSale.comision_total ? String(editingSale.comision_total) : "",
+        fecha_pago: editingSale.fecha_pago ? editingSale.fecha_pago.split("T")[0] : "",
+        fecha_liberacion_pendiente: editingSale.fecha_liberacion_pendiente || false,
+        comprobante_link: editingSale.comprobante_link || "",
+        comprobante_no_aplica: editingSale.comprobante_no_aplica ?? true,
+        setter_principal_id: editingSale.setter_principal_id || "",
+        setters_adicionales_ids: editingSale.setters_adicionales_ids || [],
+        closer_principal_id: editingSale.closer_principal_id || "",
+        closers_adicionales_ids: editingSale.closers_adicionales_ids || [],
+        tipo_cierre: editingSale.tipo_cierre || "Cierre por closer",
+        notas_internas: editingSale.notas_internas || "",
+        manual_rama: editingSale.manual_rama || "",
+        manual_categoria: editingSale.manual_categoria || "",
+        manual_servicio: editingSale.manual_servicio || "",
+        manual_enlace: editingSale.manual_enlace || "",
+        manuales_servicios: editingSale.manuales_servicios || []
+      });
+
+      const closers = [editingSale.closer_principal_id, ...(editingSale.closers_adicionales_ids || [])].filter(Boolean);
+      setClosingParticipants(closers);
+    }
+  }, [isOpen, editingSale]);
 
   // Cargar catálogos siempre al abrir el modal
   useEffect(() => {
@@ -748,6 +812,23 @@ export default function VentasModal({
 
   
   const handleOpenPinModal = () => {
+    if (editingSale) {
+      const origClient = (editingSale.clientes?.nombre || "").trim().toLowerCase();
+      const newClient = (formData.cliente_nombre || "").trim().toLowerCase();
+      const origProj = (editingSale.proyecto_nombre || "").trim().toLowerCase();
+      const newProj = (formData.proyecto_nombre || "").trim().toLowerCase();
+
+      if ((newClient && origClient !== newClient) || (newProj && origProj !== newProj)) {
+        setShowRegenerateConfirm(true);
+        return;
+      }
+    }
+    proceedToPinModal(false);
+  };
+
+  const proceedToPinModal = (shouldRegenerate: boolean) => {
+    setRegenerateChoice(shouldRegenerate);
+    setShowRegenerateConfirm(false);
     setPinError(null);
     setConfirmPin(Array(6).fill(""));
     setShowPinConfirm(true);
@@ -786,6 +867,7 @@ export default function VentasModal({
       }
     }
     const finalPayload = {
+      ...(editingSale ? { id: editingSale.id, regenerateIntegrations: !!regenerateChoice } : {}),
       ...formData,
       setter_principal_id: setterPrincipal,
       setters_adicionales_ids: settersAdicionales,
@@ -800,16 +882,16 @@ export default function VentasModal({
 
     try {
       const res = await fetch("/api/sales", {
-        method: "POST",
+        method: editingSale ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(finalPayload)
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al registrar la venta.");
+      if (!res.ok) throw new Error(data.error || `Error al ${editingSale ? "modificar" : "registrar"} la venta.`);
 
       const sale = data.sale;
-      if (sale) {
+      if (sale && !editingSale) {
         const failed = [];
         if (sale.status_ghl === "ERROR" || sale.status_ghl_contacto === "ERROR" || sale.status_ghl_factura === "ERROR") failed.push("GoHighLevel");
         if (sale.status_trello === "ERROR") failed.push("Trello");
@@ -2692,13 +2774,61 @@ export default function VentasModal({
 
       </div>
 
+      {showRegenerateConfirm && (
+        <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "460px", padding: "1.5rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#d97706" }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "600", color: "#1e293b" }}>
+                  Cambio de Cliente o Proyecto Detectado
+                </h3>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "#475569", lineHeight: 1.5 }}>
+                Has modificado el <strong>Cliente</strong> o el <strong>Nombre del Proyecto</strong> asociado a esta venta. ¿Deseas regenerar nuevamente todas las integraciones (Trello, Dropbox, GHL, Sheets, etc.)?
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => proceedToPinModal(true)}
+                  style={{ backgroundColor: "#0052cc", justifyContent: "center" }}
+                >
+                  Sí, regenerar integraciones
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => proceedToPinModal(false)}
+                  style={{ justifyContent: "center" }}
+                >
+                  No, solo actualizar en BD
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setShowRegenerateConfirm(false)}
+                  style={{ borderColor: "transparent", color: "#64748b", justifyContent: "center" }}
+                >
+                  Cancelar edición
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPinConfirm && (
         <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
           <div className={styles.modalContent} style={{ maxWidth: "380px", overflowY: "hidden" }}>
             <div className={styles.pinConfirmPrompt}>
               <span className={styles.pinConfirmTitle} style={{ fontWeight: "500" }}>Firma de Confirmación</span>
               <p className={styles.pinConfirmDesc}>
-                Por seguridad, ingresa tu PIN de 6 dígitos para autorizar el registro de esta venta.
+                Por seguridad, ingresa tu PIN de 6 dígitos para autorizar {editingSale ? "la modificación" : "el registro"} de esta venta.
               </p>
 
               <div className={styles.pinConfirmInputs}>
@@ -2744,7 +2874,7 @@ export default function VentasModal({
                   onClick={handleConfirmPinSubmit}
                   disabled={submitting || confirmPin.some(d => !d)}
                 >
-                  {submitting ? "Firmando..." : "Confirmar Venta"}
+                  {submitting ? "Firmando..." : editingSale ? "Confirmar Edición" : "Confirmar Venta"}
                 </button>
               </div>
             </div>
@@ -2756,7 +2886,7 @@ export default function VentasModal({
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingOverlayContent}>
             <div className={styles.loadingSpinnerOverlay}></div>
-            <span className={styles.loadingTextOverlay}>Guardando venta...</span>
+            <span className={styles.loadingTextOverlay}>{editingSale ? "Actualizando venta..." : "Guardando venta..."}</span>
           </div>
         </div>
       )}
