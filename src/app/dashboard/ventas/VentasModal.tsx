@@ -349,6 +349,7 @@ export default function VentasModal({
 
       setSelectedClient(editingSale.cliente_id || "");
       setMainSearchQuery(editingSale.clientes?.nombre || "");
+      setGatingProjSearchQuery(editingSale.proyecto_nombre || "");
       setIsPagoParcial(editingSale.status_pago === "Pago Parcial");
       setModifyClientData(true);
       setModifyProjectData(true);
@@ -1147,7 +1148,7 @@ export default function VentasModal({
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalContent} style={{ maxWidth: modalWidth, padding: 0, overflow: isAnyAutocompleteOpen ? "visible" : "hidden", display: "flex", flexDirection: "column", maxHeight: "95vh" }}>
+      <div className={styles.modalContent} style={{ maxWidth: modalWidth, padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "95vh" }}>
 
         
         <div className={styles.modalHeader} style={{ padding: "1.25rem 1.5rem", marginBottom: 0, borderBottom: "1px solid #e2e8f0", backgroundColor: "#ffffff" }}>
@@ -1653,7 +1654,7 @@ export default function VentasModal({
             </div>
 
             {}
-            <div style={{ flexGrow: 1, overflowY: isAnyAutocompleteOpen ? "visible" : "auto", padding: "1.5rem 1.5rem 3.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className={styles.modalBodyScrollable}>
+            <div style={{ flexGrow: 1, overflowY: "auto", padding: "1.5rem 1.5rem 3.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }} className={styles.modalBodyScrollable}>
 
               {}
               {step === 1 && (
@@ -2250,7 +2251,7 @@ export default function VentasModal({
 
                   {editingSale && (
                     <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
-                      <label className={styles.label}>Re-vincular a otro Proyecto Previo / Existente</label>
+                      <label className={styles.label}>Proyecto vinculado</label>
                       <div className={styles.autocompleteWrapper}>
                         <input
                           type="text"
