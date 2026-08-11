@@ -1710,9 +1710,9 @@ export default function VentasModal({
                           className={`${styles.toggleTab} ${!formData.cliente_nuevo ? styles.toggleTabActive : ""}`}
                           onClick={() => {
                             setFormData({ ...formData, cliente_nuevo: false });
-                            setActualizarCliente(false);
+                            setActualizarCliente(editingSale ? true : false);
                           }}
-                          disabled={formData.es_continuacion || disableClientFields}
+                          disabled={editingSale ? false : (formData.es_continuacion || disableClientFields)}
                         >
                           Existente
                         </button>
@@ -1723,7 +1723,7 @@ export default function VentasModal({
                             setFormData({ ...formData, cliente_nuevo: true, cliente_id: "" });
                             setActualizarCliente(false);
                           }}
-                          disabled={formData.es_continuacion || disableClientFields}
+                          disabled={editingSale ? false : (formData.es_continuacion || disableClientFields)}
                         >
                           Nuevo
                         </button>
@@ -1749,7 +1749,7 @@ export default function VentasModal({
                             }}
                             onFocus={() => setShowMainSuggestions(true)}
                             onBlur={() => setTimeout(() => setShowMainSuggestions(false), 200)}
-                            disabled={formData.es_continuacion || disableClientFields || submitting}
+                            disabled={editingSale ? false : (formData.es_continuacion || disableClientFields || submitting)}
                           />
                           {showMainSuggestions && (
                             <div className={styles.autocompleteResults}>
@@ -2248,6 +2248,60 @@ export default function VentasModal({
                     </div>
                   )}
 
+                  {editingSale && (
+                    <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
+                      <label className={styles.label}>Re-vincular a otro Proyecto Previo / Existente</label>
+                      <div className={styles.autocompleteWrapper}>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre de proyecto o cliente para re-vincular..."
+                          className={styles.input}
+                          value={gatingProjSearchQuery}
+                          onChange={(e) => {
+                            setGatingProjSearchQuery(e.target.value);
+                            setShowGatingProjSuggestions(true);
+                          }}
+                          onFocus={() => setShowGatingProjSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowGatingProjSuggestions(false), 200)}
+                          disabled={submitting}
+                        />
+                        {showGatingProjSuggestions && (
+                          <div className={styles.autocompleteResults}>
+                            {filteredProjectsGating.length > 0 ? (
+                              filteredProjectsGating.map(p => (
+                                <div
+                                  key={p.id}
+                                  className={styles.autocompleteItem}
+                                  onClick={() => {
+                                    const priorSaleId = p.venta_id || p.ventas?.id || p.id;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      proyecto_previo_id: priorSaleId,
+                                      proyecto_nombre: p.nombre,
+                                      cliente_id: p.cliente_id || prev.cliente_id,
+                                      cliente_nombre: p.clientes?.nombre || prev.cliente_nombre,
+                                      cliente_telefono: p.clientes?.telefono || prev.cliente_telefono,
+                                      cliente_email: p.clientes?.email || prev.cliente_email,
+                                      cliente_pais: p.clientes?.pais || prev.cliente_pais,
+                                      cliente_empresa: p.clientes?.empresa || prev.cliente_empresa
+                                    }));
+                                    setGatingProjSearchQuery(p.nombre);
+                                    if (p.clientes?.nombre) setMainSearchQuery(p.clientes.nombre);
+                                    setShowGatingProjSuggestions(false);
+                                  }}
+                                >
+                                  <strong>{p.nombre}</strong> <span style={{ fontSize: "0.85rem", color: "#64748b" }}>- {p.clientes?.nombre || "Sin cliente"}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className={styles.autocompleteNoResults}>No se encontraron proyectos</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Nombre del proyecto *</label>
@@ -2257,7 +2311,7 @@ export default function VentasModal({
                         className={styles.input}
                         value={formData.proyecto_nombre}
                         onChange={(e) => setFormData({ ...formData, proyecto_nombre: e.target.value })}
-                        disabled={disableProjectFields}
+                        disabled={editingSale ? false : disableProjectFields}
                         required
                       />
                     </div>

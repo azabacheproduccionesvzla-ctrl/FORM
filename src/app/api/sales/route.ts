@@ -450,7 +450,7 @@ export async function PUT(request: Request) {
     const userRole = userData.role;
 
     const body = await request.json();
-    const { id, pin, regenerateIntegrations } = body;
+    const { id, pin, regenerateIntegrations, proyecto_previo_id, es_continuacion, tipo_continuacion } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -617,6 +617,9 @@ export async function PUT(request: Request) {
       status_sheets: status_sheets || undefined,
       link_trello: link_trello !== undefined ? link_trello : undefined,
       estado_interno: estado_interno || undefined,
+      proyecto_previo_id: proyecto_previo_id !== undefined ? (proyecto_previo_id || null) : undefined,
+      es_continuacion: es_continuacion !== undefined ? !!es_continuacion : undefined,
+      tipo_continuacion: tipo_continuacion !== undefined ? (tipo_continuacion || null) : undefined,
       manual_rama: manual_rama !== undefined ? manual_rama : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.rama) || undefined,
       manual_categoria: manual_categoria !== undefined ? manual_categoria : (Array.isArray(manuales_servicios) && manuales_servicios[0]?.categoria) || undefined,
       manual_servicio: manual_servicio !== undefined ? manual_servicio : (Array.isArray(manuales_servicios) ? manuales_servicios.map((s: any) => s.servicio).join(", ") : undefined),
@@ -654,6 +657,26 @@ export async function PUT(request: Request) {
           .update({ nombre: newProjectName })
           .eq("venta_id", id);
         console.log(`[Rename] Proyecto DB unificado renombrado de "${oldProjectName}" a "${newProjectName}"`);
+      }
+
+      if (proyecto_previo_id) {
+        const { data: newProjDb } = await supabase
+          .from("proyectos")
+          .select("trello_card_id, link_trello, carpeta_dropbox")
+          .eq("venta_id", proyecto_previo_id)
+          .maybeSingle();
+
+        if (newProjDb) {
+          await supabase
+            .from("proyectos")
+            .update({
+              trello_card_id: newProjDb.trello_card_id,
+              link_trello: newProjDb.link_trello,
+              carpeta_dropbox: newProjDb.carpeta_dropbox
+            })
+            .eq("venta_id", id);
+          console.log(`[Relink] Proyecto re-vinculado exitosamente a la tarjeta de Trello ${newProjDb.trello_card_id} y carpeta de Dropbox ${newProjDb.carpeta_dropbox}`);
+        }
       }
 
       if (oldProjectName !== newProjectName || oldClientName !== newClientName) {
