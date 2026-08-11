@@ -353,6 +353,7 @@ export default function VentasModal({
       setModifyClientData(true);
       setModifyProjectData(true);
       setModifyPaymentMode(true);
+      setActualizarCliente(true);
 
       if (editingSale.setters_adicionales_ids && editingSale.setters_adicionales_ids.length > 0) {
         setAgregarSetterAdicional(true);
@@ -1132,10 +1133,10 @@ export default function VentasModal({
   }
 
   
-  const isExtension = formData.es_continuacion;
-  const disableClientFields = isExtension && !modifyClientData;
-  const disableProjectFields = isExtension && !modifyProjectData;
-  const disablePaymentFields = isExtension && !modifyPaymentMode;
+  const isExtension = !editingSale && formData.es_continuacion;
+  const disableClientFields = !editingSale && isExtension && !modifyClientData;
+  const disableProjectFields = !editingSale && isExtension && !modifyProjectData;
+  const disablePaymentFields = !editingSale && isExtension && !modifyPaymentMode;
 
   
   const clientObj = formData.cliente_nuevo ? null : clients.find(c => c.id === formData.cliente_id);
@@ -1758,8 +1759,18 @@ export default function VentasModal({
                                     key={c.id}
                                     className={styles.autocompleteItem}
                                     onClick={() => {
-                                      setFormData({ ...formData, cliente_id: c.id });
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        cliente_id: c.id,
+                                        cliente_nombre: c.nombre || "",
+                                        cliente_email: c.email || "",
+                                        cliente_telefono: c.telefono || "",
+                                        cliente_pais: c.pais || "",
+                                        cliente_empresa: c.empresa || "",
+                                        cliente_link_usuario: c.link_usuario_plataforma || ""
+                                      }));
                                       setMainSearchQuery(c.nombre);
+                                      setSelectedClient(c.id);
                                       setShowMainSuggestions(false);
                                     }}
                                   >
