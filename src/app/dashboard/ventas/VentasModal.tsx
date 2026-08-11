@@ -2252,54 +2252,44 @@ export default function VentasModal({
                   {editingSale && (
                     <div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
                       <label className={styles.label}>Proyecto vinculado</label>
-                      <div className={styles.autocompleteWrapper}>
-                        <input
-                          type="text"
-                          placeholder="Buscar por nombre de proyecto o cliente para re-vincular..."
-                          className={styles.input}
-                          value={gatingProjSearchQuery}
-                          onChange={(e) => {
-                            setGatingProjSearchQuery(e.target.value);
-                            setShowGatingProjSuggestions(true);
-                          }}
-                          onFocus={() => setShowGatingProjSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowGatingProjSuggestions(false), 200)}
-                          disabled={submitting}
-                        />
-                        {showGatingProjSuggestions && (
-                          <div className={styles.autocompleteResults}>
-                            {filteredProjectsGating.length > 0 ? (
-                              filteredProjectsGating.map(p => (
-                                <div
-                                  key={p.id}
-                                  className={styles.autocompleteItem}
-                                  onClick={() => {
-                                    const priorSaleId = p.venta_id || p.ventas?.id || p.id;
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      proyecto_previo_id: priorSaleId,
-                                      proyecto_nombre: p.nombre,
-                                      cliente_id: p.cliente_id || prev.cliente_id,
-                                      cliente_nombre: p.clientes?.nombre || prev.cliente_nombre,
-                                      cliente_telefono: p.clientes?.telefono || prev.cliente_telefono,
-                                      cliente_email: p.clientes?.email || prev.cliente_email,
-                                      cliente_pais: p.clientes?.pais || prev.cliente_pais,
-                                      cliente_empresa: p.clientes?.empresa || prev.cliente_empresa
-                                    }));
-                                    setGatingProjSearchQuery(p.nombre);
-                                    if (p.clientes?.nombre) setMainSearchQuery(p.clientes.nombre);
-                                    setShowGatingProjSuggestions(false);
-                                  }}
-                                >
-                                  <strong>{p.nombre}</strong> <span style={{ fontSize: "0.85rem", color: "#64748b" }}>- {p.clientes?.nombre || "Sin cliente"}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className={styles.autocompleteNoResults}>No se encontraron proyectos</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <select
+                        className={styles.select}
+                        value={formData.proyecto_previo_id || (allProjects.find(p => p.nombre === formData.proyecto_nombre || p.venta_id === editingSale.id)?.venta_id || "")}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const proj = allProjects.find(p => (p.venta_id && p.venta_id === selectedId) || (p.ventas?.id && p.ventas.id === selectedId) || p.id === selectedId);
+                          if (proj) {
+                            const priorSaleId = proj.venta_id || proj.ventas?.id || proj.id;
+                            setFormData(prev => ({
+                              ...prev,
+                              proyecto_previo_id: priorSaleId,
+                              proyecto_nombre: proj.nombre,
+                              cliente_id: proj.cliente_id || prev.cliente_id,
+                              cliente_nombre: proj.clientes?.nombre || prev.cliente_nombre,
+                              cliente_telefono: proj.clientes?.telefono || prev.cliente_telefono,
+                              cliente_email: proj.clientes?.email || prev.cliente_email,
+                              cliente_pais: proj.clientes?.pais || prev.cliente_pais,
+                              cliente_empresa: proj.clientes?.empresa || prev.cliente_empresa
+                            }));
+                            if (proj.clientes?.nombre) {
+                              setMainSearchQuery(proj.clientes.nombre);
+                            }
+                          }
+                        }}
+                        disabled={submitting}
+                      >
+                        <option value="">-- Seleccionar proyecto para vincular --</option>
+                        {allProjects.map(p => {
+                          const clientLabel = p.clientes?.nombre ? ` - ${p.clientes.nombre}` : "";
+                          const codeLabel = p.ventas?.codigo_venta ? ` [${p.ventas.codigo_venta}]` : "";
+                          const pId = p.venta_id || p.ventas?.id || p.id;
+                          return (
+                            <option key={p.id} value={pId}>
+                              {p.nombre}{codeLabel}{clientLabel}
+                            </option>
+                          );
+                        })}
+                      </select>
                     </div>
                   )}
 
