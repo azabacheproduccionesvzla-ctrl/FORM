@@ -81,6 +81,13 @@ export default function ProyectosPage() {
   const [filterStatus, setFilterStatus] = useState<"todos" | "activos" | "deshabilitados">("todos");
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // PIN modal states
+  const [selectedProjectForToggle, setSelectedProjectForToggle] = useState<Project | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState<string[]>(Array(6).fill(""));
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [submittingPin, setSubmittingPin] = useState(false);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const projectsPerPage = 8;
@@ -129,30 +136,93 @@ export default function ProyectosPage() {
     }
   };
 
-  const handleToggleProjectStatus = async (projectId: string, currentActive: boolean) => {
+  const handleOpenPinModal = (project: Project) => {
+    setSelectedProjectForToggle(project);
+    setPin(Array(6).fill(""));
+    setPinError(null);
+    setShowPinModal(true);
+    setTimeout(() => {
+      const el = document.getElementById("project-pin-input-0");
+      if (el) el.focus();
+    }, 100);
+  };
+
+  const handlePinChange = (index: number, value: string) => {
+    if (value !== "" && !/^[0-9]$/.test(value)) return;
+    const newPin = [...pin];
+    newPin[index] = value;
+    setPin(newPin);
+    if (value !== "" && index < 5) {
+      const nextInput = document.getElementById(`project-pin-input-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (pin[index] === "" && index > 0) {
+        const newPin = [...pin];
+        newPin[index - 1] = "";
+        setPin(newPin);
+        const prevInput = document.getElementById(`project-pin-input-${index - 1}`);
+        if (prevInput) prevInput.focus();
+      } else {
+        const newPin = [...pin];
+        newPin[index] = "";
+        setPin(newPin);
+      }
+    }
+  };
+
+  const handleConfirmToggleWithPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProjectForToggle) return;
+    const pinStr = pin.join("");
+    if (pinStr.length !== 6) {
+      setPinError("Debes ingresar los 6 dígitos del PIN de seguridad.");
+      return;
+    }
+
+    setSubmittingPin(true);
+    setPinError(null);
+
     try {
-      setTogglingId(projectId);
-      const newActiveState = !currentActive;
+      const newActiveState = !selectedProjectForToggle.activo;
       const res = await fetch("/api/projects", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: projectId, activo: newActiveState }),
+        body: JSON.stringify({
+          id: selectedProjectForToggle.id,
+          activo: newActiveState,
+          pin: pinStr,
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? { ...p, activo: newActiveState } : p))
+          prev.map((p) =>
+            p.id === selectedProjectForToggle.id ? { ...p, activo: newActiveState } : p
+          )
         );
+        setShowPinModal(false);
+        setSelectedProjectForToggle(null);
+        setPin(Array(6).fill(""));
       } else {
-        alert(data.error || "Error al cambiar el estado del proyecto.");
+        setPinError(data.error || "Error al cambiar el estado del proyecto.");
+        setPin(Array(6).fill(""));
+        setTimeout(() => {
+          const el = document.getElementById("project-pin-input-0");
+          if (el) el.focus();
+        }, 50);
       }
     } catch (err) {
       console.error("Error toggling project status:", err);
-      alert("Error de conexión al intentar cambiar el estado del proyecto.");
+      setPinError("Error de conexión al intentar cambiar el estado.");
     } finally {
-      setTogglingId(null);
+      setSubmittingPin(false);
     }
   };
+
 
   useEffect(() => {
     fetchProjects(debouncedSearch);
@@ -375,40 +445,59 @@ export default function ProyectosPage() {
                         {project.nombre}
                       </h3>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProjectStatus(project.id, project.activo)}
-                      disabled={togglingId === project.id}
-                      title={project.activo ? "Haz clic para deshabilitar el proyecto" : "Haz clic para habilitar el proyecto"}
+                    <div
+                      onClick={() => handleOpenPinModal(project)}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "0.4rem",
-                        padding: "0.25rem 0.65rem",
+                        gap: "0.5rem",
+                        cursor: "pointer",
+                        padding: "0.2rem 0.5rem 0.2rem 0.35rem",
                         borderRadius: "20px",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
+                        backgroundColor: project.activo ? "#f0fdf4" : "#f8fafc",
                         border: "1px solid",
-                        borderColor: project.activo ? "#bbf7d0" : "#fca5a5",
-                        backgroundColor: project.activo ? "#f0fdf4" : "#fef2f2",
-                        color: project.activo ? "#15803d" : "#991b1b",
-                        cursor: togglingId === project.id ? "wait" : "pointer",
+                        borderColor: project.activo ? "#bbf7d0" : "#cbd5e1",
                         transition: "all 0.2s ease",
-                        opacity: togglingId === project.id ? 0.6 : 1,
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                        userSelect: "none"
                       }}
+                      title={project.activo ? "Haz clic para deshabilitar este proyecto (requiere PIN)" : "Haz clic para habilitar este proyecto (requiere PIN)"}
                     >
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "20px",
+                          backgroundColor: project.activo ? "#22c55e" : "#94a3b8",
+                          borderRadius: "10px",
+                          position: "relative",
+                          transition: "background-color 0.25s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "2px",
+                          boxSizing: "border-box"
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            backgroundColor: "#ffffff",
+                            borderRadius: "50%",
+                            transform: project.activo ? "translateX(16px)" : "translateX(0px)",
+                            transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.25)"
+                          }}
+                        />
+                      </div>
                       <span
                         style={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          backgroundColor: project.activo ? "#22c55e" : "#ef4444",
-                          display: "inline-block"
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          color: project.activo ? "#15803d" : "#64748b"
                         }}
-                      />
-                      <span>{togglingId === project.id ? "Guardando..." : project.activo ? "Habilitado" : "Deshabilitado"}</span>
-                    </button>
+                      >
+                        {project.activo ? "Habilitado" : "Deshabilitado"}
+                      </span>
+                    </div>
                   </div>
 
                   <div style={{ borderTop: "1px solid #f1f5f9", padding: "1rem 0", display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.875rem", color: "#475569" }}>
@@ -594,6 +683,81 @@ export default function ProyectosPage() {
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => fetchProjects(debouncedSearch)}
       />
+
+      {showPinModal && selectedProjectForToggle && (
+        <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "400px", overflowY: "hidden", padding: "2rem" }}>
+            <form onSubmit={handleConfirmToggleWithPin} className={styles.pinConfirmPrompt}>
+              <div style={{ width: "48px", height: "48px", borderRadius: "50%", backgroundColor: selectedProjectForToggle.activo ? "#fef2f2" : "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", color: selectedProjectForToggle.activo ? "#ef4444" : "#22c55e", marginBottom: "0.25rem" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+
+              <span className={styles.pinConfirmTitle}>Firma de Autorización</span>
+              <p className={styles.pinConfirmDesc} style={{ margin: 0 }}>
+                Ingresa tu PIN de 6 dígitos para autorizar {selectedProjectForToggle.activo ? "deshabilitar" : "habilitar"} el proyecto:
+              </p>
+              <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#0f172a", backgroundColor: "#f8fafc", padding: "0.4rem 0.88rem", borderRadius: "6px", border: "1px solid #e2e8f0", maxWidth: "100%", wordBreak: "break-word" }}>
+                {selectedProjectForToggle.nombre}
+              </span>
+              <p style={{ fontSize: "0.75rem", color: "#d97706", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                ⚠️ Solo Administradores y Auditores
+              </p>
+
+              <div className={styles.pinConfirmInputs} style={{ margin: "0.75rem auto" }}>
+                {pin.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    id={`project-pin-input-${idx}`}
+                    type="password"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePinChange(idx, e.target.value)}
+                    onKeyDown={(e) => handlePinKeyDown(idx, e)}
+                    className={`${styles.pinConfirmInput} ${digit ? styles.pinConfirmInputFilled : ""} ${pinError ? styles.inputError : ""}`}
+                    disabled={submittingPin}
+                  />
+                ))}
+              </div>
+
+              {pinError && (
+                <div className={styles.alertError} style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.75rem", margin: 0 }}>
+                  <span>{pinError}</span>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.75rem", width: "100%", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  style={{ flex: 1, minHeight: "42px", justifyContent: "center" }}
+                  onClick={() => {
+                    setShowPinModal(false);
+                    setSelectedProjectForToggle(null);
+                    setPin(Array(6).fill(""));
+                    setPinError(null);
+                  }}
+                  disabled={submittingPin}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  style={{ flex: 1, minHeight: "42px", justifyContent: "center", backgroundColor: selectedProjectForToggle.activo ? "#dc2626" : "#0052cc", borderColor: selectedProjectForToggle.activo ? "#dc2626" : "#0052cc" }}
+                  disabled={submittingPin || pin.join("").length !== 6}
+                >
+                  {submittingPin ? "Verificando..." : selectedProjectForToggle.activo ? "Deshabilitar" : "Habilitar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
