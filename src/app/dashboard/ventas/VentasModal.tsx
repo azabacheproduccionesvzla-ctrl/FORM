@@ -1055,6 +1055,7 @@ export default function VentasModal({
 
   
   const filteredProjectsGating = allProjects.filter((p) => {
+    if (p.activo === false && (!selectedProject || selectedProject.id !== p.id)) return false;
     if (!gatingProjSearchQuery || gatingProjSearchQuery.trim() === "") return true;
     const q = gatingProjSearchQuery.trim().toLowerCase();
     if (editingSale && q === (editingSale.proyecto_nombre || "").trim().toLowerCase()) return true;

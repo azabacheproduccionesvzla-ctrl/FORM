@@ -94,3 +94,53 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("azabache_session");
+
+    if (!sessionCookie || !sessionCookie.value) {
+      return NextResponse.json(
+        { success: false, error: "No autenticado." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { id, activo } = body;
+
+    if (!id || typeof activo !== "boolean") {
+      return NextResponse.json(
+        { success: false, error: "Se requiere id del proyecto y estado activo válido." },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("proyectos")
+      .update({
+        activo,
+        actualizado_en: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      project: data,
+    });
+  } catch (error: any) {
+    console.error("PATCH Project Error:", error);
+    return NextResponse.json(
+      { success: false, error: "Error al actualizar el estado del proyecto." },
+      { status: 500 }
+    );
+  }
+}
+

@@ -78,6 +78,8 @@ export default function ProyectosPage() {
 
   // Filter states
   const [filterDate, setFilterDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"todos" | "activos" | "deshabilitados">("todos");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,6 +129,31 @@ export default function ProyectosPage() {
     }
   };
 
+  const handleToggleProjectStatus = async (projectId: string, currentActive: boolean) => {
+    try {
+      setTogglingId(projectId);
+      const newActiveState = !currentActive;
+      const res = await fetch("/api/projects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: projectId, activo: newActiveState }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === projectId ? { ...p, activo: newActiveState } : p))
+        );
+      } else {
+        alert(data.error || "Error al cambiar el estado del proyecto.");
+      }
+    } catch (err) {
+      console.error("Error toggling project status:", err);
+      alert("Error de conexión al intentar cambiar el estado del proyecto.");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchProjects(debouncedSearch);
   }, [debouncedSearch]);
@@ -137,6 +164,8 @@ export default function ProyectosPage() {
       const localDateStr = getLocalDateString(project.creado_en);
       if (localDateStr !== filterDate) return false;
     }
+    if (filterStatus === "activos" && !project.activo) return false;
+    if (filterStatus === "deshabilitados" && project.activo) return false;
     return true;
   });
 
@@ -243,6 +272,23 @@ export default function ProyectosPage() {
         {/* Filtros */}
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#475569" }}>Estado:</span>
+            <select
+              className={styles.input}
+              style={{ width: "160px", height: "42px", padding: "0 0.75rem", cursor: "pointer" }}
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value as any);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="todos">Todos</option>
+              <option value="activos">Solo Habilitados</option>
+              <option value="deshabilitados">Solo Deshabilitados</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#475569" }}>Fecha:</span>
             <input
               type="date"
@@ -254,10 +300,11 @@ export default function ProyectosPage() {
             />
           </div>
 
-          {filterDate && (
+          {(filterDate || filterStatus !== "todos") && (
             <button
               onClick={() => {
                 setFilterDate("");
+                setFilterStatus("todos");
                 setCurrentPage(1);
               }}
               className={styles.btnSecondary}
@@ -292,7 +339,7 @@ export default function ProyectosPage() {
               </svg>
             </div>
             <span className={styles.emptyStateText}>
-              {search || filterDate
+              {search || filterDate || filterStatus !== "todos"
                 ? "No se encontraron proyectos que coincidan con los filtros aplicados."
                 : "No hay proyectos registrados."}
             </span>
@@ -309,7 +356,7 @@ export default function ProyectosPage() {
               const currency = project.ventas?.moneda;
 
               return (
-                <div key={project.id} className={styles.card} style={{ display: "flex", flexDirection: "column", padding: "1.5rem", transition: "transform 0.2s, box-shadow 0.2s" }}>
+                <div key={project.id} className={styles.card} style={{ display: "flex", flexDirection: "column", padding: "1.5rem", transition: "transform 0.2s, box-shadow 0.2s", opacity: project.activo ? 1 : 0.8, backgroundColor: project.activo ? "#ffffff" : "#fafafa" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}>
                     <div>
                       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.25rem", flexWrap: "wrap" }}>
@@ -324,13 +371,44 @@ export default function ProyectosPage() {
                           </span>
                         )}
                       </div>
-                      <h3 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#0f172a", margin: 0 }}>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: "600", color: project.activo ? "#0f172a" : "#64748b", margin: 0 }}>
                         {project.nombre}
                       </h3>
                     </div>
-                    <span className={project.activo ? styles.badgeSmallGreen : styles.badgeSmallGrey}>
-                      {project.activo ? "Activo" : "Archivado"}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProjectStatus(project.id, project.activo)}
+                      disabled={togglingId === project.id}
+                      title={project.activo ? "Haz clic para deshabilitar el proyecto" : "Haz clic para habilitar el proyecto"}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        padding: "0.25rem 0.65rem",
+                        borderRadius: "20px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        border: "1px solid",
+                        borderColor: project.activo ? "#bbf7d0" : "#fca5a5",
+                        backgroundColor: project.activo ? "#f0fdf4" : "#fef2f2",
+                        color: project.activo ? "#15803d" : "#991b1b",
+                        cursor: togglingId === project.id ? "wait" : "pointer",
+                        transition: "all 0.2s ease",
+                        opacity: togglingId === project.id ? 0.6 : 1,
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          backgroundColor: project.activo ? "#22c55e" : "#ef4444",
+                          display: "inline-block"
+                        }}
+                      />
+                      <span>{togglingId === project.id ? "Guardando..." : project.activo ? "Habilitado" : "Deshabilitado"}</span>
+                    </button>
                   </div>
 
                   <div style={{ borderTop: "1px solid #f1f5f9", padding: "1rem 0", display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.875rem", color: "#475569" }}>
