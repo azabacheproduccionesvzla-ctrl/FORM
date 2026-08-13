@@ -597,13 +597,26 @@ export async function runVentasAutomations(saleId: string) {
     try {
       const finalTrelloCardId = trelloCardId || (trelloUrl ? trelloUrl.match(/\/c\/([a-zA-Z0-9]+)/)?.[1] : null);
 
-      const { data: existingProj } = await supabase
+      let existingProj: any = null;
+
+      const { data: bySale } = await supabase
         .from("proyectos")
         .select("id")
         .eq("venta_id", saleId)
         .maybeSingle();
 
-      const projectPayload = {
+      existingProj = bySale;
+
+      if (!existingProj && finalTrelloCardId) {
+        const { data: byCard } = await supabase
+          .from("proyectos")
+          .select("id")
+          .eq("trello_card_id", finalTrelloCardId)
+          .maybeSingle();
+        existingProj = byCard;
+      }
+
+      const projectPayload: any = {
         nombre: sale.proyecto_nombre,
         cliente_id: sale.cliente_id,
         venta_id: saleId,
