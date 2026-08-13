@@ -71,13 +71,32 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: trelloRes.error || "Error al actualizar Trello." }, { status: 500 });
       }
 
+      // Sync Supabase database fields (proyecto_nombre) with the new Trello title
+      const clientName = sale.clientes?.nombre || "";
+      let newProjectName = trelloTitle.trim();
+      if (clientName && newProjectName.toLowerCase().endsWith(` - ${clientName.toLowerCase()}`)) {
+        newProjectName = newProjectName.slice(0, newProjectName.length - (clientName.length + 3)).trim();
+      }
+
+      if (newProjectName) {
+        await supabase
+          .from("ventas")
+          .update({ proyecto_nombre: newProjectName })
+          .eq("id", saleId);
+
+        await supabase
+          .from("proyectos")
+          .update({ nombre: newProjectName })
+          .eq("venta_id", saleId);
+      }
+
       try {
         await updateLocalWorkspaceSheet();
       } catch (localErr) {
         console.error("[Quick Update API] Error updating local sheet after trello:", localErr);
       }
 
-      return NextResponse.json({ success: true, message: "Tarjeta de Trello actualizada con éxito." });
+      return NextResponse.json({ success: true, message: "Tarjeta de Trello y base de datos actualizadas con éxito." });
     }
 
     if (action === "dropbox") {

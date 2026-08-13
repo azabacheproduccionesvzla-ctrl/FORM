@@ -179,14 +179,53 @@ export async function POST(request: Request) {
 
           const { data: projDb } = await supabase
             .from("proyectos")
-            .select("trello_card_id")
+            .select("trello_card_id, link_trello")
             .eq("venta_id", id)
             .maybeSingle();
 
-          const finalCardId = projDb?.trello_card_id || cardId;
+          let finalCardId = projDb?.trello_card_id || cardId;
+
+          if (!finalCardId && projDb?.link_trello) {
+            const m = projDb.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+            if (m) finalCardId = m[1];
+          }
+
+          if (!finalCardId && (oldSale as any).proyecto_previo_id) {
+            const { data: priorSale } = await supabase
+              .from("ventas")
+              .select("link_trello")
+              .eq("id", (oldSale as any).proyecto_previo_id)
+              .maybeSingle();
+            if (priorSale?.link_trello) {
+              const m = priorSale.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+              if (m) finalCardId = m[1];
+            }
+          }
+
+          if (!finalCardId && oldSale.cliente_id) {
+            const { data: clientProj } = await supabase
+              .from("proyectos")
+              .select("trello_card_id, link_trello")
+              .eq("cliente_id", oldSale.cliente_id)
+              .not("trello_card_id", "is", null)
+              .maybeSingle();
+            if (clientProj?.trello_card_id) {
+              finalCardId = clientProj.trello_card_id;
+            } else if (clientProj?.link_trello) {
+              const m = clientProj.link_trello.match(/\/c\/([a-zA-Z0-9]+)/);
+              if (m) finalCardId = m[1];
+            }
+          }
 
           if (finalCardId) {
-            await updateTrelloCardName(finalCardId, newProjectName, newClientName);
+            const trelloRes = await updateTrelloCardName(finalCardId, newProjectName, newClientName);
+            if (trelloRes.success) {
+              console.log(`[Bulk Rename] Tarjeta de Trello (${finalCardId}) renombrada con éxito a "${newProjectName}".`);
+            } else {
+              console.warn(`[Bulk Rename Warning] No se pudo renombrar tarjeta de Trello (${finalCardId}): ${trelloRes.error}`);
+            }
+          } else {
+            console.warn(`[Bulk Rename Warning] No se encontró un ID de tarjeta de Trello para la venta ${id}.`);
           }
 
           if (oldClientName && oldProjectName) {

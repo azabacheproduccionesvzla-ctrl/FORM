@@ -115,9 +115,17 @@ export async function GET(request: Request) {
     }
 
     // 3. Parse Trello title: "[Clean Project Name] - [Client Name]"
-    const parts = liveTitle.split(" - ");
-    const parsedProject = parts[0]?.trim();
-    const parsedClient = parts.slice(1).join(" - ").trim();
+    const currentClientName = sale.clientes?.nombre || "";
+    let parsedProject = liveTitle.trim();
+    let parsedClient = currentClientName;
+
+    if (currentClientName && liveTitle.toLowerCase().endsWith(` - ${currentClientName.toLowerCase()}`)) {
+      parsedProject = liveTitle.slice(0, liveTitle.length - (currentClientName.length + 3)).trim();
+    } else if (liveTitle.includes(" - ")) {
+      const parts = liveTitle.split(" - ");
+      parsedClient = parts[parts.length - 1].trim();
+      parsedProject = parts.slice(0, -1).join(" - ").trim();
+    }
 
     // Check and update database if differences exist
     let dbUpdated = false;

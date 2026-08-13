@@ -174,7 +174,18 @@ export async function updateTrelloCardName(
       .replace(/^azabache\s+producciones\s*-\s*/i, "")
       .replace(/^azabache\s+producciones\s*/i, "")
       .trim();
-    const newTitle = `${cleanedProjectName} - ${newClientName}`;
+
+    const cleanedClientName = (newClientName || "").trim();
+
+    let newTitle = cleanedProjectName;
+    if (cleanedClientName) {
+      if (cleanedProjectName.toLowerCase().endsWith(` - ${cleanedClientName.toLowerCase()}`)) {
+        newTitle = cleanedProjectName;
+      } else {
+        newTitle = `${cleanedProjectName} - ${cleanedClientName}`;
+      }
+    }
+
     const updateUrl = `https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`;
 
     const res = await fetch(updateUrl, {
