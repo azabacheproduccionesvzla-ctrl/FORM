@@ -141,6 +141,17 @@ const isPredefinedCountry = (c: string) => {
   return COUNTRIES_AMERICA.includes(c) || COUNTRIES_EUROPE.includes(c);
 };
 
+const formatDateOnly = (d?: string | null) => {
+  if (!d) return null;
+  const clean = d.includes("T") ? d.split("T")[0] : d;
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return new Date(d).toLocaleDateString("es-ES");
+};
+
 export default function VentasPage() {
   const getBadgeStyle = (status?: string) => {
     if (status === "ERROR") {
@@ -1524,7 +1535,7 @@ export default function VentasPage() {
                     </div>
                     <div className={styles.viewModalDataRow}>
                       <span className={styles.viewModalDataLabel}>Fecha Límite (Deadline)</span>
-                      <span className={styles.viewModalDataValue}>{selectedViewSale.deadline ? new Date(selectedViewSale.deadline).toLocaleDateString("es-ES") : "Sin deadline"}</span>
+                      <span className={styles.viewModalDataValue}>{selectedViewSale.deadline ? formatDateOnly(selectedViewSale.deadline) : "Sin deadline"}</span>
                     </div>
                     {(selectedViewSale.proyecto_link || selectedViewSale.proyecto_brief) && (
                       <div style={{ display: "flex", gap: "1rem", marginTop: "0.25rem", flexWrap: "wrap" }}>
@@ -1582,7 +1593,7 @@ export default function VentasPage() {
                   </div>
                   <div className={styles.viewModalDataRow}>
                     <span className={styles.viewModalDataLabel}>Fecha de Pago</span>
-                    <span className={styles.viewModalDataValue}>{selectedViewSale.fecha_pago ? new Date(selectedViewSale.fecha_pago).toLocaleDateString("es-ES") : "N/R"}</span>
+                    <span className={styles.viewModalDataValue}>{selectedViewSale.fecha_pago ? formatDateOnly(selectedViewSale.fecha_pago) : "N/R"}</span>
                   </div>
                   {selectedViewSale.monto_pagado !== null && selectedViewSale.monto_pagado !== undefined && (
                     <div className={styles.viewModalDataRow}>

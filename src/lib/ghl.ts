@@ -229,7 +229,7 @@ export async function createGhlContact(data: {
 export async function createGhlInvoice(contactId: string, data: {
   projectName: string;
   amount: number;
-  currency: string;
+  currency?: string;
   description?: string;
   contactName?: string;
   contactEmail?: string;
@@ -247,7 +247,7 @@ export async function createGhlInvoice(contactId: string, data: {
     status: "DRAFT",
     issueDate: issueDate,
     dueDate: issueDate,
-    currency: (data.currency || "USD").toUpperCase(),
+    currency: "USD",
     contactId: contactId,
     businessDetails: {
       name: "Azabache Producciones",
@@ -273,7 +273,7 @@ export async function createGhlInvoice(contactId: string, data: {
         name: data.projectName,
         qty: 1,
         amount: invoiceAmount,
-        currency: (data.currency || "USD").toUpperCase(),
+        currency: "USD",
         description: data.description || "Servicios creativos"
       }
     ]

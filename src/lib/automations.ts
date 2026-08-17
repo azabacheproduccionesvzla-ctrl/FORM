@@ -225,7 +225,7 @@ export async function runVentasAutomations(saleId: string) {
           const invoiceData = await createGhlInvoice(finalContactId, {
             projectName: sale.proyecto_nombre,
             amount: sale.monto_total,
-            currency: sale.moneda || "usd",
+            currency: "USD",
             description: sale.descripcion_operativa || undefined,
             contactName: clientInfo?.nombre || "Cliente",
             contactEmail: clientInfo?.email || undefined
