@@ -12,6 +12,8 @@ interface Client {
   pais: string | null;
   empresa: string | null;
   link_usuario_plataforma?: string | null;
+  setter_original_id?: string | null;
+  setter?: { id: string; nombre: string } | null;
   ghl_contact_id: string | null;
   creado_en: string;
 }
@@ -110,6 +112,18 @@ function getPageNumbers(currentPage: number, totalPages: number) {
 
 export default function ClientesPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [agencyUsers, setAgencyUsers] = useState<{ id: string; nombre: string; rol: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.users) {
+          setAgencyUsers(data.users.filter((u: any) => u.activo !== false));
+        }
+      })
+      .catch(err => console.error("Error cargando usuarios:", err));
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -132,7 +146,8 @@ export default function ClientesPage() {
     telefono: "",
     pais: "",
     empresa: "",
-    link_usuario_plataforma: ""
+    link_usuario_plataforma: "",
+    setter_original_id: ""
   });
   const [showCustomCountry, setShowCustomCountry] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
@@ -147,7 +162,8 @@ export default function ClientesPage() {
       telefono: client.telefono || "",
       pais: client.pais || "",
       empresa: client.empresa || "",
-      link_usuario_plataforma: client.link_usuario_plataforma || ""
+      link_usuario_plataforma: client.link_usuario_plataforma || "",
+      setter_original_id: client.setter_original_id || client.setter?.id || ""
     });
     const isPre = isPredefinedCountry(client.pais || "");
     setShowCustomCountry(client.pais ? !isPre : false);
@@ -184,7 +200,8 @@ export default function ClientesPage() {
           telefono: editForm.telefono.trim() || null,
           pais: editForm.pais.trim() || null,
           empresa: editForm.empresa.trim() || null,
-          link_usuario_plataforma: editForm.link_usuario_plataforma.trim() || null
+          link_usuario_plataforma: editForm.link_usuario_plataforma.trim() || null,
+          setter_original_id: editForm.setter_original_id || null
         })
       });
 
@@ -274,7 +291,7 @@ export default function ClientesPage() {
       return;
     }
 
-    const headers = ["Nombre", "Email", "Teléfono", "País", "Empresa", "GHL ID", "Fecha Registro"];
+    const headers = ["Nombre", "Email", "Teléfono", "País", "Empresa", "Setter", "GHL ID", "Fecha Registro"];
     
     const escapeCsv = (val: string | null | undefined) => {
       if (val === null || val === undefined) return '""';
@@ -288,6 +305,7 @@ export default function ClientesPage() {
       escapeCsv(client.telefono),
       escapeCsv(client.pais),
       escapeCsv(client.empresa),
+      escapeCsv(client.setter?.nombre || "Sin Asignar"),
       escapeCsv(client.ghl_contact_id),
       escapeCsv(new Date(client.creado_en).toLocaleDateString("es-ES"))
     ]);
@@ -486,6 +504,12 @@ export default function ClientesPage() {
                   </div>
 
                   <div style={{ borderTop: "1px solid #f1f5f9", padding: "1rem 0", display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.875rem", color: "#475569" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "#64748b" }}>Setter:</span>
+                      <span style={{ fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }} title={client.setter?.nombre || "Sin Asignar"}>
+                        {client.setter?.nombre || "Sin Asignar"}
+                      </span>
+                    </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <span style={{ color: "#64748b" }}>Empresa:</span>
                       <span style={{ fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }} title={client.empresa || undefined}>
@@ -803,6 +827,22 @@ export default function ClientesPage() {
                   />
                 </div>
               )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Setter / Agendador Asignado</label>
+                <select
+                  className={styles.select}
+                  value={editForm.setter_original_id}
+                  onChange={(e) => setEditForm({ ...editForm, setter_original_id: e.target.value })}
+                >
+                  <option value="">Sin Asignar (Ninguno)</option>
+                  {agencyUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} ({u.rol})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className={styles.formGroup}>
                 <label className={styles.label}>Enlace de Usuario/Plataforma</label>

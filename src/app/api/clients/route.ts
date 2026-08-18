@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 import { verifyPin } from "@/lib/crypto";
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     while (hasMore) {
       let query = supabase
         .from("clientes")
-        .select("*")
+        .select("*, setter:usuarios_agencia!setter_original_id (id, nombre)")
         .order("nombre", { ascending: true })
         .range(from, from + limit - 1);
 
@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest) {
       body = await request.json();
     } catch (e) {}
 
-    const { id, nombre, email, telefono, pais, empresa, link_usuario_plataforma } = body;
+    const { id, nombre, email, telefono, pais, empresa, link_usuario_plataforma, setter_original_id } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -187,10 +187,11 @@ export async function PUT(request: NextRequest) {
         telefono: telefono || null,
         pais: pais || null,
         empresa: empresa || null,
-        link_usuario_plataforma: link_usuario_plataforma || null
+        link_usuario_plataforma: link_usuario_plataforma || null,
+        setter_original_id: setter_original_id || null
       })
       .eq("id", id)
-      .select()
+      .select("*, setter:usuarios_agencia!setter_original_id (id, nombre)")
       .single();
 
     if (error) {
