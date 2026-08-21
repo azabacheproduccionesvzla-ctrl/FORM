@@ -27,6 +27,8 @@ interface Sale {
   moneda: string;
   moneda_otra?: string;
   monto_total: number;
+  monto_por_hora?: number | null;
+  cantidad_horas?: number | null;
   monto_explicacion?: string;
   monto_pagado?: number;
   comision_total?: number;
@@ -1595,6 +1597,22 @@ export default function VentasPage() {
                     <span className={styles.viewModalDataLabel}>Fecha de Pago</span>
                     <span className={styles.viewModalDataValue}>{selectedViewSale.fecha_pago ? formatDateOnly(selectedViewSale.fecha_pago) : "N/R"}</span>
                   </div>
+                  {selectedViewSale.tipo_proyecto === "Por Hora" && (
+                    <>
+                      {selectedViewSale.monto_por_hora !== null && selectedViewSale.monto_por_hora !== undefined && (
+                        <div className={styles.viewModalDataRow}>
+                          <span className={styles.viewModalDataLabel}>Tarifa por Hora</span>
+                          <span className={styles.viewModalDataValue}>${selectedViewSale.monto_por_hora} {selectedViewSale.moneda || "USD"}/hr</span>
+                        </div>
+                      )}
+                      {selectedViewSale.cantidad_horas !== null && selectedViewSale.cantidad_horas !== undefined && (
+                        <div className={styles.viewModalDataRow}>
+                          <span className={styles.viewModalDataLabel}>Cantidad de Horas</span>
+                          <span className={styles.viewModalDataValue}>{selectedViewSale.cantidad_horas} hrs</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                   {selectedViewSale.monto_pagado !== null && selectedViewSale.monto_pagado !== undefined && (
                     <div className={styles.viewModalDataRow}>
                       <span className={styles.viewModalDataLabel}>Monto Pagado Parcial</span>

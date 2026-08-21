@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS ventas (
     moneda VARCHAR(50) NOT NULL, -- 'USD', 'EUR', 'VES', 'COP', 'Otra'
     moneda_otra VARCHAR(50),
     monto_total NUMERIC NOT NULL,
+    monto_por_hora NUMERIC,
+    cantidad_horas NUMERIC,
     monto_explicacion TEXT,
     monto_pagado NUMERIC,
     comision_total NUMERIC,

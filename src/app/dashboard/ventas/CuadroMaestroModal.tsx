@@ -16,6 +16,8 @@ interface Sale {
   cliente_id: string;
   proyecto_nombre: string;
   monto_total: number;
+  monto_por_hora?: number | null;
+  cantidad_horas?: number | null;
   moneda: string;
   moneda_otra?: string | null;
   fecha_pago?: string;

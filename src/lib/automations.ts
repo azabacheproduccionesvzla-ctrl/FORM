@@ -346,7 +346,7 @@ export async function runVentasAutomations(saleId: string) {
               const manualInfo = buildManualsInfoText(sale);
               const notas = sale.notas_internas ? ` - ${sale.notas_internas}` : "";
               const horasInfo = sale.tipo_proyecto === "Por Hora"
-                ? "\n- **Modalidad:** Por Hora"
+                ? `\n- **Modalidad:** Por Hora${sale.monto_por_hora ? ` ($${sale.monto_por_hora}/hr)` : ""}${sale.cantidad_horas ? ` (${sale.cantidad_horas} hrs)` : ""}`
                 : "";
               const briefInfo = (sale.proyecto_brief && sale.proyecto_brief.trim() !== "" && sale.proyecto_brief !== "N/A")
                 ? `\n- **Brief:** ${sale.proyecto_brief}`

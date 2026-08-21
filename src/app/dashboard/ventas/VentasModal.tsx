@@ -27,6 +27,8 @@ interface PriorSale {
   codigo_venta: string;
   proyecto_nombre: string;
   monto_total: number;
+  monto_por_hora?: number;
+  cantidad_horas?: number;
   monto_pagado?: number;
   tipo_proyecto?: string;
   proyecto_link?: string;
@@ -356,6 +358,20 @@ export default function VentasModal({
       setModifyPaymentMode(true);
       setActualizarCliente(true);
 
+      if (editingSale.monto_por_hora !== undefined && editingSale.monto_por_hora !== null) {
+        setMontoPorHora(String(editingSale.monto_por_hora));
+      } else if (editingSale.tipo_proyecto === "Por Hora" && editingSale.monto_total) {
+        setMontoPorHora(String(editingSale.monto_total));
+      } else {
+        setMontoPorHora("");
+      }
+
+      if (editingSale.cantidad_horas !== undefined && editingSale.cantidad_horas !== null) {
+        setCantidadHoras(String(editingSale.cantidad_horas));
+      } else {
+        setCantidadHoras("");
+      }
+
       if (editingSale.setters_adicionales_ids && editingSale.setters_adicionales_ids.length > 0) {
         setAgregarSetterAdicional(true);
         setSetterAdicionalId(editingSale.setters_adicionales_ids[0]);
@@ -662,8 +678,12 @@ export default function VentasModal({
   useEffect(() => {
     if (formData.tipo_proyecto === "Por Hora" && montoPorHora) {
       const hrs = cantidadHoras ? parseFloat(cantidadHoras) : 0;
-      const calculated = (parseFloat(montoPorHora) * hrs).toFixed(2);
-      setFormData(prev => ({ ...prev, monto_total: calculated }));
+      if (hrs > 0) {
+        const calculated = (parseFloat(montoPorHora) * hrs).toFixed(2);
+        setFormData(prev => ({ ...prev, monto_total: calculated }));
+      } else if (!formData.monto_total || formData.monto_total === "0.00" || formData.monto_total === "0") {
+        setFormData(prev => ({ ...prev, monto_total: parseFloat(montoPorHora).toFixed(2) }));
+      }
     }
   }, [formData.tipo_proyecto, montoPorHora, cantidadHoras]);
 
@@ -728,7 +748,10 @@ export default function VentasModal({
       }));
 
       if (selectedProject.ventas?.tipo_proyecto === "Por Hora") {
-        setMontoPorHora(selectedProject.ventas.monto_total?.toString() || "");
+        setMontoPorHora(selectedProject.ventas.monto_por_hora?.toString() || selectedProject.ventas.monto_total?.toString() || "");
+        if (selectedProject.ventas.cantidad_horas) {
+          setCantidadHoras(selectedProject.ventas.cantidad_horas.toString());
+        }
       }
 
       setGatingStep("none");
@@ -893,6 +916,8 @@ export default function VentasModal({
     const finalPayload = {
       ...(editingSale ? { id: editingSale.id, regenerateIntegrations: !!regenerateChoice } : {}),
       ...formData,
+      monto_por_hora: formData.tipo_proyecto === "Por Hora" && montoPorHora ? parseFloat(montoPorHora) : null,
+      cantidad_horas: formData.tipo_proyecto === "Por Hora" && cantidadHoras ? parseFloat(cantidadHoras) : null,
       setter_principal_id: setterPrincipal,
       setters_adicionales_ids: settersAdicionales,
       closer_principal_id: closerPrincipal,
