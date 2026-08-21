@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
+import { formatAmount, formatCurrency, parseSafeFloat } from "@/lib/formatters";
 
 interface Client {
   id: string;
@@ -359,9 +360,9 @@ export default function VentasModal({
       setActualizarCliente(true);
 
       if (editingSale.monto_por_hora !== undefined && editingSale.monto_por_hora !== null) {
-        setMontoPorHora(String(editingSale.monto_por_hora));
+        setMontoPorHora(Number(editingSale.monto_por_hora).toFixed(2));
       } else if (editingSale.tipo_proyecto === "Por Hora" && editingSale.monto_total) {
-        setMontoPorHora(String(editingSale.monto_total));
+        setMontoPorHora(Number(editingSale.monto_total).toFixed(2));
       } else {
         setMontoPorHora("");
       }
@@ -407,10 +408,10 @@ export default function VentasModal({
         motivo_urgencia: editingSale.motivo_urgencia || "",
         moneda: editingSale.moneda || "USD",
         moneda_otra: editingSale.moneda_otra || "",
-        monto_total: editingSale.monto_total ? String(editingSale.monto_total) : "",
+        monto_total: editingSale.monto_total !== undefined && editingSale.monto_total !== null ? Number(editingSale.monto_total).toFixed(2) : "",
         monto_explicacion: editingSale.monto_explicacion || "",
-        monto_pagado: editingSale.monto_pagado ? String(editingSale.monto_pagado) : "",
-        comision_total: editingSale.comision_total ? String(editingSale.comision_total) : "",
+        monto_pagado: editingSale.monto_pagado !== undefined && editingSale.monto_pagado !== null ? Number(editingSale.monto_pagado).toFixed(2) : "",
+        comision_total: editingSale.comision_total !== undefined && editingSale.comision_total !== null ? Number(editingSale.comision_total).toFixed(2) : "",
         fecha_pago: editingSale.fecha_pago ? editingSale.fecha_pago.split("T")[0] : "",
         fecha_liberacion_pendiente: editingSale.fecha_liberacion_pendiente || false,
         comprobante_link: editingSale.comprobante_link || "",
@@ -677,12 +678,12 @@ export default function VentasModal({
   
   useEffect(() => {
     if (formData.tipo_proyecto === "Por Hora" && montoPorHora) {
-      const hrs = cantidadHoras ? parseFloat(cantidadHoras) : 0;
+      const hrs = cantidadHoras ? parseSafeFloat(cantidadHoras) : 0;
       if (hrs > 0) {
-        const calculated = (parseFloat(montoPorHora) * hrs).toFixed(2);
+        const calculated = (parseSafeFloat(montoPorHora) * hrs).toFixed(2);
         setFormData(prev => ({ ...prev, monto_total: calculated }));
       } else if (!formData.monto_total || formData.monto_total === "0.00" || formData.monto_total === "0") {
-        setFormData(prev => ({ ...prev, monto_total: parseFloat(montoPorHora).toFixed(2) }));
+        setFormData(prev => ({ ...prev, monto_total: parseSafeFloat(montoPorHora).toFixed(2) }));
       }
     }
   }, [formData.tipo_proyecto, montoPorHora, cantidadHoras]);
@@ -916,8 +917,11 @@ export default function VentasModal({
     const finalPayload = {
       ...(editingSale ? { id: editingSale.id, regenerateIntegrations: !!regenerateChoice } : {}),
       ...formData,
-      monto_por_hora: formData.tipo_proyecto === "Por Hora" && montoPorHora ? parseFloat(montoPorHora) : null,
-      cantidad_horas: formData.tipo_proyecto === "Por Hora" && cantidadHoras ? parseFloat(cantidadHoras) : null,
+      monto_total: parseSafeFloat(formData.monto_total),
+      monto_pagado: parseSafeFloat(formData.monto_pagado),
+      comision_total: parseSafeFloat(formData.comision_total),
+      monto_por_hora: formData.tipo_proyecto === "Por Hora" && montoPorHora ? parseSafeFloat(montoPorHora) : null,
+      cantidad_horas: formData.tipo_proyecto === "Por Hora" && cantidadHoras ? parseSafeFloat(cantidadHoras) : null,
       setter_principal_id: setterPrincipal,
       setters_adicionales_ids: settersAdicionales,
       closer_principal_id: closerPrincipal,
@@ -1259,7 +1263,7 @@ export default function VentasModal({
                   <>
                     <strong style={{ color: "#475569" }}>Monto:</strong>
                     <span style={{ fontWeight: "600", color: "#0f172a" }}>
-                      {draftToRestore.formData.monto_total} {draftToRestore.formData.moneda || "USD"}
+                      {formatCurrency(draftToRestore.formData.monto_total, draftToRestore.formData.moneda)}
                     </span>
                   </>
                 )}
@@ -1617,11 +1621,11 @@ export default function VentasModal({
                   <div className={styles.prefilledInfoBlock}>
                     <div className={styles.prefilledRow}>
                       <span className={styles.prefilledLabel}>Monto C/C Pagado:</span>
-                      <span className={styles.prefilledValue}>${montoCCPagadoPrevio} USD</span>
+                      <span className={styles.prefilledValue}>${formatAmount(montoCCPagadoPrevio)} USD</span>
                     </div>
                     <div className={styles.prefilledRow}>
                       <span className={styles.prefilledLabel}>Monto C/C Total:</span>
-                      <span className={styles.prefilledValue}>${montoCCTotalPrevio} USD</span>
+                      <span className={styles.prefilledValue}>${formatAmount(montoCCTotalPrevio)} USD</span>
                     </div>
                     <div className={styles.formGroup} style={{ marginTop: "0.75rem" }}>
                       <label className={styles.label}>Monto C/C a ingresar en este pago</label>
@@ -2625,6 +2629,7 @@ export default function VentasModal({
                           <label className={styles.label}>Cantidad de horas{formData.es_continuacion ? " *" : ""}</label>
                           <input
                             type="number"
+                            step="any"
                             placeholder="Ingresa la cantidad de horas"
                             className={styles.input}
                             value={cantidadHoras}
@@ -2637,7 +2642,7 @@ export default function VentasModal({
 
                       {montoPorHora && cantidadHoras && (
                         <div style={{ fontSize: "0.85rem", fontWeight: "500", color: "#475569", backgroundColor: "#f8fafc", padding: "0.75rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                          Monto total calculado para la transacción: ${formData.monto_total} USD
+                          Monto total calculado para la transacción: {formatCurrency(formData.monto_total, "USD")}
                         </div>
                       )}
                     </>
@@ -2814,7 +2819,7 @@ export default function VentasModal({
                       <>
                         <div className={styles.summaryRow}>
                           <span className={styles.summaryLabel}>Monto por Hora:</span>
-                          <span className={styles.summaryValue}>${montoPorHora} USD</span>
+                          <span className={styles.summaryValue}>${formatAmount(montoPorHora)} USD</span>
                         </div>
                         <div className={styles.summaryRow}>
                           <span className={styles.summaryLabel}>Cantidad de Horas:</span>
@@ -2830,13 +2835,13 @@ export default function VentasModal({
                     {isPagoParcial && formData.tipo_proyecto === "Precio Fijo" && (
                       <div className={styles.summaryRow}>
                         <span className={styles.summaryLabel}>Monto Inicial (Abono):</span>
-                        <span className={styles.summaryValue}>${formData.monto_pagado} {formData.moneda}</span>
+                        <span className={styles.summaryValue}>{formatCurrency(formData.monto_pagado, formData.moneda)}</span>
                       </div>
                     )}
                     <div className={styles.summaryRow}>
                       <span className={styles.summaryLabel} style={{ fontSize: "0.95rem", color: "#0052cc" }}>Monto Total de Venta:</span>
                       <span className={styles.summaryValue} style={{ fontSize: "0.95rem", color: "#0052cc", fontWeight: "600" }}>
-                        ${formData.monto_total} {formData.moneda}
+                        {formatCurrency(formData.monto_total, formData.moneda)}
                       </span>
                     </div>
                   </div>

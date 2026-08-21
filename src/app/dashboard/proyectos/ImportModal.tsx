@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import styles from "../dashboard.module.css";
+import { formatCurrency, parseSafeFloat } from "@/lib/formatters";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
           const projectName = (row["Proyecto"] || row["Proyecto Nombre"] || row["Project"] || row["Project Name"] || row["proyecto"] || "").toString().trim();
           const projectLink = (row["Link Proyecto"] || row["Enlace Proyecto"] || row["Project Link"] || "").toString().trim();
           const brief = (row["Brief"] || row["Link Brief"] || "").toString().trim();
-          const montoTotal = parseFloat(row["Monto Total"] || row["Monto"] || row["Total Amount"] || row["Amount"] || "0");
+          const montoTotal = parseSafeFloat(row["Monto Total"] || row["Monto"] || row["Total Amount"] || row["Amount"] || "0");
           const moneda = (row["Moneda"] || row["Currency"] || "USD").toString().trim();
           const plataforma = (row["Plataforma"] || row["Platform"] || "Workana").toString().trim();
           const tipoVenta = (row["Tipo Venta"] || row["Sale Type"] || "Nueva Venta").toString().trim();
@@ -365,7 +366,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                       </td>
                       <td style={{ padding: "0.5rem 0.75rem", fontWeight: "600", color: "#1e293b" }}>{row.proyecto_nombre || "—"}</td>
                       <td style={{ padding: "0.5rem 0.75rem", color: "#475569" }}>
-                        {row.monto_total} {row.moneda}
+                        {formatCurrency(row.monto_total, row.moneda)}
                       </td>
                       <td style={{ padding: "0.5rem 0.75rem", color: "#475569" }}>{row.plataforma || "—"}</td>
                       <td style={{ padding: "0.5rem 0.75rem", color: "#475569" }}>

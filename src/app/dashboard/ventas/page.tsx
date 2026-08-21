@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
 import VentasModal from "./VentasModal";
 import CuadroMaestroModal from "./CuadroMaestroModal";
+import { formatAmount, formatCurrency } from "@/lib/formatters";
 interface Sale {
   id: string;
   codigo_venta: string;
@@ -669,7 +670,7 @@ export default function VentasPage() {
         escapeCsv(sale.clientes?.nombre || "Cliente"),
         escapeCsv(sale.clientes?.ghl_contact_id),
         escapeCsv(sale.proyecto_nombre),
-        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
+        escapeCsv(`${formatAmount(sale.monto_total)} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
         escapeCsv(getComision(sale.plataforma)),
         escapeCsv(sale.setter_principal?.nombre),
         escapeCsv(setter2),
@@ -1015,9 +1016,7 @@ export default function VentasPage() {
                         </td>
                         <td>
                           <span className={styles.salesTableAmount}>
-                            {sale.moneda === "USD" ? "$" : ""}
-                            {sale.monto_total}
-                            {sale.moneda !== "USD" ? ` ${sale.moneda_otra || sale.moneda}` : " USD"}
+                            {formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra)}
                           </span>
                         </td>
                         <td>
@@ -1208,9 +1207,7 @@ export default function VentasPage() {
                     <div className={styles.saleMobileCardRow} style={{ marginTop: "0.45rem" }}>
                       <span className={styles.saleMobileCardLabel}>Monto</span>
                       <span className={styles.salesTableAmount}>
-                        {sale.moneda === "USD" ? "$" : ""}
-                        {sale.monto_total}
-                        {sale.moneda !== "USD" ? ` ${sale.moneda_otra || sale.moneda}` : " USD"}
+                        {formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra)}
                       </span>
                     </div>
 
@@ -1584,9 +1581,7 @@ export default function VentasPage() {
                   <div className={styles.viewModalDataRow}>
                     <span className={styles.viewModalDataLabel}>Monto Total</span>
                     <span className={styles.viewModalDataValue} style={{ color: "#0f172a", fontSize: "0.95rem" }}>
-                      {selectedViewSale.moneda === "USD" ? "$" : ""}
-                      {selectedViewSale.monto_total}
-                      {selectedViewSale.moneda !== "USD" ? ` ${selectedViewSale.moneda_otra || selectedViewSale.moneda}` : " USD"}
+                      {formatCurrency(selectedViewSale.monto_total, selectedViewSale.moneda, selectedViewSale.moneda_otra)}
                     </span>
                   </div>
                   <div className={styles.viewModalDataRow}>
@@ -1602,7 +1597,7 @@ export default function VentasPage() {
                       {selectedViewSale.monto_por_hora !== null && selectedViewSale.monto_por_hora !== undefined && (
                         <div className={styles.viewModalDataRow}>
                           <span className={styles.viewModalDataLabel}>Tarifa por Hora</span>
-                          <span className={styles.viewModalDataValue}>${selectedViewSale.monto_por_hora} {selectedViewSale.moneda || "USD"}/hr</span>
+                          <span className={styles.viewModalDataValue}>${formatAmount(selectedViewSale.monto_por_hora)} {selectedViewSale.moneda || "USD"}/hr</span>
                         </div>
                       )}
                       {selectedViewSale.cantidad_horas !== null && selectedViewSale.cantidad_horas !== undefined && (
@@ -1616,13 +1611,13 @@ export default function VentasPage() {
                   {selectedViewSale.monto_pagado !== null && selectedViewSale.monto_pagado !== undefined && (
                     <div className={styles.viewModalDataRow}>
                       <span className={styles.viewModalDataLabel}>Monto Pagado Parcial</span>
-                      <span className={styles.viewModalDataValue}>${selectedViewSale.monto_pagado} USD</span>
+                      <span className={styles.viewModalDataValue}>{formatCurrency(selectedViewSale.monto_pagado, selectedViewSale.moneda, selectedViewSale.moneda_otra)}</span>
                     </div>
                   )}
                   {selectedViewSale.comision_total !== null && selectedViewSale.comision_total !== undefined && (
                     <div className={styles.viewModalDataRow}>
                       <span className={styles.viewModalDataLabel}>Comisión Cobrada</span>
-                      <span className={styles.viewModalDataValue}>${selectedViewSale.comision_total} USD</span>
+                      <span className={styles.viewModalDataValue}>{formatCurrency(selectedViewSale.comision_total, "USD")}</span>
                     </div>
                   )}
                   <div className={styles.viewModalDataRow}>

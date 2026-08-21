@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "../dashboard.module.css";
 import ImportModal from "./ImportModal";
+import { formatAmount, formatCurrency } from "@/lib/formatters";
 
 interface Project {
   id: string;
@@ -258,7 +259,7 @@ export default function ProyectosPage() {
       escapeCsv(project.clientes?.nombre),
       escapeCsv(project.clientes?.empresa),
       escapeCsv(project.ventas?.codigo_venta),
-      escapeCsv(project.ventas?.monto_total ? `${project.ventas.monto_total} ${project.ventas.moneda || ""}` : ""),
+      escapeCsv(project.ventas?.monto_total !== undefined && project.ventas?.monto_total !== null ? `${formatAmount(project.ventas.monto_total)} ${project.ventas.moneda || ""}`.trim() : ""),
       escapeCsv(project.ventas?.urgente ? "SÍ" : "NO"),
       escapeCsv(project.trello_card_id),
       escapeCsv(project.link_trello),
@@ -507,11 +508,11 @@ export default function ProyectosPage() {
                         {clientName} {clientCompany ? `(${clientCompany})` : ""}
                       </span>
                     </div>
-                    {amount && (
+                    {amount !== null && amount !== undefined && (
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ color: "#64748b" }}>Monto:</span>
                         <span style={{ fontWeight: 600, color: "#16a34a" }}>
-                          {amount} {currency}
+                          {formatCurrency(amount, currency || "USD")}
                         </span>
                       </div>
                     )}

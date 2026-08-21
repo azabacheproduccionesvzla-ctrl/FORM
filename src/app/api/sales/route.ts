@@ -6,6 +6,7 @@ import { runVentasAutomations } from "@/lib/automations";
 import { updateTrelloCardName } from "@/lib/trello";
 import { renameDropboxFolder } from "@/lib/dropbox";
 import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
+import { parseSafeFloat, formatCurrency, formatAmount } from "@/lib/formatters";
 
 export async function GET(request: Request) {
   try {
@@ -306,12 +307,12 @@ export async function POST(request: Request) {
       motivo_urgencia: urgente ? motivo_urgencia : null,
       moneda,
       moneda_otra: moneda === "Otra" ? moneda_otra : null,
-      monto_total: parseFloat(monto_total),
-      monto_por_hora: tipo_proyecto === "Por Hora" && monto_por_hora !== undefined && monto_por_hora !== null && monto_por_hora !== "" ? parseFloat(monto_por_hora) : null,
-      cantidad_horas: tipo_proyecto === "Por Hora" && cantidad_horas !== undefined && cantidad_horas !== null && cantidad_horas !== "" ? parseFloat(cantidad_horas) : null,
+      monto_total: parseSafeFloat(monto_total),
+      monto_por_hora: tipo_proyecto === "Por Hora" && monto_por_hora !== undefined && monto_por_hora !== null && monto_por_hora !== "" ? parseSafeFloat(monto_por_hora) : null,
+      cantidad_horas: tipo_proyecto === "Por Hora" && cantidad_horas !== undefined && cantidad_horas !== null && cantidad_horas !== "" ? parseSafeFloat(cantidad_horas) : null,
       monto_explicacion: moneda !== "USD" ? monto_explicacion : null,
-      monto_pagado: status_pago === "Pago Parcial" || tipo_venta === "Pago Parcial" ? parseFloat(monto_pagado || 0) : null,
-      comision_total: status_pago === "Pago Parcial" || tipo_venta === "Pago Parcial" ? parseFloat(comision_total || 0) : null,
+      monto_pagado: status_pago === "Pago Parcial" || tipo_venta === "Pago Parcial" ? parseSafeFloat(monto_pagado || 0) : null,
+      comision_total: status_pago === "Pago Parcial" || tipo_venta === "Pago Parcial" ? parseSafeFloat(comision_total || 0) : null,
       fecha_pago: fecha_pago || null,
       fecha_liberacion_pendiente: !!fecha_liberacion_pendiente,
       comprobante_link: comprobante_no_aplica ? null : (comprobante_link || null),
@@ -413,7 +414,7 @@ export async function POST(request: Request) {
 
     await supabase.from("historial_actividades").insert({
       usuario_id: registrarUserId,
-      accion_descripcion: `Venta registrada: ${saleToSend.codigo_venta} para ${finalClienteNombre} (Monto: ${monto_total} ${moneda})`,
+      accion_descripcion: `Venta registrada: ${saleToSend.codigo_venta} para ${finalClienteNombre} (Monto: ${formatCurrency(monto_total, moneda, moneda_otra)})`,
     });
 
     try {
@@ -600,12 +601,12 @@ export async function PUT(request: Request) {
       motivo_urgencia: urgente ? motivo_urgencia : null,
       moneda: moneda || undefined,
       moneda_otra: moneda === "Otra" ? moneda_otra : null,
-      monto_total: monto_total !== undefined ? parseFloat(monto_total) : undefined,
-      monto_por_hora: monto_por_hora !== undefined ? (monto_por_hora !== null && monto_por_hora !== "" ? parseFloat(monto_por_hora) : null) : undefined,
-      cantidad_horas: cantidad_horas !== undefined ? (cantidad_horas !== null && cantidad_horas !== "" ? parseFloat(cantidad_horas) : null) : undefined,
+      monto_total: monto_total !== undefined ? parseSafeFloat(monto_total) : undefined,
+      monto_por_hora: monto_por_hora !== undefined ? (monto_por_hora !== null && monto_por_hora !== "" ? parseSafeFloat(monto_por_hora) : null) : undefined,
+      cantidad_horas: cantidad_horas !== undefined ? (cantidad_horas !== null && cantidad_horas !== "" ? parseSafeFloat(cantidad_horas) : null) : undefined,
       monto_explicacion: moneda !== "USD" ? monto_explicacion : null,
-      monto_pagado: monto_pagado !== undefined ? (monto_pagado ? parseFloat(monto_pagado) : null) : undefined,
-      comision_total: comision_total !== undefined ? (comision_total ? parseFloat(comision_total) : null) : undefined,
+      monto_pagado: monto_pagado !== undefined ? (monto_pagado ? parseSafeFloat(monto_pagado) : null) : undefined,
+      comision_total: comision_total !== undefined ? (comision_total ? parseSafeFloat(comision_total) : null) : undefined,
       fecha_pago: fecha_pago !== undefined ? (fecha_pago || null) : undefined,
       fecha_liberacion_pendiente: fecha_liberacion_pendiente !== undefined ? !!fecha_liberacion_pendiente : undefined,
       comprobante_link: comprobante_no_aplica ? null : (comprobante_link || null),
@@ -758,7 +759,7 @@ export async function PUT(request: Request) {
 
     await supabase.from("historial_actividades").insert({
       usuario_id: userId,
-      accion_descripcion: `Venta modificada: ${updatedSale.codigo_venta} para ${cliente_nombre || "Cliente"} (Monto: ${monto_total || updatedSale.monto_total} ${moneda || updatedSale.moneda})`,
+      accion_descripcion: `Venta modificada: ${updatedSale.codigo_venta} para ${cliente_nombre || "Cliente"} (Monto: ${formatCurrency(monto_total || updatedSale.monto_total, moneda || updatedSale.moneda, moneda_otra || updatedSale.moneda_otra)})`,
     });
 
     if (regenerateIntegrations) {

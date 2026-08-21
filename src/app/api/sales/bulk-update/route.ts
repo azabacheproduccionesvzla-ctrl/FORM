@@ -5,6 +5,7 @@ import { verifyPin } from "@/lib/crypto";
 import { updateTrelloCardName } from "@/lib/trello";
 import { renameDropboxFolder } from "@/lib/dropbox";
 import { updateLocalWorkspaceSheet } from "@/lib/local_sheets";
+import { parseSafeFloat } from "@/lib/formatters";
 
 export async function POST(request: Request) {
   try {
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
         proyecto_nombre: proyecto_nombre !== undefined ? proyecto_nombre.trim() : undefined,
         status_pago: status_pago !== undefined ? status_pago : undefined,
         plataforma: plataforma !== undefined ? plataforma : undefined,
-        monto_total: monto_total !== undefined ? parseFloat(monto_total) : undefined,
+        monto_total: monto_total !== undefined ? parseSafeFloat(monto_total) : undefined,
         moneda: moneda !== undefined ? moneda : undefined,
         fecha_pago: fecha_pago !== undefined ? (fecha_pago || null) : undefined,
         comprobante_link: comprobante_link !== undefined ? (comprobante_link || null) : undefined,

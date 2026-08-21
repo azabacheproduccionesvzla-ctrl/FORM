@@ -6,6 +6,7 @@ import { getIntegrationConfig } from "@/lib/config_service";
 import { updateLocalWorkspaceSheet, getComision, formatExcelDate } from "@/lib/local_sheets";
 import { addSaleLog } from "@/lib/logs";
 import { appendRowToSheet } from "@/lib/sheets";
+import { formatAmount, formatCurrency } from "@/lib/formatters";
 
 function buildManualsInfoText(sale: any): string {
   let list: Array<{ rama: string; categoria?: string; servicio: string; enlace?: string }> = [];
@@ -346,7 +347,7 @@ export async function runVentasAutomations(saleId: string) {
               const manualInfo = buildManualsInfoText(sale);
               const notas = sale.notas_internas ? ` - ${sale.notas_internas}` : "";
               const horasInfo = sale.tipo_proyecto === "Por Hora"
-                ? `\n- **Modalidad:** Por Hora${sale.monto_por_hora ? ` ($${sale.monto_por_hora}/hr)` : ""}${sale.cantidad_horas ? ` (${sale.cantidad_horas} hrs)` : ""}`
+                ? `\n- **Modalidad:** Por Hora${sale.monto_por_hora ? ` ($${formatAmount(sale.monto_por_hora)}/hr)` : ""}${sale.cantidad_horas ? ` (${sale.cantidad_horas} hrs)` : ""}`
                 : "";
               const briefInfo = (sale.proyecto_brief && sale.proyecto_brief.trim() !== "" && sale.proyecto_brief !== "N/A")
                 ? `\n- **Brief:** ${sale.proyecto_brief}`
@@ -398,7 +399,7 @@ export async function runVentasAutomations(saleId: string) {
               urgent: sale.urgente,
               dueDateStr: dueDateStr,
               isExistingProject: sale.es_continuacion,
-              montoStr: `${sale.monto_total} ${sale.moneda}`,
+              montoStr: formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra),
               tipoVenta: sale.tipo_venta,
               trelloMembers: config.trello_default_members,
               plataforma: sale.plataforma
@@ -453,7 +454,7 @@ export async function runVentasAutomations(saleId: string) {
           const compiledHtml = emailTemplate
             .replace("{{PROYECTO_NOMBRE}}", sale.proyecto_nombre || "")
             .replace("{{CLIENTE_NOMBRE}}", clientInfo?.nombre || "Cliente")
-            .replace("{{MONTO}}", `${sale.monto_total} ${sale.moneda}`)
+            .replace("{{MONTO}}", formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra))
             .replace("{{PLATAFORMA}}", sale.plataforma || "")
             .replace("{{TIPO_PROYECTO}}", `${sale.tipo_proyecto}${sale.tipo_proyecto_otro ? ` (${sale.tipo_proyecto_otro})` : ""}`)
             .replace("{{TIPO_VENTA}}", sale.tipo_venta || "")
@@ -512,7 +513,7 @@ export async function runVentasAutomations(saleId: string) {
             cliente: clientInfo?.nombre || "Cliente",
             oferta: sale.oferta_presentada || sale.condiciones_acordadas || "N/A",
             equipo: equipoStr,
-            monto: `${sale.monto_total} ${sale.moneda}`,
+            monto: formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra),
             factura: finalCodigoFactura || "No disponible",
             codigo_venta: sale.codigo_venta
           };
@@ -563,7 +564,7 @@ export async function runVentasAutomations(saleId: string) {
             cliente: clientInfo?.nombre || "Cliente",
             codigo_cliente: clientInfo?.ghl_contact_id || "",
             proyecto: sale.proyecto_nombre,
-            monto_cc: sale.monto_total || 0,
+            monto_cc: formatAmount(sale.monto_total),
             comision: getComision(sale.plataforma),
             setter_1: setterName,
             setter_2: settersExtrasNames.length > 0 ? settersExtrasNames[0] : "",

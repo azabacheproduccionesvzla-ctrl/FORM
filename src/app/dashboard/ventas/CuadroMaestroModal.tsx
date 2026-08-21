@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
+import { formatAmount, formatCurrency, parseSafeFloat } from "@/lib/formatters";
 
 interface Sale {
   id: string;
@@ -310,7 +311,7 @@ export default function CuadroMaestroModal({
         sale.clientes?.nombre || "Cliente",
         sale.clientes?.ghl_contact_id || "",
         sale.proyecto_nombre || "",
-        `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`,
+        `${formatAmount(sale.monto_total)} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`,
         getComisionValue(sale.plataforma),
         sale.setter_principal?.nombre || "",
         setter2,
@@ -646,15 +647,16 @@ export default function CuadroMaestroModal({
                         return (
                           <input
                             type="number"
+                            step="any"
                             defaultValue={displayVal ?? ""}
                             autoFocus
                             onBlur={(e) => {
-                              handleCellChange(sale.id, field, parseFloat(e.target.value) || 0);
+                              handleCellChange(sale.id, field, parseSafeFloat(e.target.value));
                               setEditingCell(null);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                handleCellChange(sale.id, field, parseFloat((e.target as any).value) || 0);
+                                handleCellChange(sale.id, field, parseSafeFloat((e.target as any).value));
                                 setEditingCell(null);
                               }
                             }}
@@ -735,7 +737,7 @@ export default function CuadroMaestroModal({
                           sale.monto_total,
                           "number",
                           undefined,
-                          `${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`
+                          formatCurrency(sale.monto_total, sale.moneda, sale.moneda_otra)
                         )}
                       </td>
                       <td style={cellReadOnlyStyle}>

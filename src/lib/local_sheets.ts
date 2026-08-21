@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { supabase } from "./supabase";
+import { formatAmount } from "./formatters";
 
 export function formatExcelDate(dateStr?: string | Date | null) {
   if (!dateStr) return "";
@@ -127,7 +128,7 @@ export async function updateLocalWorkspaceSheet() {
         escapeCsv(clientName),
         escapeCsv(clientGhlId),
         escapeCsv(sale.proyecto_nombre),
-        escapeCsv(`${sale.monto_total || 0} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
+        escapeCsv(`${formatAmount(sale.monto_total)} ${(sale.moneda === "Otra" ? (sale.moneda_otra || "Otra") : (sale.moneda || "USD")).toUpperCase()}`),
         escapeCsv(getComision(sale.plataforma)),
         escapeCsv((sale.setter_principal as any)?.nombre || ""),
         escapeCsv(setter2),
