@@ -1636,6 +1636,11 @@ export default function VentasModal({
                         className={styles.input}
                         value={formData.monto_pagado}
                         onChange={(e) => setFormData({ ...formData, monto_pagado: e.target.value, monto_total: (montoCCTotalPrevio).toString() })}
+                        onBlur={(e) => {
+                          if (e.target.value.trim()) {
+                            setFormData(prev => ({ ...prev, monto_pagado: parseSafeFloat(e.target.value).toFixed(2) }));
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -2574,6 +2579,11 @@ export default function VentasModal({
                               className={styles.input}
                               value={formData.monto_total}
                               onChange={(e) => setFormData({ ...formData, monto_total: e.target.value })}
+                              onBlur={(e) => {
+                                if (e.target.value.trim()) {
+                                  setFormData(prev => ({ ...prev, monto_total: parseSafeFloat(e.target.value).toFixed(2) }));
+                                }
+                              }}
                               disabled={disablePaymentFields}
                               required
                             />
@@ -2587,6 +2597,11 @@ export default function VentasModal({
                               className={styles.input}
                               value={formData.monto_pagado}
                               onChange={(e) => setFormData({ ...formData, monto_pagado: e.target.value })}
+                              onBlur={(e) => {
+                                if (e.target.value.trim()) {
+                                  setFormData(prev => ({ ...prev, monto_pagado: parseSafeFloat(e.target.value).toFixed(2) }));
+                                }
+                              }}
                               disabled={disablePaymentFields}
                               required
                             />
@@ -2601,6 +2616,11 @@ export default function VentasModal({
                             className={styles.input}
                             value={formData.monto_total}
                             onChange={(e) => setFormData({ ...formData, monto_total: e.target.value })}
+                            onBlur={(e) => {
+                              if (e.target.value.trim()) {
+                                setFormData(prev => ({ ...prev, monto_total: parseSafeFloat(e.target.value).toFixed(2) }));
+                              }
+                            }}
                             disabled={disablePaymentFields}
                             required
                           />
@@ -2621,6 +2641,11 @@ export default function VentasModal({
                             className={styles.input}
                             value={montoPorHora}
                             onChange={(e) => setMontoPorHora(e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value.trim()) {
+                                setMontoPorHora(parseSafeFloat(e.target.value).toFixed(2));
+                              }
+                            }}
                             disabled={formData.es_continuacion || disablePaymentFields}
                             required
                           />
